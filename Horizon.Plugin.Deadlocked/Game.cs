@@ -86,6 +86,9 @@ namespace Horizon.Plugin.Deadlocked
             var game = args.Game;
             var client = args.Player;
 
+            if (game == null)
+                return;
+
             // must have game metadata
             if (!HasGameMetadata(game))
             {
@@ -100,6 +103,23 @@ namespace Horizon.Plugin.Deadlocked
             if (mode != null)
             {
                 await mode.OnClientPostWideStats(args);
+            }
+
+            // store new custom stats in PostStats metadata
+            if (game.WorldStatus == MediusWorldStatus.WorldActive || game.WorldStatus == MediusWorldStatus.WorldClosed)
+            {
+                if (!args.Reject)
+                {
+                    if (args.IsClan)
+                    {
+                        if (args.Player.ClanId.HasValue)
+                            metadata.PostWideStats.Clans[args.Player.ClanId.Value] = args.WideStats.ToArray();
+                    }
+                    else
+                    {
+                        metadata.PostWideStats.Players[args.Player.AccountId] = args.WideStats.ToArray();
+                    }
+                }
             }
 
             Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, $"{client.AccountName} sent wide stats.. rejected={args.Reject}");
@@ -231,6 +251,8 @@ namespace Horizon.Plugin.Deadlocked
                 {
                     metadata.PreWideStats.Players.Add(gameClient.Client.AccountId, gameClient.Client.WideStats.ToArray());
                     metadata.PreCustomWideStats.Players.Add(gameClient.Client.AccountId, gameClient.Client.CustomWideStats.ToArray());
+                    metadata.PostWideStats.Players.Add(gameClient.Client.AccountId, gameClient.Client.WideStats.ToArray());
+                    metadata.PostCustomWideStats.Players.Add(gameClient.Client.AccountId, gameClient.Client.CustomWideStats.ToArray());
 
                     if (gameClient.Client.ClanId.HasValue)
                     {
@@ -242,6 +264,8 @@ namespace Horizon.Plugin.Deadlocked
                             {
                                 metadata.PreWideStats.Clans.Add(clanId, clan.ClanWideStats.ToArray());
                                 metadata.PreCustomWideStats.Clans.Add(clanId, clan.ClanCustomWideStats.ToArray());
+                                metadata.PostWideStats.Clans.Add(clanId, clan.ClanWideStats.ToArray());
+                                metadata.PostCustomWideStats.Clans.Add(clanId, clan.ClanCustomWideStats.ToArray());
                             }
                         }
                     }
@@ -254,13 +278,28 @@ namespace Horizon.Plugin.Deadlocked
         public static async Task OnGameEnded(Server.Medius.Models.Game game)
         {
             var metadata = await GetGameMetadata(game);
+            Dictionary<int, int[]> playerCustomStats = null;
 
             // pass to gamemode
             var mode = Modes.FindCustomModeById((CustomModeId)metadata.GameConfig.GamemodeOverride);
             if (mode != null)
-                await mode.OnGameEnd(game, metadata);
+                playerCustomStats = await mode.OnGameEnd(game, metadata);
+
+            // store new custom stats in PostStats metadata
+            if (playerCustomStats != null)
+            {
+                foreach (var kvp in playerCustomStats)
+                {
+                    metadata.PostCustomWideStats.Players[kvp.Key] = kvp.Value.ToArray();
+                }
+            }
+
+#warning TODO: Add support for custom clan stats
 
             Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, "GAME ENDED");
+
+            // send last metadata to server
+            await SetGameMetadata(game, metadata);
         }
 
         public static async Task OnGameDestroyed(Server.Medius.Models.Game game)
@@ -268,28 +307,6 @@ namespace Horizon.Plugin.Deadlocked
             Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, "GAME DESTROYED");
 
             var metadata = await GetGameMetadata(game);
-
-            // construct post wide stats for each client in PreStats
-            foreach (var playerAccountId in metadata.PreWideStats.Players.Keys)
-            {
-                var account = await Server.Medius.Program.Database.GetAccountById(playerAccountId);
-                if (account != null)
-                {
-                    metadata.PostWideStats.Players.Add(playerAccountId, account.AccountWideStats.ToArray());
-                    metadata.PostCustomWideStats.Players.Add(playerAccountId, account.AccountCustomWideStats.ToArray());
-                }
-            }
-
-            // construct post wide stats for each clan in PreStats
-            foreach (var clanId in metadata.PreWideStats.Clans.Keys)
-            {
-                var clan = await Server.Medius.Program.Database.GetClanById(clanId);
-                if (clan != null)
-                {
-                    metadata.PostWideStats.Clans.Add(clanId, clan.ClanWideStats.ToArray());
-                    metadata.PostCustomWideStats.Clans.Add(clanId, clan.ClanCustomWideStats.ToArray());
-                }
-            }
 
             // send last metadata to server
             await SetGameMetadata(game, metadata);

@@ -45,12 +45,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         protected abstract Task UpdateCustomStats(CustomModeUpdateStatsArgs args);
 
-        public async Task OnGameEnd(Server.Medius.Models.Game game, GameMetadata metadata)
+        public async Task<Dictionary<int, int[]>> OnGameEnd(Server.Medius.Models.Game game, GameMetadata metadata)
         {
             if (!metadata.ReceivedGameData)
             {
                 Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.ERROR, $"OnGameEnd called before GameData was received");
-                return;
+                return null;
             }
 
             var gameData = new GameData();
@@ -61,12 +61,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 {
                     gameData.Deserialize(reader);
                 }
-            }
-
-            if (!GameAcceptStats(game, metadata, gameData))
-            {
-                Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, "Ignoring gun game stats");
-                return;
             }
 
             // 
@@ -107,6 +101,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 });
             }
 
+            // 
+            if (!GameAcceptStats(game, metadata, gameData))
+            {
+                Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, "Ignoring gun game stats");
+                return args.PlayerCustomStats;
+            }
 
             // process stats
             await UpdateCustomStats(args);
@@ -128,6 +128,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     Stats = kvp.Value
                 });
             }
+
+            return args.PlayerCustomStats;
         }
     }
 }
