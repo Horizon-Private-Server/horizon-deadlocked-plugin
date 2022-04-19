@@ -1,0 +1,133 @@
+﻿using Server.Medius.Models;
+using Server.Medius.PluginArgs;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Horizon.Plugin.Deadlocked.CustomModes
+{
+    public abstract class BaseCustomMode
+    {
+        protected class CustomModeUpdateStatsArgs
+        {
+            public Server.Medius.Models.Game Game { get; set; }
+            public GameMetadata Metadata { get; set; }
+            public GameData GameData { get; set; }
+            public Dictionary<int, int[]> PlayerCustomStats { get; set; }
+            public List<StatsGamePlayer> Players { get; set; }
+        }
+
+
+        public abstract CustomModeId Id { get; }
+        public abstract string Name { get; }
+
+        public virtual Task OnClientPostWideStats(OnPlayerWideStatsArgs args)
+        {
+            args.Reject = true; // reject by default
+            return Task.CompletedTask;
+        }
+
+        public virtual Task<string> GetGameInfo(Server.Medius.Models.Game game)
+        {
+            return Task.FromResult<string>(null);
+        }
+
+        public abstract Task<int> GetRank(ClientObject client);
+
+        public abstract Task<Payload> GetPayload(Server.Medius.Models.Game game);
+
+
+        protected abstract bool GameAcceptStats(Server.Medius.Models.Game game, GameMetadata metadata, GameData gameData);
+
+        protected abstract ICustomGameData CreateCustomGameData();
+
+        protected abstract Task UpdateCustomStats(CustomModeUpdateStatsArgs args);
+
+        public async Task OnGameEnd(Server.Medius.Models.Game game, GameMetadata metadata)
+        {
+            if (!metadata.ReceivedGameData)
+            {
+                Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.ERROR, $"OnGameEnd called before GameData was received");
+                return;
+            }
+
+            var gameData = new GameData();
+            gameData.CustomGameData = CreateCustomGameData();
+            using (var ms = new MemoryStream(metadata.GameData))
+            {
+                using (var reader = new BinaryReader(ms))
+                {
+                    gameData.Deserialize(reader);
+                }
+            }
+
+            if (!GameAcceptStats(game, metadata, gameData))
+            {
+                Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, "Ignoring gun game stats");
+                return;
+            }
+
+            // 
+            var args = new CustomModeUpdateStatsArgs()
+            {
+                Game = game,
+                Metadata = metadata,
+                GameData = gameData,
+                PlayerCustomStats = new Dictionary<int, int[]>(),
+                Players = new List<StatsGamePlayer>()
+            };
+
+            // collect custom stats for each players
+            foreach (var accountId in metadata.PreWideStats.Players.Keys)
+            {
+                var gameIdx = Array.FindIndex(gameData.StartGameSettings.PlayerAccountIds, x => x == accountId);
+                if (gameIdx < 0)
+                    continue;
+
+                // get custom wide stats
+                var client = Server.Medius.Program.Manager.GetClientByAccountId(accountId);
+                if (client == null)
+                {
+                    var account = await Server.Medius.Program.Database.GetAccountById(accountId);
+                    args.PlayerCustomStats.Add(accountId, account.AccountCustomWideStats);
+                }
+                else
+                {
+                    args.PlayerCustomStats.Add(accountId, client.CustomWideStats);
+                }
+
+                // construct stats gameplayer
+                args.Players.Add(new StatsGamePlayer()
+                {
+                    Index = gameIdx,
+                    AccountId = accountId,
+                    Team = gameData.StartGameSettings.PlayerTeams[gameIdx]
+                });
+            }
+
+
+            // process stats
+            await UpdateCustomStats(args);
+
+            // post stat changes
+            foreach (var kvp in args.PlayerCustomStats)
+            {
+                // update local client
+                var client = Server.Medius.Program.Manager.GetClientByAccountId(kvp.Key);
+                if (client != null)
+                {
+                    client.CustomWideStats = kvp.Value;
+                }
+
+                // send to db
+                var account = await Server.Medius.Program.Database.PostAccountLadderCustomStats(new Server.Database.Models.StatPostDTO()
+                {
+                    AccountId = kvp.Key,
+                    Stats = kvp.Value
+                });
+            }
+        }
+    }
+}
