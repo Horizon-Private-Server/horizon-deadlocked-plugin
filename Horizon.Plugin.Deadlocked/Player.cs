@@ -116,6 +116,7 @@ namespace Horizon.Plugin.Deadlocked
     public class PlayerExtraInfo
     {
         public int CurrentMapVersion { get; set; }
+        public byte[] PatchHash { get; set; }
     }
 
     public class PlayerConfig

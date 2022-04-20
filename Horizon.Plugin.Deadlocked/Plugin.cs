@@ -32,7 +32,7 @@ namespace Horizon.Plugin.Deadlocked
             host.RegisterAction(PluginEvent.MEDIUS_GAME_ON_HOST_LEFT, OnHostLeftGame);
             host.RegisterAction(PluginEvent.MEDIUS_PLAYER_POST_WIDE_STATS, OnPlayerPostWideStats);
             host.RegisterMediusMessageAction(NetMessageTypes.MessageClassDME, 7, OnRecvCustomMessage);
-
+            host.RegisterMessageAction(RT_MSG_TYPE.RT_MSG_SERVER_CHEAT_QUERY, OnRecvCheatQuery);
 
             return Task.CompletedTask;
         }
@@ -45,7 +45,7 @@ namespace Horizon.Plugin.Deadlocked
             if (!SupportedAppIds.Contains(msg.Player.ApplicationId))
                 return Task.CompletedTask;
 
-            return Patch.SendPatch(msg.Player);
+            return Patch.QueryForPatch(msg.Player);
         }
 
         Task OnPlayerChatMessage(PluginEvent eventId, object data)
@@ -154,6 +154,31 @@ namespace Horizon.Plugin.Deadlocked
 
             // pass to game
             return Game.OnPlayerPostWideStats(msg);
+        }
+
+        async Task OnRecvCheatQuery(RT_MSG_TYPE msgId, object data)
+        {
+            var msg = (Server.Medius.PluginArgs.OnMessageArgs)data;
+            if (msg.Ignore || !msg.IsIncoming || msg.Player == null)
+                return;
+
+            var cheatQuery = msg.Message as RT_MSG_SERVER_CHEAT_QUERY;
+            if (cheatQuery == null)
+                return;
+
+            switch (cheatQuery.SequenceId)
+            {
+                case 101:
+                    {
+                        await Patch.QueryForPatchResponse(msg.Player, cheatQuery);
+                        break;
+                    }
+                default:
+                    {
+                        Host.Log(InternalLogLevel.WARN, $"Unhandled cheat query sequence id {cheatQuery.SequenceId}: {msg}");
+                        break;
+                    }
+            }
         }
 
         async Task OnRecvCustomMessage(NetMessageTypes msgClass, byte msgType, object data)
