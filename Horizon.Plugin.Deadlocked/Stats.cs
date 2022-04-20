@@ -10,7 +10,7 @@ namespace Horizon.Plugin.Deadlocked
     {
         static readonly float[] DEFAULT_REWARD_CURVE = new float[] { 0.4f, 0.3f, 0.3f };
 
-        public static void RateGame(IEnumerable<StatsGamePlayer> players, int[] teamScores, float teamWager = 0.3f, float ffaWager = 0.1f, float rewardFlatness = 0.5f, float drawPenalty = 0.1f)
+        public static void RateGame(IEnumerable<StatsGamePlayer> players, double[] teamScores, float teamWager = 0.3f, float ffaWager = 0.1f, float rewardFlatness = 0.5f, float drawPenalty = 0.1f)
         {
             // compute size of each team
             var teamCounts = new int[10];
@@ -38,7 +38,7 @@ namespace Horizon.Plugin.Deadlocked
             }
         }
 
-        private static void RateTeamGame(IEnumerable<StatsGamePlayer> players, IEnumerable<int> winningTeams, float wager, float rewardFlatness, float drawPenalty)
+        public static void RateTeamGame(IEnumerable<StatsGamePlayer> players, IEnumerable<int> winningTeams, float wager, float rewardFlatness, float drawPenalty)
         {
             var playerWagers = players.ToDictionary(x => x.AccountId, x => 0);
             var teamCounts = new int[10];
@@ -63,7 +63,7 @@ namespace Horizon.Plugin.Deadlocked
 
                 // remove wager from player rank
                 player.Rank -= playerWager;
-                player.Won = !isDraw && winningTeams.Contains(player.Team);
+                player.Won = !isDraw && winningTeams.Contains(player.Team) && !player.Left;
             }
 
             //
@@ -73,6 +73,9 @@ namespace Horizon.Plugin.Deadlocked
             // handle introducing new points into system
             foreach (var player in players)
             {
+                if (player.Left)
+                    continue;
+
                 // compute contribution weight as a linear combination of
                 // how much player bet compared to the entire teams bet
                 // and how many players in team
@@ -104,7 +107,7 @@ namespace Horizon.Plugin.Deadlocked
             }
         }
 
-        private static void RateFfaGame(IEnumerable<StatsGamePlayer> players, float wager, float[] rewardCurve)
+        public static void RateFfaGame(IEnumerable<StatsGamePlayer> players, float wager, float[] rewardCurve)
         {
             var playerWagers = players.ToDictionary(x => x.AccountId, x => 0);
             var pool = 0;
@@ -112,7 +115,7 @@ namespace Horizon.Plugin.Deadlocked
             StatsGamePlayer lastPlayer = null;
 
             // sort players by highest to lowest score
-            players = players.OrderByDescending(x => x.Score).ToArray();
+            players = players.OrderBy(x=>x.Left ? 1 : 0).ThenByDescending(x => x.Score).ToArray();
 
             foreach (var player in players)
             {
@@ -135,7 +138,7 @@ namespace Horizon.Plugin.Deadlocked
                 lastPlayer = player;
 
                 // mark as winner
-                player.Won = player.Placement == 1;
+                player.Won = player.Placement == 1 && !player.Left;
 
                 // force rating [100, 10000]
                 player.Rank = Math.Max(100, Math.Min(10000, player.Rank));
@@ -154,6 +157,9 @@ namespace Horizon.Plugin.Deadlocked
             // handle introducing new points into system
             foreach (var player in players)
             {
+                if (player.Left)
+                    continue;
+
                 var rating = player.Rank;
 
                 // if winnings left in pool and player won something
@@ -188,9 +194,10 @@ namespace Horizon.Plugin.Deadlocked
     {
         public int Index { get; set; }
         public int Team { get; set; }
-        public int Score { get; set; }
+        public double Score { get; set; }
         public int Rank { get; set; }
         public int AccountId { get; set; }
+        public bool Left { get; set; }
 
         public bool Won { get; set; }
         public int Placement { get; set; }

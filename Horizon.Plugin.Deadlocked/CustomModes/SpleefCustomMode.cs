@@ -9,24 +9,20 @@ using System.Threading.Tasks;
 
 namespace Horizon.Plugin.Deadlocked.CustomModes
 {
-    public class GunGameCustomMode : BaseCustomMode
+    public class SpleefCustomMode : BaseCustomMode
     {
-        public override CustomModeId Id => CustomModeId.CMODE_ID_GUN_GAME;
-        public override string Name => "Gun Game";
+        public override CustomModeId Id => CustomModeId.CMODE_ID_SPLEEF;
+        public override string Name => "Spleef";
 
         public override Task<int?> GetRank(ClientObject client)
         {
-            return Task.FromResult((int?)client.CustomWideStats[(int)CustomPlayerStatIds.CUSTOM_STAT_GUNGAME_RANK]);
+            return Task.FromResult((int?)client.CustomWideStats[(int)CustomPlayerStatIds.CUSTOM_STAT_SPLEEF_RANK]);
         }
 
         public override Task OnClientPostWideStats(OnPlayerWideStatsArgs args)
         {
-            var client = args.Player;
-
-            args.WideStats[(int)PlayerStatIds.STAT_OVERALL_RANK] = client.WideStats[(int)PlayerStatIds.STAT_OVERALL_RANK];
-            for (int i = (int)PlayerStatIds.STAT_DEATHMATCH_RANK; i <= (int)PlayerStatIds.STAT_DEATHMATCH_DEATHS; ++i)
-                args.WideStats[i] = client.WideStats[i];
-
+            // reject all
+            args.Reject = true;
             return Task.CompletedTask;
         }
 
@@ -37,17 +33,21 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             if (timelimit == 0)
                 time = "None";
 
-            return Task.FromResult($"Timelimit: {time}");
+            var scoreToWin = "None";
+            if (game.GenericField3 > 0)
+                scoreToWin = game.GenericField3.ToString();
+
+            return Task.FromResult($"Timelimit: {time}\nScore to win: {scoreToWin}");
         }
 
         public override Task<Payload> GetPayload(Server.Medius.Models.Game game, GameMetadata metadata)
         {
-            return Task.FromResult(new Payload(0x000F0000, File.ReadAllBytes(Path.Combine(Plugin.WorkingDirectory, "bin/patch/gun-game-11184.bin"))));
+            return Task.FromResult(new Payload(0x000F0000, File.ReadAllBytes(Path.Combine(Plugin.WorkingDirectory, "bin/patch/spleef-11184.bin"))));
         }
 
         protected override ICustomGameData CreateCustomGameData()
         {
-            return new GunGameCustomData();
+            return new SpleefCustomData();
         }
 
         protected override bool GameAcceptStats(Server.Medius.Models.Game game, GameMetadata metadata, GameData gameData)
@@ -92,7 +92,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         protected override Task UpdateCustomStats(CustomModeUpdateStatsArgs args)
         {
-            var customGameData = args.GameData.CustomGameData as GunGameCustomData;
+            var customGameData = args.GameData.CustomGameData as SpleefCustomData;
             var gameData = args.GameData;
             var game = args.Game;
             var teamScores = new double[10];
@@ -100,8 +100,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             // set rank and score of players
             foreach (var player in args.Players)
             {
-                player.Rank = args.PlayerCustomStats[player.AccountId][(int)CustomPlayerStatIds.CUSTOM_STAT_GUNGAME_RANK];
-                player.Score = customGameData.Guns[player.Index];
+                player.Rank = args.PlayerCustomStats[player.AccountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SPLEEF_RANK];
+                player.Score = customGameData.Points[player.Index];
 
                 // team score is max of team's players' scores
                 if (teamScores[player.Team] < player.Score)
@@ -117,31 +117,30 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 var player = args.Players.FirstOrDefault(x => x.AccountId == accountId);
                 var gameIdx = player.Index;
 
-                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_GUNGAME_RANK] = player.Rank;
-                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_GUNGAME_KILLS] += gameData.Data.Kills[gameIdx];
-                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_GUNGAME_DEATHS] += gameData.Data.Deaths[gameIdx];
-                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_GUNGAME_GAMES_PLAYED] += 1;
-                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_GUNGAME_WINS] += player.Won ? 1 : 0;
-                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_GUNGAME_LOSSES] += player.Won ? 0 : 1;
-                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_GUNGAME_TIMES_PROMOTED] += customGameData.Promotions[gameIdx];
-                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_GUNGAME_TIMES_DEMOTED] += customGameData.Demotions[gameIdx];
-                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_GUNGAME_DEMOTIONS] += customGameData.TimesDemotedAnother[gameIdx];
+                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SPLEEF_RANK] = player.Rank;
+                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SPLEEF_GAMES_PLAYED] += 1;
+                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SPLEEF_WINS] += player.Won ? 1 : 0;
+                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SPLEEF_LOSSES] += player.Won ? 0 : 1;
+                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SPLEEF_BOXES_BROKEN] += customGameData.BoxesDestroyed[gameIdx];
+                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SPLEEF_POINTS] += customGameData.Points[gameIdx];
 
                 if (!player.Left)
-                    args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_GUNGAME_TIME_PLAYED] += (int)((game.UtcTimeEnded - game.UtcTimeStarted)?.TotalSeconds ?? 0);
+                {
+                    args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SPLEEF_TIME_PLAYED] += (int)((game.UtcTimeEnded - game.UtcTimeStarted)?.TotalSeconds ?? 0);
+                    args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SPLEEF_ROUNDS_PLAYED] += customGameData.Rounds;
+                }
             }
 
             return Task.CompletedTask;
         }
     }
 
-    public class GunGameCustomData : ICustomGameData
+    public class SpleefCustomData : ICustomGameData
     {
         public int Version { get; set; }
-        public int[] Guns { get; set; }
-        public int[] Demotions { get; set; }
-        public int[] Promotions { get; set; }
-        public int[] TimesDemotedAnother { get; set; }
+        public int Rounds { get; set; }
+        public int[] Points { get; set; }
+        public int[] BoxesDestroyed { get; set; }
 
         public void Deserialize(BinaryReader reader)
         {
@@ -151,15 +150,14 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             {
                 case 1:
                     {
-                        Guns = reader.ReadArray<int>(10);
-                        Demotions = reader.ReadArray<int>(10);
-                        Promotions = reader.ReadArray<int>(10);
-                        TimesDemotedAnother = reader.ReadArray<int>(10);
+                        Rounds = reader.ReadInt32();
+                        Points = reader.ReadArray<int>(10);
+                        BoxesDestroyed = reader.ReadArray<int>(10);
                         break;
                     }
                 default:
                     {
-                        Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, $"Unsupported gun game data version {Version}");
+                        Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, $"Unsupported spleef data version {Version}");
                         break;
                     }
             }

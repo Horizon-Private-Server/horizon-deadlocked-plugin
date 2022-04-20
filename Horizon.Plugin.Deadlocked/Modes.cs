@@ -10,7 +10,18 @@ namespace Horizon.Plugin.Deadlocked
     {
         static readonly BaseCustomMode[] CustomModes = new BaseCustomMode[]
         {
-            new GunGameCustomMode()
+            new DuckHuntCustomMode(),
+            new GridironCustomMode(),
+            new GunGameCustomMode(),
+            new HoverbikeRaceCustomMode(),
+            new InfectedCustomMode(),
+            new InfiniteClimberCustomMode(),
+            new PayloadCustomMode(),
+            new SearchAndDestroyCustomMode(),
+            new SpleefCustomMode(),
+            new SurvivalCustomMode(),
+            new TeamDefenderCustomMode(),
+            new ThousandKillsCustomMode()
         };
 
         public static BaseCustomMode FindCustomModeById(CustomModeId id)

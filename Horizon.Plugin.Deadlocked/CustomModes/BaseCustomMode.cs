@@ -29,14 +29,14 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             return Task.CompletedTask;
         }
 
-        public virtual Task<string> GetGameInfo(Server.Medius.Models.Game game)
+        public virtual Task<string> GetGameInfo(Server.Medius.Models.Game game, GameMetadata metadata)
         {
             return Task.FromResult<string>(null);
         }
 
-        public abstract Task<int> GetRank(ClientObject client);
+        public abstract Task<int?> GetRank(ClientObject client);
 
-        public abstract Task<Payload> GetPayload(Server.Medius.Models.Game game);
+        public abstract Task<Payload> GetPayload(Server.Medius.Models.Game game, GameMetadata metadata);
 
 
         protected abstract bool GameAcceptStats(Server.Medius.Models.Game game, GameMetadata metadata, GameData gameData);
@@ -97,14 +97,14 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 {
                     Index = gameIdx,
                     AccountId = accountId,
-                    Team = gameData.StartGameSettings.PlayerTeams[gameIdx]
+                    Team = gameData.StartGameSettings.PlayerTeams[gameIdx],
+                    Left = gameData.EndGameSettings.PlayerClients[gameIdx] < 0
                 });
             }
 
             // 
             if (!GameAcceptStats(game, metadata, gameData))
             {
-                Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, "Ignoring gun game stats");
                 return args.PlayerCustomStats;
             }
 

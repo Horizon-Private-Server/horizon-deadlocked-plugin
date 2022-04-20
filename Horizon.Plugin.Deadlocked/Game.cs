@@ -149,7 +149,7 @@ namespace Horizon.Plugin.Deadlocked
 
             // update other metadata
             metadata.CustomMap = Maps.FindCustomMapById((CustomMapId)metadata.GameConfig.MapOverride)?.MapName;
-            metadata.CustomGameMode = metadata.GameConfig.GamemodeOverride.ToString();
+            metadata.CustomGameMode = Modes.FindCustomModeById((CustomModeId)metadata.GameConfig.GamemodeOverride)?.Name;
             metadata.Weather = metadata.GameConfig.WeatherOverride.ToString();
             metadata.GameInfo = await GetGameInfo(game, metadata);
 
@@ -221,9 +221,15 @@ namespace Horizon.Plugin.Deadlocked
 
             // parse gamemode
             var mode = Modes.FindCustomModeById((CustomModeId)metadata.GameConfig.GamemodeOverride);
+            var map = Maps.FindCustomMapById((CustomMapId)metadata.GameConfig.MapOverride);
+            if (map != null && map.ModeId.HasValue)
+            {
+                mode = Modes.FindCustomModeById(map.ModeId.Value);
+            }
+
             if (mode != null)
             {
-                var modePayload = await mode.GetPayload(game);
+                var modePayload = await mode.GetPayload(game, metadata);
                 if (modePayload != null)
                 {
                     // add mode payload
@@ -322,11 +328,10 @@ namespace Horizon.Plugin.Deadlocked
             string gameInfo = null;
 
             // let custom game mode override the gameinfo string
-            if (metadata.GameConfig.GamemodeOverride != 0)
+            var mode = Modes.FindCustomModeById((CustomModeId)metadata.GameConfig.GamemodeOverride);
+            if (mode != null)
             {
-                var mode = Modes.FindCustomModeById((CustomModeId)metadata.GameConfig.GamemodeOverride);
-                if (mode != null)
-                    gameInfo = await mode.GetGameInfo(game);
+                gameInfo = await mode.GetGameInfo(game, metadata);
             }
 
             // default game info
@@ -581,7 +586,7 @@ namespace Horizon.Plugin.Deadlocked
             // we'll ensure that the variable sized data structure doesn't mess up our deserialization
             // by moving the stream to the end of the data block after deserializing the custom game data
             var targetEndPosition = reader.BaseStream.Position + 484;
-            CustomGameData.Deserialize(reader);
+            CustomGameData?.Deserialize(reader);
             reader.BaseStream.Seek(targetEndPosition, SeekOrigin.Begin);
 
             LastPackedGameState.Deserialize(reader);
