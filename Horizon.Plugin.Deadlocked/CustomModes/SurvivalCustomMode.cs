@@ -29,6 +29,13 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             2.0
         };
 
+        private static readonly SurvivalConfig[] _configs = new SurvivalConfig[]
+        {
+            new SurvivalConfig(CustomMapId.CMAP_ID_SURVIVAL_MINING_FACILITY) { MapSize = 1.5f },
+            new SurvivalConfig(CustomMapId.CMAP_ID_SURVIVAL_MARCADIA) { MapSize = 1.0f },
+            new SurvivalConfig(CustomMapId.CMAP_ID_SURVIVAL_VELDIN) { MapSize = 1.0f },
+        };
+
         public override CustomModeId Id => CustomModeId.CMODE_ID_SURVIVAL;
         public override string Name => "Survival";
 
@@ -58,6 +65,21 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public override Task<Payload> GetPayload(Server.Medius.Models.Game game, GameMetadata metadata)
         {
             var payload = new Payload(0x000F0000, File.ReadAllBytes(Path.Combine(Plugin.WorkingDirectory, "bin/patch/survival-11184.bin")));
+
+            // find config by custom map then by regular map
+            var config = _configs.FirstOrDefault(x => x.CustomMapId == (CustomMapId)metadata.GameConfig.MapOverride);
+
+            // insert config into payload
+            if (config != null)
+            {
+                using (var ms = new MemoryStream(payload.Data, true))
+                {
+                    using (var writer = new BinaryWriter(ms))
+                    {
+                        config.Serialize(writer);
+                    }
+                }
+            }
 
             return Task.FromResult(payload);
         }
@@ -231,6 +253,26 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                         break;
                     }
             }
+        }
+    }
+
+    public class SurvivalConfig
+    {
+        public const uint Offset = 0x18;
+
+        public CustomMapId CustomMapId { get; }
+        public float MapSize { get; set; }
+
+        public SurvivalConfig(CustomMapId mapId)
+        {
+            CustomMapId = mapId;
+        }
+
+        public void Serialize(BinaryWriter writer)
+        {
+            writer.BaseStream.Seek(Offset, SeekOrigin.Begin);
+
+            writer.Write(MapSize);
         }
     }
 }
