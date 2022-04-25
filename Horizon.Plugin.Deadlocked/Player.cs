@@ -106,6 +106,14 @@ namespace Horizon.Plugin.Deadlocked
 
             return extraInfo;
         }
+
+        public static Task OnPlayerLoggedOut(ClientObject client)
+        {
+            if (_playerExtraInfos.ContainsKey(client.AccountId))
+                _playerExtraInfos.Remove(client.AccountId);
+
+            return Task.CompletedTask;
+        }
     }
 
     public class PlayerMetadata

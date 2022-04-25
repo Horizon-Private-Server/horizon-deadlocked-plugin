@@ -56,6 +56,11 @@ namespace Horizon.Plugin.Deadlocked
                 var hash = System.Security.Cryptography.SHA256.Create();
                 return hash.ComputeHash(bytes.ToArray());
             }
+
+            public bool IsMatch(ClientObject client)
+            {
+                return client.ApplicationId == this.AppId;
+            }
         }
 
         static readonly PatchSetup[] PatchSetups = new PatchSetup[]
@@ -68,7 +73,7 @@ namespace Horizon.Plugin.Deadlocked
                 UnpatchPayload = (0x000CE000, Path.Combine(Plugin.WorkingDirectory, "bin/patch/unpatch-11184.bin")),
                 Payloads = new (uint, string)[]
                 {
-                    (0x000E0000, Path.Combine(Plugin.WorkingDirectory, "bin/patch/patch-11184.bin")),
+                    (0x000E0000, Path.Combine(Plugin.WorkingDirectory, "bin/patch/patch-comp-11184.bin")),
                     (0x000EC000, Path.Combine(Plugin.WorkingDirectory,  "bin/patch/gamerules-11184.bin")),
                     (0x000C8000, Path.Combine(Plugin.WorkingDirectory,  "bin/exceptiondisplay.bin"))
                 }
@@ -77,7 +82,7 @@ namespace Horizon.Plugin.Deadlocked
 
         public static Task QueryForPatch(ClientObject client)
         {
-            var patch = PatchSetups.FirstOrDefault(x => x.AppId == client.ApplicationId);
+            var patch = PatchSetups.FirstOrDefault(x => x.IsMatch(client));
             if (patch == null)
                 return Task.CompletedTask;
 
@@ -109,7 +114,7 @@ namespace Horizon.Plugin.Deadlocked
 
         public static Task QueryForPatchResponse(ClientObject client, RT_MSG_SERVER_CHEAT_QUERY response)
         {
-            var patch = PatchSetups.FirstOrDefault(x => x.AppId == client.ApplicationId);
+            var patch = PatchSetups.FirstOrDefault(x => x.IsMatch(client));
             if (patch == null)
                 return Task.CompletedTask;
 
@@ -129,7 +134,7 @@ namespace Horizon.Plugin.Deadlocked
 
         public static Task SendPatch(ClientObject client)
         {
-            var patch = PatchSetups.FirstOrDefault(x => x.AppId == client.ApplicationId);
+            var patch = PatchSetups.FirstOrDefault(x => x.IsMatch(client));
             if (patch == null)
                 return Task.CompletedTask;
 

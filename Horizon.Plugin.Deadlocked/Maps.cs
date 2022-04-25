@@ -100,6 +100,21 @@ namespace Horizon.Plugin.Deadlocked
     }
 
 
+    public enum MapId : byte
+    {
+        BATTLEDOME = 41,
+        CATACROM = 42,
+        SARATHOS = 44,
+        DARK_CATHEDRAL = 45,
+        SHAAR = 46,
+        VALIX = 47,
+        MINING_FACILITY = 48,
+        TORVAL = 50,
+        TEMPUS = 51,
+        MARAXUS = 53,
+        GHOST_STATION = 54
+    }
+
     public enum CustomMapId : byte
     {
         // custom map ids

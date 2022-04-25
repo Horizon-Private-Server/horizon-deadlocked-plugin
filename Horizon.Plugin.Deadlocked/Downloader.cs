@@ -49,6 +49,14 @@ namespace Horizon.Plugin.Deadlocked
             return onDataDownloadResponse(client, id, 0);
         }
 
+        public static Task OnPlayerLoggedOut(ClientObject client)
+        {
+            if (_states.ContainsKey(client.AccountId))
+                _states.Remove(client.AccountId);
+
+            return Task.CompletedTask;
+        }
+
         private static Task onDataDownloadResponse(ClientObject client, int id, int bytesReceived)
         {
             if (!_states.TryGetValue(client.AccountId, out var state))

@@ -22,7 +22,9 @@ namespace Horizon.Plugin.Deadlocked
             WorkingDirectory = workingDirectory;
             Host = host;
 
-            host.RegisterAction(PluginEvent.MEDIUS_PLAYER_ON_GET_ALL_ANNOUNCEMENTS, OnPlayerLoggedIn);
+            host.RegisterAction(PluginEvent.TICK, OnTick);
+            host.RegisterAction(PluginEvent.MEDIUS_PLAYER_ON_GET_POLICY, OnPlayerLoggedIn);
+            host.RegisterAction(PluginEvent.MEDIUS_PLAYER_ON_LOGGED_OUT, OnPlayerLoggedOut);
             host.RegisterAction(PluginEvent.MEDIUS_GAME_ON_CREATED, OnGameCreated);
             host.RegisterAction(PluginEvent.MEDIUS_GAME_ON_DESTROYED, OnGameDestroyed);
             host.RegisterAction(PluginEvent.MEDIUS_GAME_ON_STARTED, OnGameStarted);
@@ -37,6 +39,11 @@ namespace Horizon.Plugin.Deadlocked
             return Task.CompletedTask;
         }
 
+        Task OnTick(PluginEvent eventId, object data)
+        {
+            return Queue.Tick();
+        }
+
         Task OnPlayerLoggedIn(PluginEvent eventId, object data)
         {
             var msg = (Server.Medius.PluginArgs.OnPlayerRequestArgs)data;
@@ -46,6 +53,19 @@ namespace Horizon.Plugin.Deadlocked
                 return Task.CompletedTask;
 
             return Patch.QueryForPatch(msg.Player);
+        }
+
+        async Task OnPlayerLoggedOut(PluginEvent eventId, object data)
+        {
+            var msg = (Server.Medius.PluginArgs.OnPlayerArgs)data;
+            if (msg.Player == null)
+                return;
+            if (!SupportedAppIds.Contains(msg.Player.ApplicationId))
+                return;
+
+            await Player.OnPlayerLoggedOut(msg.Player);
+            await Downloader.OnPlayerLoggedOut(msg.Player);
+            await Queue.OnPlayerLoggedOut(msg.Player);
         }
 
         Task OnPlayerChatMessage(PluginEvent eventId, object data)
@@ -119,8 +139,8 @@ namespace Horizon.Plugin.Deadlocked
                 return Task.CompletedTask;
 
             // close world if host left staging
-            if (msg.Game.WorldStatus == MediusWorldStatus.WorldStaging)
-                return msg.Game.SetWorldStatus(MediusWorldStatus.WorldClosed);
+            //if (msg.Game.WorldStatus == MediusWorldStatus.WorldStaging)
+            //    return msg.Game.SetWorldStatus(MediusWorldStatus.WorldClosed);
 
             return Task.CompletedTask;
         }
@@ -170,6 +190,7 @@ namespace Horizon.Plugin.Deadlocked
             {
                 case 101:
                     {
+                        msg.Ignore = true;
                         await Patch.QueryForPatchResponse(msg.Player, cheatQuery);
                         break;
                     }
@@ -286,6 +307,27 @@ namespace Horizon.Plugin.Deadlocked
                                 var game = msg.Player.CurrentGame;
                                 if (game != null && game.WorldStatus == MediusWorldStatus.WorldActive)
                                     await game.SetWorldStatus(MediusWorldStatus.WorldClosed);
+                                break;
+                            }
+                        case 22: // player request enter queue
+                            {
+                                var request = new QueueBeginRequestMessage();
+                                request.Deserialize(reader);
+                                await Queue.OnQueueRequest(msg.Player, request.QueueId);
+                                break;
+                            }
+                        case 24: // player request queue information
+                            {
+                                await Queue.OnGetMyQueue(msg.Player);
+                                break;
+                            }
+                        case 29: // player cast vote
+                            {
+                                var request = new VoteRequestMessage();
+                                request.Deserialize(reader);
+                                var game = msg.Player.CurrentGame;
+                                if (game is CompGame compGame)
+                                    await compGame.Vote(msg.Player, request);
                                 break;
                             }
                         default:
