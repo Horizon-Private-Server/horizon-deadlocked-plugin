@@ -2,11 +2,14 @@
 using Horizon.Plugin.Deadlocked.Messages;
 using RT.Common;
 using RT.Models;
+using Server.Common;
 using Server.Common.Stream;
 using Server.Plugins.Interface;
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Horizon.Plugin.Deadlocked
@@ -34,6 +37,7 @@ namespace Horizon.Plugin.Deadlocked
             host.RegisterAction(PluginEvent.MEDIUS_GAME_ON_HOST_LEFT, OnHostLeftGame);
             host.RegisterAction(PluginEvent.MEDIUS_PLAYER_POST_WIDE_STATS, OnPlayerPostWideStats);
             host.RegisterMediusMessageAction(NetMessageTypes.MessageClassDME, 7, OnRecvCustomMessage);
+            host.RegisterMediusMessageAction(NetMessageTypes.MessageClassLobby, (byte)MediusLobbyMessageIds.UpdateClanStats, OnRecvUpdateClanStats);
             host.RegisterMessageAction(RT_MSG_TYPE.RT_MSG_SERVER_CHEAT_QUERY, OnRecvCheatQuery);
 
             return Task.CompletedTask;
@@ -338,6 +342,65 @@ namespace Horizon.Plugin.Deadlocked
                     }
                 }
             }
+        }
+
+        Task OnRecvUpdateClanStats(NetMessageTypes msgClass, byte msgType, object data)
+        {
+            var msg = (Server.Medius.PluginArgs.OnMediusMessageArgs)data;
+            if (msg.Ignore || !msg.IsIncoming || msg.Player == null)
+                return Task.CompletedTask;
+            if (!SupportedAppIds.Contains(msg.Player.ApplicationId))
+                return Task.CompletedTask;
+
+            var request = (msg.Message as MediusUpdateClanStatsRequest);
+            var stats = request.Stats;
+            var oldCtag = Encoding.UTF8.GetString(stats, 0xB4, 4);
+            var ctag = Encoding.UTF8.GetString(Enumerable.ToArray(Enumerable.Reverse(Utils.FromString(Encoding.UTF8.GetString(stats, 0, 0x18))))).Replace("\x00", "");
+
+            // filter out invalid characters
+            var re = new Regex(@"[\x01-\x07]|[\x10-\x1F]|[\x80-\xFF]");
+            if (re.IsMatch(ctag))
+            {
+                var response = new MediusUpdateClanStatsResponse();
+                response.MessageID = request.MessageID;
+                response.StatusCode = MediusCallbackStatus.MediusClanNotFound;
+                msg.Player.Queue(response);
+                msg.Ignore = true;
+                return Task.CompletedTask;
+            }
+
+            // color codes
+            if (oldCtag == "!col")
+            {
+                ctag = ctag
+                    .Replace("1", "\x08")
+                    .Replace("2", "\x09")
+                    .Replace("3", "\x0A")
+                    .Replace("4", "\x0B")
+                    .Replace("5", "\x0C")
+                    .Replace("7", "\x0D")
+                    .Replace("8", "\x0E")
+                    .Replace("9", "\x0F")
+                    ;
+            }
+
+            // convert to hex string
+            ctag = BitConverter.ToString(Enumerable.ToArray(Enumerable.Reverse(Encoding.UTF8.GetBytes(ctag)))).Replace("-", "");
+
+            using (var ms = new MemoryStream(stats, true))
+            {
+                using (var writer = new BinaryWriter(ms))
+                {
+                    foreach (var i in Enumerable.Range(0, 0x18 - ctag.Length))
+                    {
+                        writer.Write((byte)0x30);
+                    }
+
+                    writer.WriteStr(ctag, ctag.Length + 1);
+                }
+            }
+
+            return Task.CompletedTask;
         }
     }
 }

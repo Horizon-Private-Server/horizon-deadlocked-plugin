@@ -210,15 +210,6 @@ namespace Horizon.Plugin.Deadlocked
             // construct payloads to send to client
             var payloads = new List<Payload>();
 
-            // gamerules module entry
-            payloads.Add(new Payload(0x000CF000, new PatchModuleEntry()
-            {
-                Type = PatchModuleEntryType.RUN_ALWAYS,
-                GameEntrypoint = 0x000EC000,
-                LobbyEntrypoint = 0x000EC008,
-                LoadEntrypoint = 0x000EC010,
-            }.Serialize()));
-
             // parse gamemode
             var mode = Modes.FindCustomModeById((CustomModeId)metadata.GameConfig.GamemodeOverride);
             var map = Maps.FindCustomMapById((CustomMapId)metadata.GameConfig.MapOverride);
@@ -236,7 +227,7 @@ namespace Horizon.Plugin.Deadlocked
                     payloads.Add(modePayload);
 
                     // add mode module entry
-                    payloads.Add(new Payload(0x000CF010, new PatchModuleEntry()
+                    payloads.Add(new Payload(0x000CF000, new PatchModuleEntry()
                     {
                         Type = PatchModuleEntryType.RUN_ONCE_GAME,
                         GameEntrypoint = modePayload.Address,
@@ -247,8 +238,9 @@ namespace Horizon.Plugin.Deadlocked
             }
 
             // send payloads to all clients
-            foreach (var gameClient in game.Clients)
-                await Downloader.InitiateDataDownload(gameClient.Client, 201, payloads);
+            if (payloads.Count > 0)
+                foreach (var gameClient in game.Clients)
+                    await Downloader.InitiateDataDownload(gameClient.Client, 201, payloads);
 
             // store player wide stats
             _ = Task.Run(async () =>

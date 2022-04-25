@@ -73,8 +73,7 @@ namespace Horizon.Plugin.Deadlocked
                 UnpatchPayload = (0x000CE000, Path.Combine(Plugin.WorkingDirectory, "bin/patch/unpatch-11184.bin")),
                 Payloads = new (uint, string)[]
                 {
-                    (0x000E0000, Path.Combine(Plugin.WorkingDirectory, "bin/patch/patch-comp-11184.bin")),
-                    (0x000EC000, Path.Combine(Plugin.WorkingDirectory,  "bin/patch/gamerules-11184.bin")),
+                    (0x000E0000, Path.Combine(Plugin.WorkingDirectory, "bin/patch/patch-11184.bin")),
                     (0x000C8000, Path.Combine(Plugin.WorkingDirectory,  "bin/exceptiondisplay.bin"))
                 }
             }
@@ -192,7 +191,7 @@ namespace Horizon.Plugin.Deadlocked
                 // add extra payloads
                 payloads = payloads.Union(new Payload[]
                 {
-                    // gamerules module entry
+                    // patch config
                     new Payload(0x000E0008, (await Player.GetPatchConfig(client)).Serialize()),
                     // hash
                     new Payload(0x000DFFE0, hash),
