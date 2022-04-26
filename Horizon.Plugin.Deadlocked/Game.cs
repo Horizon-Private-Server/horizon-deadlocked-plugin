@@ -131,6 +131,7 @@ namespace Horizon.Plugin.Deadlocked
 
             // update game state
             metadata.GameState = new GameState(packedGameState, game);
+            metadata.GameInfo = await GetGameInfo(game, metadata);
 
             // send to database
             return await SetGameMetadata(game, metadata);
@@ -533,6 +534,7 @@ namespace Horizon.Plugin.Deadlocked
                             Players = new List<string>(new string[]{ name }),
                             Score = score
                         };
+                        Teams.Add(team);
                     }
                     else
                     {
