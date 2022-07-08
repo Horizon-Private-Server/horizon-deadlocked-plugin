@@ -186,6 +186,9 @@ namespace Horizon.Plugin.Deadlocked
             if (msg.Ignore || !msg.IsIncoming || msg.Player == null)
                 return;
 
+            if (!SupportedAppIds.Contains(msg.Player.ApplicationId))
+                return;
+
             var cheatQuery = msg.Message as RT_MSG_SERVER_CHEAT_QUERY;
             if (cheatQuery == null)
                 return;
