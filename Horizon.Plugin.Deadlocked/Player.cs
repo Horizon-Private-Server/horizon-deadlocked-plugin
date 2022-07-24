@@ -4,6 +4,7 @@ using Server.Medius.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -78,11 +79,42 @@ namespace Horizon.Plugin.Deadlocked
             return Task.FromResult(metadata.Config);
         }
 
-        public static async Task SetPatchConfig(ClientObject client, PlayerConfig config)
+        public static async Task BroadcastPatchConfigToGameLobby(ClientObject client)
         {
             var metadata = GetPlayerMetadata(client);
+
+            // broadcast to all clients in lobby if changed
+            if (client.CurrentGame != null)
+            {
+                var dmeId = client.DmeClientId;
+                if (dmeId.HasValue)
+                {
+                    foreach (var gameClient in client.CurrentGame.Clients)
+                    {
+                        if (gameClient.DmeId != dmeId)
+                        {
+                            gameClient.Client.Queue(new SetLobbyClientPatchConfigRequestMessage()
+                            {
+                                DmeId = dmeId.Value,
+                                Config = metadata.Config
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        public static async Task SetPatchConfig(ClientObject client, PlayerConfig config)
+        {
+            // update
+            var metadata = GetPlayerMetadata(client);
+            var changed = metadata.Config == null || !metadata.Config.SameAs(config);
             metadata.Config = config;
             client.Metadata = JsonConvert.SerializeObject(metadata);
+
+            // send to other game clients
+            if (changed)
+                await BroadcastPatchConfigToGameLobby(client);
 
             var result = await Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
             if (!result)
@@ -125,6 +157,7 @@ namespace Horizon.Plugin.Deadlocked
     {
         public int CurrentMapVersion { get; set; }
         public byte[] PatchHash { get; set; }
+        public string LastChatCommand { get;set; }
     }
 
     public class PlayerConfig
@@ -138,10 +171,18 @@ namespace Horizon.Plugin.Deadlocked
         public bool EnableAutoMaps { get; set; }
         public bool EnableFpsCounter { get; set; }
         public bool DisableCircleHackerRay { get; set; }
+        public sbyte PlayerAggTime { get; set; }
+#if TWEAKERS
+        public byte[] CharacterTweakers { get; set; } = new byte[1 + 7*2];
+#endif
 
         public byte[] Serialize()
         {
-            byte[] output = new byte[9];
+            int bufSize = 10;
+#if TWEAKERS
+            bufSize += 1 + 7*2;
+#endif
+            byte[] output = new byte[bufSize];
             using (var ms = new MemoryStream(output, true))
             {
                 using (var writer = new BinaryWriter(ms))
@@ -155,6 +196,10 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(EnableAutoMaps);
                     writer.Write(EnableFpsCounter);
                     writer.Write(DisableCircleHackerRay);
+                    writer.Write(PlayerAggTime);
+#if TWEAKERS
+                    writer.Write(CharacterTweakers ?? new byte[1 + 7*2]);
+#endif
                 }
             }
 
@@ -172,6 +217,28 @@ namespace Horizon.Plugin.Deadlocked
             EnableAutoMaps = reader.ReadBoolean();
             EnableFpsCounter = reader.ReadBoolean();
             DisableCircleHackerRay = reader.ReadBoolean();
+            PlayerAggTime = reader.ReadSByte();
+#if TWEAKERS
+            CharacterTweakers = reader.ReadBytes(1 + 7*2);
+#endif
+        }
+
+        public bool SameAs(PlayerConfig other)
+        {
+            return DisableFramelimiter == other.DisableFramelimiter
+                && EnableGamemodeAnnouncements == other.EnableGamemodeAnnouncements
+                && EnableSpectate == other.EnableSpectate
+                && EnableSingleplayerMusic == other.EnableSingleplayerMusic
+                && LevelOfDetail == other.LevelOfDetail
+                && EnablePlayerStateSync == other.EnablePlayerStateSync
+                && EnableAutoMaps == other.EnableAutoMaps
+                && EnableFpsCounter == other.EnableFpsCounter
+                && DisableCircleHackerRay == other.DisableCircleHackerRay
+                && PlayerAggTime == other.PlayerAggTime
+#if TWEAKERS
+                && (CharacterTweakers?.SequenceEqual(other.CharacterTweakers) ?? false)
+#endif
+                ;
         }
     }
 }

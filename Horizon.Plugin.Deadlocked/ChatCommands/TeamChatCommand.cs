@@ -69,7 +69,7 @@ namespace Horizon.Plugin.Deadlocked.ChatCommands
 
                 foreach (var arg in args)
                 {
-                    var teamId = GetTeamIdFromValue(arg);
+                    var teamId = GetTeamIdFromValue(arg, customTeams);
                     if (!teamId.HasValue)
                         channel.BroadcastSystemMessage(channel.Clients, $"A'{arg}' is not a valid team.");
                     else if (gamemode == 0 && teamId >= 2)
@@ -99,13 +99,15 @@ namespace Horizon.Plugin.Deadlocked.ChatCommands
             return Task.CompletedTask;
         }
 
-        private int? GetTeamIdFromValue(string value)
+        private int? GetTeamIdFromValue(string value, IEnumerable<int> excludeIds = null)
         {
             if (int.TryParse(value, out var intValue) && intValue >= 0 && intValue < 10)
                 return intValue;
 
             for (int i = 0; i < Constants.Teams.Length; ++i)
             {
+                if (excludeIds != null && excludeIds.Contains(i))
+                    continue;
                 if (Constants.Teams[i].StartsWith(value, StringComparison.OrdinalIgnoreCase))
                 {
                     return i;

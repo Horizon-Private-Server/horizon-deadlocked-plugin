@@ -79,6 +79,9 @@ namespace Horizon.Plugin.Deadlocked
                     Config = metadata.GameConfig
                 });
             }
+
+            // broadcast player's patch config
+            await Player.BroadcastPatchConfigToGameLobby(client);
         }
 
         public static async Task OnPlayerPostWideStats(OnPlayerWideStatsArgs args)
@@ -182,6 +185,9 @@ namespace Horizon.Plugin.Deadlocked
 
         public static async Task UpdateGameData(ClientObject client, Server.Medius.Models.Game game, SetGameDataRequestMessage request)
         {
+            if (game == null)
+                return;
+
             var metadata = await GetGameMetadata(game);
             if (metadata.GameData == null)
                 metadata.GameData = new byte[3152];
@@ -856,7 +862,7 @@ namespace Horizon.Plugin.Deadlocked
         public byte GamemodeOverride { get; set; }
         public byte WeatherOverride { get; set; }
         public bool DisableWeaponPacks { get; set; }
-        public bool DisableV2s { get; set; }
+        public byte V2s { get; set; }
         public bool MirrorWorld { get; set; }
         public bool DisableHealthBoxes { get; set; }
         public byte Vampire { get; set; }
@@ -865,11 +871,17 @@ namespace Horizon.Plugin.Deadlocked
         public bool Healthbars { get; set; }
         public bool DisableNames { get; set; }
         public bool DisableInvHitTimer { get; set; }
+        public bool HideWeaponPickups { get; set; }
+        public byte PlayerSize { get; set; }
+        public bool RotatingWeapons { get; set; }
+        public byte Headbutt { get; set; }
+        public bool HeadbuttFriendlyFire { get; set; }
+        public bool ChargebootForever { get; set; }
         public byte Survival_Difficulty { get; set; }
 
         public byte[] Serialize()
         {
-            byte[] output = new byte[14];
+            byte[] output = new byte[20];
             using (var ms = new MemoryStream(output, true))
             {
                 using (var writer = new BinaryWriter(ms))
@@ -878,7 +890,7 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(GamemodeOverride);
                     writer.Write(WeatherOverride);
                     writer.Write(DisableWeaponPacks);
-                    writer.Write(DisableV2s);
+                    writer.Write(V2s);
                     writer.Write(MirrorWorld);
                     writer.Write(DisableHealthBoxes);
                     writer.Write(Vampire);
@@ -887,6 +899,12 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(Healthbars);
                     writer.Write(DisableNames);
                     writer.Write(DisableInvHitTimer);
+                    writer.Write(HideWeaponPickups);
+                    writer.Write(PlayerSize);
+                    writer.Write(RotatingWeapons);
+                    writer.Write(Headbutt);
+                    writer.Write(HeadbuttFriendlyFire);
+                    writer.Write(ChargebootForever);
                     writer.Write(Survival_Difficulty);
                 }
             }
@@ -900,7 +918,7 @@ namespace Horizon.Plugin.Deadlocked
             GamemodeOverride = reader.ReadByte();
             WeatherOverride = reader.ReadByte();
             DisableWeaponPacks = reader.ReadBoolean();
-            DisableV2s = reader.ReadBoolean();
+            V2s = reader.ReadByte();
             MirrorWorld = reader.ReadBoolean();
             DisableHealthBoxes = reader.ReadBoolean();
             Vampire = reader.ReadByte();
@@ -909,6 +927,12 @@ namespace Horizon.Plugin.Deadlocked
             Healthbars = reader.ReadBoolean();
             DisableNames = reader.ReadBoolean();
             DisableInvHitTimer = reader.ReadBoolean();
+            HideWeaponPickups = reader.ReadBoolean();
+            PlayerSize = reader.ReadByte();
+            RotatingWeapons = reader.ReadBoolean();
+            Headbutt = reader.ReadByte();
+            HeadbuttFriendlyFire = reader.ReadBoolean();
+            ChargebootForever = reader.ReadBoolean();
             Survival_Difficulty = reader.ReadByte();
         }
 
@@ -918,7 +942,7 @@ namespace Horizon.Plugin.Deadlocked
                 && GamemodeOverride == other.GamemodeOverride
                 && WeatherOverride == other.WeatherOverride
                 && DisableWeaponPacks == other.DisableWeaponPacks
-                && DisableV2s == other.DisableV2s
+                && V2s == other.V2s
                 && MirrorWorld == other.MirrorWorld
                 && DisableHealthBoxes == other.DisableHealthBoxes
                 && Vampire == other.Vampire
@@ -927,6 +951,12 @@ namespace Horizon.Plugin.Deadlocked
                 && Healthbars == other.Healthbars
                 && DisableNames == other.DisableNames
                 && DisableInvHitTimer == other.DisableInvHitTimer
+                && HideWeaponPickups == other.HideWeaponPickups
+                && PlayerSize == other.PlayerSize
+                && RotatingWeapons == other.RotatingWeapons
+                && Headbutt == other.Headbutt
+                && HeadbuttFriendlyFire == other.HeadbuttFriendlyFire
+                && ChargebootForever == other.ChargebootForever
                 && Survival_Difficulty == other.Survival_Difficulty
                 ;
         }

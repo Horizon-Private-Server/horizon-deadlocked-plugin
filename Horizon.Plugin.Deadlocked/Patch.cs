@@ -12,6 +12,8 @@ namespace Horizon.Plugin.Deadlocked
 {
     public static class Patch
     {
+        private static readonly uint PATCH_HASH_ADDRESS = 0x000CFFD0;
+
         class PatchSetup
         {
             public enum PatchHookType
@@ -24,6 +26,7 @@ namespace Horizon.Plugin.Deadlocked
             public (uint, string) UnpatchPayload { get; set; }
             public (uint, string)[] Payloads { get; set; }
             public uint HookAddress { get; set; }
+            public uint? ConfigAddress { get; set; }
             public PatchHookType HookType { get; set; }
 
             public uint GetHookValue(uint targetAddress)
@@ -73,9 +76,10 @@ namespace Horizon.Plugin.Deadlocked
                 UnpatchPayload = (0x000CE000, Path.Combine(Plugin.WorkingDirectory, "bin/patch/unpatch-11184.bin")),
                 Payloads = new (uint, string)[]
                 {
-                    (0x000E0000, Path.Combine(Plugin.WorkingDirectory, "bin/patch/patch-11184.bin")),
+                    (0x000D0000, Path.Combine(Plugin.WorkingDirectory, "bin/patch/patch-11184.bin")),
                     (0x000C8000, Path.Combine(Plugin.WorkingDirectory,  "bin/exceptiondisplay.bin"))
-                }
+                },
+                ConfigAddress = 0x000D0008
             }
         };
 
@@ -89,7 +93,7 @@ namespace Horizon.Plugin.Deadlocked
 
             client.Queue(new RT_MSG_SERVER_CHEAT_QUERY()
             {
-                Address = 0x000DFFE0,
+                Address = PATCH_HASH_ADDRESS,
                 Length = 0x20,
                 QueryType = RT.Common.CheatQueryType.DME_SERVER_CHEAT_QUERY_RAW_MEMORY,
                 SequenceId = 101
@@ -188,16 +192,14 @@ namespace Horizon.Plugin.Deadlocked
                 // compute patch hash
                 var hash = setup.ComputeHash(payloads.Select(x => x.Data));
 
-                // add extra payloads
-                payloads = payloads.Union(new Payload[]
+                if (setup.ConfigAddress.HasValue)
                 {
                     // patch config
-                    new Payload(0x000E0008, (await Player.GetPatchConfig(client)).Serialize()),
-                    // hash
-                    new Payload(0x000DFFE0, hash),
-                    // hook
-                    new Payload(0x000E0008, (await Player.GetPatchConfig(client)).Serialize()),
-                });
+                    payloads = payloads.Append(new Payload(setup.ConfigAddress.Value, (await Player.GetPatchConfig(client)).Serialize()));
+                }
+
+                // add hash
+                payloads = payloads.Append(new Payload(PATCH_HASH_ADDRESS, hash));
 
                 // update saved player hash
                 playerInfo.PatchHash = hash;

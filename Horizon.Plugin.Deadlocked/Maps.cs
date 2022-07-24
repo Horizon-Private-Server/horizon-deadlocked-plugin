@@ -31,7 +31,7 @@ namespace Horizon.Plugin.Deadlocked
             new CustomMap(CustomMapId.CMAP_ID_DUCK_HUNT, "Duck Hunt", "duck hunt", 44, CustomModeId.CMODE_ID_DUCK_HUNT ),
             new CustomMap(CustomMapId.CMAP_ID_GHOST_SHIP, "Ghost Ship", "ghost ship", 54),
             new CustomMap(CustomMapId.CMAP_ID_HOVEN_GORGE, "Hoven Gorge", "hoven gorge", 46),
-            new CustomMap(CustomMapId.CMAP_ID_HOVERBIKE_RACE, "Hoverbike Race", "hb race", 44, CustomModeId.CMODE_ID_HOVERBIKE_RACE ),
+            new CustomMap(CustomMapId.CMAP_ID_HOVERBIKE_RACE, "Hoverbike Race", "sarathos sp", 44, CustomModeId.CMODE_ID_HOVERBIKE_RACE ),
             new CustomMap(CustomMapId.CMAP_ID_KORGON_OUTPOST, "Korgon Outpost", "korgon outpost", 53),
             new CustomMap(CustomMapId.CMAP_ID_LAUNCH_SITE, "Launch Site", "launch site", 44),
             new CustomMap(CustomMapId.CMAP_ID_MARCADIA_PALACE, "Marcadia Palace", "marcadia palace", 44),

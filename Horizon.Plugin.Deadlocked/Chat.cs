@@ -22,14 +22,25 @@ namespace Horizon.Plugin.Deadlocked
             if (client == null || message.MessageType != RT.Common.MediusChatMessageType.Broadcast || String.IsNullOrEmpty(message.Message))
                 return Task.CompletedTask;
 
-            var args = message.Message.Substring(1).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var chatMsg = message.Message.Substring(1);
+            var playerExtraInfo = Player.GetPlayerExtraInfo(client.AccountId);
+
+            // use last command
+            if (chatMsg == "!")
+            {
+                chatMsg = playerExtraInfo.LastChatCommand;
+            }
+
+            var args = chatMsg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (!args[0].StartsWith("!"))
                 return Task.CompletedTask;
+
 
             var commandStr = args[0].Substring(1);
             var command = _commands.FirstOrDefault(x => x.Command == commandStr);
             if (command != null)
             {
+                playerExtraInfo.LastChatCommand = chatMsg;
                 return command.Run(client, args.Skip(1).ToArray());
             }
 
