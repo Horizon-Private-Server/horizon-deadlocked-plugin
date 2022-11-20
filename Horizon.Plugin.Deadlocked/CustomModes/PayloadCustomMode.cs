@@ -14,10 +14,25 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         private static readonly Random _rng = new Random();
         private static readonly PayloadConfig[] _configs = new PayloadConfig[]
         {
+            // vanilla maps
+            new PayloadConfig(MapId.BATTLEDOME, "bin/payload/battledome_0.bin"),
+            new PayloadConfig(MapId.CATACROM, "bin/payload/catacrom_0.bin"),
+            new PayloadConfig(MapId.SARATHOS, "bin/payload/sarathos_0.bin"),
+            new PayloadConfig(MapId.DARK_CATHEDRAL, "bin/payload/dark_cathedral_0.bin"),
+            new PayloadConfig(MapId.SHAAR, "bin/payload/shaar_0.bin"),
+            new PayloadConfig(MapId.VALIX, "bin/payload/valix_0.bin"),
+            new PayloadConfig(MapId.MINING_FACILITY, "bin/payload/mining_facility_0.bin"),
+            new PayloadConfig(MapId.TORVAL, "bin/payload/torval_0.bin"),
+            new PayloadConfig(MapId.TEMPUS, "bin/payload/tempus_0.bin"),
+            new PayloadConfig(MapId.MARAXUS, "bin/payload/maraxus_0.bin"),
+            new PayloadConfig(MapId.GHOST_STATION, "bin/payload/ghost_station_0.bin"),
+
+            // custom maps
             new PayloadConfig(CustomMapId.CMAP_ID_SARATHOS_SP, "bin/payload/sarathos_sp_0.bin"),
             new PayloadConfig(CustomMapId.CMAP_ID_DESERT_PRISON, "bin/payload/desert_prison_0.bin"),
             new PayloadConfig(CustomMapId.CMAP_ID_DESERT_PRISON, "bin/payload/desert_prison_1.bin"),
             new PayloadConfig(CustomMapId.CMAP_ID_DESERT_PRISON, "bin/payload/desert_prison_2.bin"),
+            new PayloadConfig(CustomMapId.CMAP_ID_SNIVELAK, "bin/payload/snivelak_0.bin"),
         };
 
         public override CustomModeId Id => CustomModeId.CMODE_ID_PAYLOAD;
@@ -54,19 +69,21 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             var payload = new Payload(0x000F0000, File.ReadAllBytes(Path.Combine(Plugin.WorkingDirectory, "bin/patch/payload-11184.bin")));
 
             // insert config into payload
+            List<PayloadConfig> configs = null;
             if (metadata.GameConfig.MapOverride != 0)
+                configs = _configs.Where(x => x.CustomMapId == (CustomMapId)metadata.GameConfig.MapOverride).ToList();
+            else
+                configs = _configs.Where(x => x.MapId == (MapId)game.GameLevel).ToList();
+
+            if (configs.Count > 0)
             {
-                var configs = _configs.Where(x => x.MapId == (CustomMapId)metadata.GameConfig.MapOverride).ToList();
-                if (configs.Count > 0)
-                {
-                    var config = configs[_rng.Next(configs.Count)];
+                var config = configs[_rng.Next(configs.Count)];
                     
-                    using (var ms = new MemoryStream(payload.Data, true))
+                using (var ms = new MemoryStream(payload.Data, true))
+                {
+                    using (var writer = new BinaryWriter(ms))
                     {
-                        using (var writer = new BinaryWriter(ms))
-                        {
-                            config.Serialize(writer);
-                        }
+                        config.Serialize(writer);
                     }
                 }
             }
@@ -96,7 +113,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 if (team >= 0 && team < 10)
                 {
                     teamCounts[team] += 1;
-                    teamIds.Add(team);
+                    if (!teamIds.Contains(team))
+                        teamIds.Add(team);
                 }
             }
 
@@ -223,10 +241,17 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
     {
         public const uint Offset = 0x20;
 
-        public CustomMapId MapId { get; }
+        public MapId? MapId { get; }
+        public CustomMapId? CustomMapId { get; }
         public string Filepath { get; }
 
-        public PayloadConfig(CustomMapId mapId, string path)
+        public PayloadConfig(CustomMapId customMapId, string path)
+        {
+            CustomMapId = customMapId;
+            Filepath = path;
+        }
+
+        public PayloadConfig(MapId mapId, string path)
         {
             MapId = mapId;
             Filepath = path;

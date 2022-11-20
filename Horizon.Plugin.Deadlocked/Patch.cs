@@ -40,10 +40,11 @@ namespace Horizon.Plugin.Deadlocked
 
             public byte[] ComputeHash()
             {
+                var appSettings = Plugin.GetAppSettingsOrDefault(AppId);
                 var bytes = new List<byte>();
 
                 foreach (var payload in Payloads)
-                    bytes.AddRange(File.ReadAllBytes(payload.Item2));
+                    bytes.AddRange(File.ReadAllBytes(GetPatchPath(payload.Item2, appSettings?.PatchOverrideName)));
 
                 var hash = System.Security.Cryptography.SHA256.Create();
                 return hash.ComputeHash(bytes.ToArray());
@@ -76,7 +77,11 @@ namespace Horizon.Plugin.Deadlocked
                 UnpatchPayload = (0x000CE000, Path.Combine(Plugin.WorkingDirectory, "bin/patch/unpatch-11184.bin")),
                 Payloads = new (uint, string)[]
                 {
+#if COMP
+                    (0x000D0000, Path.Combine(Plugin.WorkingDirectory, "bin/patch/patch-comp-11184.bin")),
+#else
                     (0x000D0000, Path.Combine(Plugin.WorkingDirectory, "bin/patch/patch-11184.bin")),
+#endif
                     (0x000C8000, Path.Combine(Plugin.WorkingDirectory,  "bin/exceptiondisplay.bin"))
                 },
                 ConfigAddress = 0x000D0008
@@ -85,32 +90,50 @@ namespace Horizon.Plugin.Deadlocked
 
         public static Task QueryForPatch(ClientObject client)
         {
+            var appSettings = Plugin.GetAppSettingsOrDefault(client.ApplicationId);
+            if (!appSettings.EnablePatch && !appSettings.EnableUnpatch)
+                return Task.CompletedTask;
+
             var patch = PatchSetups.FirstOrDefault(x => x.IsMatch(client));
             if (patch == null)
                 return Task.CompletedTask;
 
-            var patchHash = patch.ComputeHash();
+            var playerInfo = Player.GetPlayerExtraInfo(client.AccountId);
+            playerInfo.PatchHandled = false;
 
-            client.Queue(new RT_MSG_SERVER_CHEAT_QUERY()
+            if (appSettings.EnablePatch)
             {
-                Address = PATCH_HASH_ADDRESS,
-                Length = 0x20,
-                QueryType = RT.Common.CheatQueryType.DME_SERVER_CHEAT_QUERY_RAW_MEMORY,
-                SequenceId = 101
-            });
+                var patchHash = patch.ComputeHash();
 
-            // setup task that will auto send patch if the client doesn't respond in a period of time
-            Task.Delay(5000).ContinueWith(r =>
-            {
-                var playerInfo = Player.GetPlayerExtraInfo(client.AccountId);
-                if (client.IsConnected && playerInfo != null)
+                client.Queue(new RT_MSG_SERVER_CHEAT_QUERY()
                 {
-                    if (playerInfo.PatchHash == null || !patchHash.SequenceEqual(playerInfo.PatchHash))
+                    Address = PATCH_HASH_ADDRESS,
+                    Length = 0x20,
+                    QueryType = RT.Common.CheatQueryType.DME_SERVER_CHEAT_QUERY_RAW_MEMORY,
+                    SequenceId = 101
+                });
+
+                // setup task that will auto send patch if the client doesn't respond in a period of time
+                Task.Delay(5000).ContinueWith(r =>
+                {
+                    if (client.IsConnected && playerInfo != null && !playerInfo.PatchHandled)
                     {
-                        _ = Apply(client, patch);
+                        if (playerInfo.PatchHash == null || !patchHash.SequenceEqual(playerInfo.PatchHash))
+                        {
+                            _ = Apply(client, patch);
+                        }
+                        else
+                        {
+                            // just send player patch config
+                            _ = SendConfig(client, patch);
+                        }
                     }
-                }
-            });
+                });
+            }
+            else if (appSettings.EnableUnpatch)
+            {
+                _ = Apply(client, patch);
+            }
 
             return Task.CompletedTask;
         }
@@ -123,12 +146,17 @@ namespace Horizon.Plugin.Deadlocked
 
             var playerInfo = Player.GetPlayerExtraInfo(client.AccountId);
             var patchHash = patch.ComputeHash();
-            if (client.IsConnected && playerInfo != null)
+            if (client.IsConnected && playerInfo != null && !playerInfo.PatchHandled)
             {
                 playerInfo.PatchHash = response.Data;
                 if (playerInfo.PatchHash == null || !patchHash.SequenceEqual(playerInfo.PatchHash))
                 {
                     _ = Apply(client, patch);
+                }
+                else
+                {
+                    // just send player patch config
+                    _ = SendConfig(client, patch);
                 }
             }
 
@@ -146,75 +174,140 @@ namespace Horizon.Plugin.Deadlocked
             return Task.CompletedTask;
         }
 
+        private static string GetPatchPath(string path, string overrideName)
+        {
+            if (String.IsNullOrEmpty(overrideName))
+                return path;
+
+            var fi = new FileInfo(path);
+            var dir = fi.Directory.FullName;
+            var filename = fi.Name;
+
+            var newPath = Path.Combine(dir, filename.Replace("patch-", "patch-" + overrideName + "-"));
+            if (File.Exists(newPath))
+                return newPath;
+
+            return path;
+        }
+
         private static async Task Apply(ClientObject client, PatchSetup setup)
         {
             try
             {
+                var appSettings = Plugin.GetAppSettingsOrDefault(client.ApplicationId);
                 var hasHook = setup.HookType != PatchSetup.PatchHookType.NONE && setup.HookAddress > 0;
                 var playerInfo = Player.GetPlayerExtraInfo(client.AccountId);
+
+                // indicate we've handled patch
+                playerInfo.PatchHandled = true;
+
+                // indicate to patch its unloading
+                if (setup.ConfigAddress.HasValue)
+                    client.Queue(RT_MSG_SERVER_MEMORY_POKE.FromPayload(setup.ConfigAddress.Value, BitConverter.GetBytes(1)));
+
+                // wait a little to give time
+                await Task.Delay(25);
 
                 // reset hook first
                 if (hasHook && setup.HookType == PatchSetup.PatchHookType.JUMP)
                     client.Queue(RT_MSG_SERVER_MEMORY_POKE.FromPayload(setup.HookAddress, BitConverter.GetBytes(0x03E00008)));
 
-                // send unpatch payload
-                if (setup.UnpatchPayload.Item1 > 0 && File.Exists(setup.UnpatchPayload.Item2))
+                if (appSettings.EnableUnpatch)
                 {
-                    var bytes = File.ReadAllBytes(setup.UnpatchPayload.Item2);
-                    var pokeMsgs = RT_MSG_SERVER_MEMORY_POKE.FromPayload(setup.UnpatchPayload.Item1, bytes);
-
-                    foreach (var pokeMsg in pokeMsgs)
+                    // send unpatch payload
+                    if (setup.UnpatchPayload.Item1 > 0 && File.Exists(setup.UnpatchPayload.Item2))
                     {
-                        // send
-                        client.Queue(pokeMsg);
+                        var bytes = File.ReadAllBytes(setup.UnpatchPayload.Item2);
+                        var pokeMsgs = RT_MSG_SERVER_MEMORY_POKE.FromPayload(setup.UnpatchPayload.Item1, bytes);
 
-                        // wait 25 ms after each poke
-                        await Task.Delay(25);
+                        foreach (var pokeMsg in pokeMsgs)
+                        {
+                            // send
+                            client.Queue(pokeMsg);
+
+                            // wait 25 ms after each poke
+                            await Task.Delay(25);
+                        }
+
+                        // send self destruct if EnablePatch is false
+                        if (!appSettings.EnablePatch)
+                        {
+                            // send
+                            client.Queue(new RT_MSG_SERVER_MEMORY_POKE() { Address = setup.UnpatchPayload.Item1 + 8, Payload = BitConverter.GetBytes(1) });
+
+                            // wait 25 ms after each poke
+                            await Task.Delay(25);
+                        }
+
+                        // send hook
+                        if (hasHook)
+                        {
+                            var hookMsgs = RT_MSG_SERVER_MEMORY_POKE.FromPayload(setup.HookAddress, BitConverter.GetBytes(setup.GetHookValue(setup.UnpatchPayload.Item1)));
+                            client.Queue(hookMsgs);
+                        }
+
+                        // wait a bit
+                        await Task.Delay(500);
                     }
-
-                    // send hook
-                    if (hasHook)
-                    {
-                        var hookMsgs = RT_MSG_SERVER_MEMORY_POKE.FromPayload(setup.HookAddress, BitConverter.GetBytes(setup.GetHookValue(setup.UnpatchPayload.Item1)));
-                        client.Queue(hookMsgs);
-                    }
-
-                    // wait a bit
-                    await Task.Delay(500);
                 }
 
-                // construct payloads
-                var payloads = setup.Payloads.Select(x =>
+                if (appSettings.EnablePatch)
                 {
-                    return new Payload(x.Item1, File.ReadAllBytes(x.Item2));
-                });
+                    // construct payloads
+                    var payloads = setup.Payloads.Select(x =>
+                    {
+                        return new Payload(x.Item1, File.ReadAllBytes(GetPatchPath(x.Item2, appSettings.PatchOverrideName)));
+                    });
 
-                // compute patch hash
-                var hash = setup.ComputeHash(payloads.Select(x => x.Data));
+                    // compute patch hash
+                    var hash = setup.ComputeHash(payloads.Select(x => x.Data));
 
+                    if (setup.ConfigAddress.HasValue)
+                    {
+                        // patch config
+                        payloads = payloads.Append(new Payload(setup.ConfigAddress.Value + 8, (await Player.GetPatchConfig(client)).Serialize()));
+                    }
+
+                    // add hash
+                    payloads = payloads.Append(new Payload(PATCH_HASH_ADDRESS, hash));
+
+                    // update saved player hash
+                    playerInfo.PatchHash = hash;
+
+                    // send payloads as data download
+                    await Downloader.InitiateDataDownload(client, 101, payloads, (_client, _id) =>
+                    {
+                        if (hasHook)
+                        {
+                            var hookMsgs = RT_MSG_SERVER_MEMORY_POKE.FromPayload(setup.HookAddress, BitConverter.GetBytes(setup.GetHookValue(setup.Payloads[0].Item1)));
+                            _client.Queue(hookMsgs);
+                        }
+
+                        return Task.CompletedTask;
+                    });
+                }
+                else if (appSettings.EnableUnpatch)
+                {
+                    // send unhook to unpatch
+                    client.Queue(RT_MSG_SERVER_MEMORY_POKE.FromPayload(setup.HookAddress, BitConverter.GetBytes(0x03E00008)));
+                }
+            }
+            catch (Exception ex)
+            {
+                Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.ERROR, ex);
+            }
+        }
+
+        private static async Task SendConfig(ClientObject client, PatchSetup setup)
+        {
+            try
+            {
+                // send to config it patch has it configured
                 if (setup.ConfigAddress.HasValue)
                 {
-                    // patch config
-                    payloads = payloads.Append(new Payload(setup.ConfigAddress.Value, (await Player.GetPatchConfig(client)).Serialize()));
+                    var configMsgs = RT_MSG_SERVER_MEMORY_POKE.FromPayload(setup.ConfigAddress.Value + 8, (await Player.GetPatchConfig(client)).Serialize());
+                    client.Queue(configMsgs);
                 }
-
-                // add hash
-                payloads = payloads.Append(new Payload(PATCH_HASH_ADDRESS, hash));
-
-                // update saved player hash
-                playerInfo.PatchHash = hash;
-
-                // send payloads as data download
-                await Downloader.InitiateDataDownload(client, 101, payloads, (_client, _id) =>
-                {
-                    if (hasHook)
-                    {
-                        var hookMsgs = RT_MSG_SERVER_MEMORY_POKE.FromPayload(setup.HookAddress, BitConverter.GetBytes(setup.GetHookValue(setup.Payloads[0].Item1)));
-                        _client.Queue(hookMsgs);
-                    }
-
-                    return Task.CompletedTask;
-                });
 
             }
             catch (Exception ex)
@@ -226,7 +319,7 @@ namespace Horizon.Plugin.Deadlocked
     }
 
 
-    public enum PatchModuleEntryType : int
+    public enum PatchModuleEntryType : byte
     {
         DISABLED,
         RUN_ONCE_GAME,
@@ -236,6 +329,8 @@ namespace Horizon.Plugin.Deadlocked
     public class PatchModuleEntry
     {
         public PatchModuleEntryType Type { get; set; }
+        public sbyte ModeId { get; set; }
+        public sbyte MapId { get; set; }
         public uint GameEntrypoint { get; set; }
         public uint LobbyEntrypoint { get; set; }
         public uint LoadEntrypoint { get; set; }
@@ -247,7 +342,10 @@ namespace Horizon.Plugin.Deadlocked
             {
                 using (var writer = new BinaryWriter(ms))
                 {
-                    writer.Write(Type);
+                    writer.Write((byte)Type);
+                    writer.Write(ModeId);
+                    writer.Write(MapId);
+                    writer.Write(new byte[1]);
                     writer.Write(GameEntrypoint);
                     writer.Write(LobbyEntrypoint);
                     writer.Write(LoadEntrypoint);
@@ -260,6 +358,9 @@ namespace Horizon.Plugin.Deadlocked
         public void Deserialize(BinaryReader reader)
         {
             Type = reader.Read<PatchModuleEntryType>();
+            ModeId = reader.ReadSByte();
+            MapId = reader.ReadSByte();
+            reader.ReadBytes(1);
             GameEntrypoint = reader.ReadUInt32();
             LobbyEntrypoint = reader.ReadUInt32();
             LoadEntrypoint = reader.ReadUInt32();

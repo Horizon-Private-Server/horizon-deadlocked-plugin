@@ -34,11 +34,11 @@ namespace Horizon.Plugin.Deadlocked
 
         public static Task InitiateDataDownload(ClientObject client, int id, IEnumerable<Payload> payloads, Func<ClientObject, int, Task> onFinishedCallback = null)
         {
-            if (_states.TryGetValue(client.AccountId, out var state))
-                throw new InvalidOperationException($"InitiateDataDownload triggered for {client.AccountId} with already existing state. {state}");
+            //if (_states.TryGetValue(client.AccountId, out var state))
+            //    throw new InvalidOperationException($"InitiateDataDownload triggered for {client.AccountId} with already existing state. {state}");
 
             // add state
-            state = new DownloaderState(id, payloads)
+            var state = new DownloaderState(id, payloads)
             {
                 OnFinished = onFinishedCallback
             };
@@ -50,6 +50,14 @@ namespace Horizon.Plugin.Deadlocked
         }
 
         public static Task OnPlayerLoggedOut(ClientObject client)
+        {
+            if (_states.ContainsKey(client.AccountId))
+                _states.Remove(client.AccountId);
+
+            return Task.CompletedTask;
+        }
+
+        public static Task OnPlayerLoggedIn(ClientObject client)
         {
             if (_states.ContainsKey(client.AccountId))
                 _states.Remove(client.AccountId);

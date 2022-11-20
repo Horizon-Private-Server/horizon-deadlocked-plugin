@@ -40,7 +40,9 @@ namespace Horizon.Plugin.Deadlocked
             new CustomMap(CustomMapId.CMAP_ID_SARATHOS_SP, "Sarathos SP", "sarathos sp", 44),
             new CustomMap(CustomMapId.CMAP_ID_SHAAR_SP, "Shaar SP", "shaar sp", 46),
             new CustomMap(CustomMapId.CMAP_ID_SHIPMENT, "Shipment", "shipment", 42),
+            new CustomMap(CustomMapId.CMAP_ID_SNIVELAK, "Snivelak", "snivelak", 46),
             new CustomMap(CustomMapId.CMAP_ID_SPLEEF, "Spleef", "spleef", 44, CustomModeId.CMODE_ID_SPLEEF ),
+            new CustomMap(CustomMapId.CMAP_ID_TORVAL_LOST_FACTORY, "Torval Lost Factory", "torval lost factory", 50),
             new CustomMap(CustomMapId.CMAP_ID_TORVAL_SP, "Torval SP", "torval sp", 50),
             new CustomMap(CustomMapId.CMAP_ID_TYHRRANOSIS, "Tyhrranosis", "tyhrranosis", 53),
             new CustomMap(CustomMapId.CMAP_ID_SURVIVAL_MARCADIA, "Marcadia Palace", "marcadia survival", 48),
@@ -138,8 +140,10 @@ namespace Horizon.Plugin.Deadlocked
         CMAP_ID_SARATHOS_SP = CMAP_ID_MF_SP + 1,
         CMAP_ID_SHAAR_SP = CMAP_ID_SARATHOS_SP + 1,
         CMAP_ID_SHIPMENT = CMAP_ID_SHAAR_SP + 1,
-        CMAP_ID_SPLEEF = CMAP_ID_SHIPMENT + 1,
-        CMAP_ID_TORVAL_SP = CMAP_ID_SPLEEF + 1,
+        CMAP_ID_SNIVELAK = CMAP_ID_SHIPMENT + 1,
+        CMAP_ID_SPLEEF = CMAP_ID_SNIVELAK + 1,
+        CMAP_ID_TORVAL_LOST_FACTORY = CMAP_ID_SPLEEF + 1,
+        CMAP_ID_TORVAL_SP = CMAP_ID_TORVAL_LOST_FACTORY + 1,
         CMAP_ID_TYHRRANOSIS = CMAP_ID_TORVAL_SP + 1,
 
         // survival custom map ids

@@ -12,16 +12,46 @@ namespace Horizon.Plugin.Deadlocked
     {
         None,
         KOTH,
-        CTF
+        CTF,
+        FFA_DM
     }
 
     public static class Queue
     {
         static readonly Random _rng = new Random();
 
+        // number of seconds before a queued player will start expanding their potential matches (by rank point delta)
+        static readonly int secondsBeforeMatchExpansionBegins = 5;
+
+        // initial max delta rank points for a match between two players
+        static readonly int initialMaxRankPointsForMatch = 300;
+
+        // foreach match expansion
+        // how many rank points to increase the max possible rank delta for a match
+        static readonly int rankPointsPerMatchExpansion = 300;
+
+        // after match expansion begins
+        // match expansion will trigger every n seconds
+        static readonly int secondsForMatchExpansionIncrease = 1;
+
+        // we add a delay after a match is found
+        // so that players have a chance to trickle in before the queue pops
+        public const int SecondsAfterPlayableMatchBeforeCreating = 5;
+
+
+
+        /// <summary>
+        /// Min number of seconds in queue before any client can join a game.
+        /// This is to give time for things to 'settle' before making an action
+        /// </summary>
+        public const int MinQueueTimeSeconds = 15;
+
         public class QueueClient
         {
             public DateTime QueueBegan { get; set; } = DateTime.UtcNow;
+            public DateTime? TimeLastJoinedMatch { get; set; }
+            public DateTime? TimeLastLeftMatch { get; set; }
+            public DateTime? TimeLastForceJoinSent { get; set; }
             public int AccountId { get; set; }
             public int Rank { get; set; }
             public ClientObject Client { get; set; }
@@ -44,7 +74,13 @@ namespace Horizon.Plugin.Deadlocked
 
             public bool CanMatchWith(QueueClient b)
             {
-                return CanMatchWith(b.Rank) && b.CanMatchWith(this.Rank);
+                var delta = Math.Abs(this.Rank - b.Rank);
+                var secondsSinceQueueTooLong = (DateTime.UtcNow - QueueBegan).TotalSeconds - secondsBeforeMatchExpansionBegins;
+                var maxDelta = initialMaxRankPointsForMatch + Math.Max(0, (int)(secondsSinceQueueTooLong / secondsForMatchExpansionIncrease) * rankPointsPerMatchExpansion);
+
+
+                //return CanMatchWith(b.Rank) && b.CanMatchWith(this.Rank);
+                return delta <= maxDelta;
             }
         }
 
@@ -55,29 +91,124 @@ namespace Horizon.Plugin.Deadlocked
             public DateTime? MatchPlayable { get; set; }
             public List<QueueClient> Clients { get; set; } = new List<QueueClient>();
             public bool IsDestroyed { get; private set; }
+            public CompGame Game { get; private set; }
+            public QueueInstance Queue { get; set; }
 
             public bool CanMatchWith(QueueClient client)
             {
-                return Clients.All(x => x.CanMatchWith(client));
+                return Clients.All(x => client.CanMatchWith(x));
             }
 
-            public void Destroy()
+            public int GetMatchScore(QueueClient client)
             {
+                var averageDeltaRank = Math.Abs(Clients.Sum(x => x.Rank - client.Rank)) / Clients.Count;
+
+                // flattens delta ranks so that similar delta ranks receive the same score
+                return averageDeltaRank / 100;
+            }
+
+            public void Destroy(bool cancel)
+            {
+                if (Game != null && cancel)
+                    Game.Cancel(ForceLeaveGameRequestMessage.ForceLeaveReason.QUEUE_PLAYERS_NOT_JOINED);
                 IsDestroyed = true;
                 Clients.Clear();
+            }
+
+            public bool HasGameAndGameIsStartedOrEnded()
+            {
+                return Game != null && (Game.WorldStatus == RT.Common.MediusWorldStatus.WorldActive || Game.WorldStatus == RT.Common.MediusWorldStatus.WorldClosed);
+            }
+
+            public void SetGame(CompGame game)
+            {
+                Game = game;
+            }
+
+            public void AddClient(QueueClient client)
+            {
+                Clients.Add(client);
+                client.TimeLastJoinedMatch = DateTime.UtcNow;
+
+                // if this match has a game then send the client to the game
+                if (Game != null && Game.WorldStatus == RT.Common.MediusWorldStatus.WorldStaging && Game.Clients.Any(x => x.InGame))
+                {
+                    // tell client to join
+                    Game.ForceJoinPlayer(client.Client);
+
+                    // resend game flags
+                    foreach (var qClient in Clients)
+                        if (qClient != client)
+                            Game.ForceJoinPlayer(qClient.Client);
+                }
+
+            }
+
+            public void RemoveClient(QueueClient client)
+            {
+                Clients.Remove(client);
+                client.TimeLastJoinedMatch = DateTime.UtcNow;
+
+                // if this match has a game then tell the client to leave
+                // and resend the game config to the others
+                if (Game != null && Game.WorldStatus == RT.Common.MediusWorldStatus.WorldStaging && Game.Clients.Any(x => x.InGame))
+                {
+                    foreach (var qClient in Clients)
+                    {
+                        if (qClient != client)
+                            Game.ForceJoinPlayer(qClient.Client);
+                        else
+                            qClient.Client.Queue(new ForceLeaveGameRequestMessage() { Reason = ForceLeaveGameRequestMessage.ForceLeaveReason.NONE });
+                    }
+                }
+            }
+
+            public void OnClientLeftGame(ClientObject client)
+            {
+                if (client == null)
+                    return;
+
+                // remove from match
+                var queueClient = Clients.FirstOrDefault(x => x.Client == client);
+                if (queueClient != null)
+                {
+                    queueClient.TimeLastLeftMatch = DateTime.UtcNow;
+                    Clients.Remove(queueClient);
+                }
+
+                // remove from queue if game is still there
+                //if (Game != null && Game.WorldStatus == RT.Common.MediusWorldStatus.WorldStaging)
+                //    Queue?.Queue?.RemoveAll(x => x.Client == client);
+
+                // if this match has a game then send the client to the game
+                if (Game != null && Game.WorldStatus == RT.Common.MediusWorldStatus.WorldStaging && Game.Clients.Any(x => x.InGame && x.Client == client))
+                    client.Queue(new ForceLeaveGameRequestMessage() { Reason = ForceLeaveGameRequestMessage.ForceLeaveReason.NONE });
+            }
+
+            public int GetBestNumTeams()
+            {
+                // determine number of teams
+                var numTeams = Queue.IdealNumTeams;
+                if ((Clients.Count % numTeams) != 0)
+                {
+                    numTeams = Queue.MaxNumTeams;
+                    while ((Clients.Count % numTeams) != 0)
+                    {
+                        --numTeams;
+                    }
+                }
+
+                return numTeams;
             }
         }
 
         public class QueueInstance
         {
-            // we add a delay after a match is found
-            // so that players have a chance to trickle in before the queue pops
-            public const int SecondsAfterPlayableMatchBeforeCreating = 3; //15;
-
             public QueueIds Id { get; }
             public int ApplicationId { get; }
             public List<QueueClient> Queue { get; set; } = new List<QueueClient>();
 
+            public bool IsFreeForAll { get; set; } = false;
             public int MaxNumTeams { get; set; } = 10;
             public int IdealNumTeams { get; set; } = 2;
             public int[] IdealTeamIds { get; set; } = null;
@@ -96,10 +227,11 @@ namespace Horizon.Plugin.Deadlocked
             public int RulesSet { get; set; }
             public MapId[] MapIds { get; set; }
             public uint WeaponFlags { get; set; }
-            public byte[] GameFlags { get; set; }
-            public GameConfig Config { get; set; }
+            public Func<QueueMatch, byte[]> GetGameFlags { get; set; }
+            public Func<QueueMatch, GameConfig> GetConfig { get; set; }
             public Func<CompGame, QueueMatch, int[]> GetTeamIds { get; set; }
             public Func<ClientObject, int> GetRank { get; set; }
+            public Func<ClientObject, int> GetBaseRank { get; set; }
 
             private List<QueueMatch> matches { get; } = new List<QueueMatch>();
 
@@ -119,11 +251,11 @@ namespace Horizon.Plugin.Deadlocked
                 Queue.RemoveAll(x => x.AccountId == client.AccountId);
                 foreach (var match in matches)
                 {
-                    if (match.Clients.RemoveAll(x=>x.AccountId == client.AccountId) > 0)
+                    if (match.Clients.RemoveAll(x => x.AccountId == client.AccountId) > 0)
                     {
                         if (match.Clients.Count < MinNumPlayers)
                         {
-                            match.Destroy();
+                            match.Destroy(true);
                         }
                     }
                 }
@@ -141,20 +273,79 @@ namespace Horizon.Plugin.Deadlocked
             public async Task Tick()
             {
                 // first pass - remove destroyed matches
-                matches.RemoveAll(x => x.IsDestroyed);
+                var matchesToRemove = matches.Where(x => x.IsDestroyed || x.HasGameAndGameIsStartedOrEnded());
+                foreach (var match in matchesToRemove)
+                {
+                    foreach (var client in match.Clients)
+                        this.Queue.Remove(client);
+                }
+
+                matches.RemoveAll(x => x.IsDestroyed || x.HasGameAndGameIsStartedOrEnded());
 
                 // second pass - gather free clients (prioritize older queuers)
-                var freeClients = Queue.Where(x => !matches.Any(m => m.Clients.Contains(x))).OrderBy(x => x.QueueBegan).ToList();
+                var waitUntilTime = DateTime.UtcNow.AddSeconds(-5);
+                var freeClients = Queue.Where(x => !matches.Any(m => m.Clients.Contains(x)) && (!x.TimeLastLeftMatch.HasValue || waitUntilTime > x.TimeLastLeftMatch) && waitUntilTime > x.QueueBegan).OrderBy(x => x.QueueBegan).ToList();
 
-                // third pass - distribute free clients to best matching queue in need
-                foreach (var freeClient in freeClients)
+                // third pass - distribute free clients to best matching queue in need if they fit the ideal team constraint
+                foreach (var match in matches.Where(x => MatchIsAcceptingNewClients(x)).OrderBy(x => GetMatchPriority(x)).ThenBy(x => x.MatchCreated))
                 {
-                    // grab old possible match (prioritize older matches that don't already have ideal contraints met)
-                    var match = matches.Where(x => x.CanMatchWith(freeClient) && x.Clients.Count < MaxNumPlayers).OrderBy(x=>x.MatchIdeal.HasValue ? 1 : 0).ThenBy(x=>x.MatchCreated).FirstOrDefault();
+                    var freeClientsByFit = freeClients.OrderBy(x => (int)(DateTime.UtcNow - x.QueueBegan).TotalMinutes).ThenBy(x => match.GetMatchScore(x)).ToList();
 
-                    // add to match
-                    if (match != null)
-                        match.Clients.Add(freeClient);
+                    if (IsFreeForAll)
+                    {
+                        // add players until ideal is met
+                        int i = 0;
+                        while (i < freeClientsByFit.Count && match.Clients.Count < IdealNumPlayers)
+                        {
+                            match.AddClient(freeClientsByFit[i]);
+                            freeClients.Remove(freeClientsByFit[i]);
+                            ++i;
+                        }
+                    }
+                    else
+                    {
+                        var missingForGoodTeams = IdealNumTeams - (match.Clients.Count % IdealNumTeams);
+                        if (missingForGoodTeams == IdealNumTeams)
+                            missingForGoodTeams = 0;
+
+                        // if it fits our constraints then add players to match
+                        if (missingForGoodTeams > 0 && freeClientsByFit.Count >= missingForGoodTeams)
+                        {
+                            for (int i = 0; i < missingForGoodTeams; ++i)
+                            {
+                                match.AddClient(freeClientsByFit[i]);
+                                freeClients.Remove(freeClientsByFit[i]);
+                            }
+                        }
+                    }
+                }
+
+                // fourth pass - distribute remaining free clients to any match that will take them
+                foreach (var match in matches.Where(x => MatchIsAcceptingNewClients(x)).OrderBy(x => GetMatchPriority(x)).ThenBy(x => x.MatchCreated))
+                {
+                    var freeClientsByFit = freeClients.OrderBy(x => (int)(DateTime.UtcNow - x.QueueBegan).TotalMinutes).ThenBy(x => match.GetMatchScore(x)).ToList();
+
+                    if (IsFreeForAll)
+                    {
+                        // add first free
+                        if (freeClientsByFit.Count > 0)
+                        {
+                            match.AddClient(freeClientsByFit[0]);
+                            freeClients.Remove(freeClientsByFit[0]);
+                        }
+                    }
+                    else
+                    {
+                        // if it fits our constraints then add players to match
+                        if (freeClientsByFit.Count >= IdealNumTeams)
+                        {
+                            for (int i = 0; i < IdealNumTeams; ++i)
+                            {
+                                match.AddClient(freeClientsByFit[i]);
+                                freeClients.Remove(freeClientsByFit[i]);
+                            }
+                        }
+                    }
                 }
 
                 // fourth pass - mark each match as ideal/playable then start if applicable
@@ -184,7 +375,7 @@ namespace Horizon.Plugin.Deadlocked
                     }
 
                     // start match if enough time has passed since last playable
-                    if (playable && (DateTime.UtcNow - match.MatchPlayable)?.TotalSeconds > SecondsAfterPlayableMatchBeforeCreating)
+                    if (playable && (DateTime.UtcNow - match.MatchPlayable)?.TotalSeconds > SecondsAfterPlayableMatchBeforeCreating && match.Game == null)
                     {
                         Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, "Game created");
                         await Create(match);
@@ -192,7 +383,7 @@ namespace Horizon.Plugin.Deadlocked
                 }
 
                 // fourth pass - move clients from newer matches to older ones
-                var orderedMatches = matches.Where(x => !x.MatchIdeal.HasValue).OrderByDescending(x => x.MatchCreated).ToList();
+                var orderedMatches = matches.Where(x => !x.MatchIdeal.HasValue).OrderByDescending(x => GetMatchPriority(x)).ToList();
                 for (int fromIdx = 0; fromIdx < orderedMatches.Count; ++fromIdx)
                 {
                     // skip if match is ideal
@@ -207,7 +398,7 @@ namespace Horizon.Plugin.Deadlocked
                         if (IsMatchIdeal(toMatch))
                             continue;
 
-                        foreach (var client in fromMatch.Clients.OrderBy(x=>x.QueueBegan))
+                        foreach (var client in fromMatch.Clients.OrderBy(x => x.QueueBegan))
                         {
                             // stop if target match is full
                             if (toMatch.Clients.Count >= MaxNumPlayers)
@@ -216,15 +407,15 @@ namespace Horizon.Plugin.Deadlocked
                             if (toMatch.CanMatchWith(client))
                             {
                                 // move to target match
-                                fromMatch.Clients.Remove(client);
-                                toMatch.Clients.Add(client);
+                                fromMatch.RemoveClient(client);
+                                toMatch.AddClient(client);
                             }
                         }
                     }
 
                     // destroy if less than min players
                     if (fromMatch.Clients.Count < MinNumPlayers)
-                        fromMatch.Destroy();
+                        fromMatch.Destroy(true);
                 }
 
                 // final pass - create new matches where applicable
@@ -243,7 +434,10 @@ namespace Horizon.Plugin.Deadlocked
 
                     if (pool.Count >= MinNumPlayers)
                     {
-                        matches.Add(new QueueMatch() { Clients = pool });
+                        var match = new QueueMatch() { Queue = this };
+                        foreach (var client in pool)
+                            match.AddClient(client);
+                        matches.Add(match);
                         matchedClients.AddRange(pool);
                     }
                 }
@@ -259,10 +453,38 @@ namespace Horizon.Plugin.Deadlocked
                     return false;
 
                 // number of clients can't be evenly divided into max num teams
-                if (clientCount > MaxNumTeams && (clientCount % MaxNumTeams) != 0)
+                var numTeams = match.GetBestNumTeams();
+                if (numTeams == 0 || (clientCount > numTeams && (clientCount % numTeams) != 0))
                     return false;
 
                 return true;
+            }
+
+            private bool MatchIsAcceptingNewClients(QueueMatch match)
+            {
+                return match.Clients.Count < MaxNumPlayers && (match.Game == null || (match.Game.WorldStatus == RT.Common.MediusWorldStatus.WorldStaging && (!match.Game.ForceStartAt.HasValue || (match.Game.ForceStartAt.Value - DateTime.UtcNow).TotalSeconds > 5)));
+            }
+
+            private int GetMatchPriority(QueueMatch match)
+            {
+                // lower value is higher priority
+                // prioritize by less than ideal player size
+                // and closest to player size
+
+                var pCount = match.Clients.Count;
+                if (pCount == MaxNumPlayers)
+                    return int.MaxValue;
+
+                if (pCount % IdealNumTeams != 0)
+                    return IdealNumTeams - (pCount % IdealNumTeams);
+
+                if (pCount < IdealNumPlayers)
+                    return IdealNumPlayers - pCount;
+
+                if (pCount > IdealNumPlayers)
+                    return 10 + (pCount - IdealNumPlayers);
+
+                return 20;
             }
 
             private bool IsMatchIdeal(QueueMatch match)
@@ -285,26 +507,30 @@ namespace Horizon.Plugin.Deadlocked
                     GenericField6 = GenericField6,
                     GenericField7 = GenericField7,
                     GenericField8 = GenericField8,
-                    WeaponFlags = WeaponFlags,
-                    GameFlags = GameFlags
                 };
 
                 // create metadata
                 var metadata = await Game.GetGameMetadata(game);
-                metadata.GameConfig = Config ?? new GameConfig();
+                metadata.GameConfig = GetConfig(match) ?? new GameConfig();
 
                 // create game
                 if (game.Create(this, match))
                 {
                     Server.Medius.Program.Manager.AddChannel(channel);
                 }
-
-                // remove clients from queue
+                
+                // send message to clients
                 foreach (var client in match.Clients)
-                    this.Queue.Remove(client);
+                {
+                    client.Client.Queue(new ShowSnackMessageRequestMessage()
+                    {
+                        Message = "Match found.. creating lobby.."
+                    });
+                }
 
                 // destroy match
-                match.Destroy();
+                //match.Destroy();
+                match.SetGame(game);
             }
         }
 
@@ -312,19 +538,23 @@ namespace Horizon.Plugin.Deadlocked
         {
             new QueueInstance(11184, QueueIds.KOTH)
             {
-                MaxNumTeams = 2,
+                MaxNumTeams = 5,
                 IdealNumTeams = 2,
-                MinNumPlayers = 1,
+                MinNumPlayers = 3,
                 MaxNumPlayers = 10,
                 IdealNumPlayers = 6,
                 MapIds = new MapId[]
                 {
                     MapId.CATACROM,
                     MapId.SARATHOS,
+                    MapId.DARK_CATHEDRAL,
                     MapId.SHAAR,
-                    MapId.TEMPUS,
+                    MapId.VALIX,
+                    MapId.MINING_FACILITY,
                     MapId.TORVAL,
-                    MapId.MARAXUS
+                    MapId.TEMPUS,
+                    MapId.MARAXUS,
+                    MapId.GHOST_STATION
                 },
                 RulesSet = 3,
                 GenericField1 = 0,
@@ -335,17 +565,22 @@ namespace Horizon.Plugin.Deadlocked
                 GenericField7 = 0x0120C6F28,
                 GenericField8 = 5609,
                 WeaponFlags = 0x000660AA,
-                GameFlags = Server.Common.Utils.FromString("0000000000000101000000000000010000010001FFFF00010A000000000000010101010005031E00010F010A3C0100000001000300000100000101"),
-                Config = new GameConfig()
+                GetGameFlags = (match) => Server.Common.Utils.FromString("0000000000000101000000000000010000010001FFFF00010A000000000000010101010005031E00010F010A3C0100000001000300000100000101"),
+                GetConfig = (match) => new GameConfig()
                 {
                     BetterHills = true,
                     DisableWeaponPacks = true,
-                    DisableInvHitTimer = true
+                    DisableInvHitTimer = true,
+                    FusionShotsAlwaysHit = true,
+                    HideWeaponPickups = true,
                 },
                 GetTeamIds = (game, match) =>
                 {
-                    // pick two random teams
-                    return Enumerable.Range(0, 10).OrderBy(x=> Guid.NewGuid()).Take(2).ToArray();
+                    return Enumerable.Range(0, 10).OrderBy(x=> Guid.NewGuid()).ToArray();
+                },
+                GetBaseRank = (client) =>
+                {
+                    return client.WideStats[(int)PlayerStatIds.STAT_KOTH_RANK];
                 },
                 GetRank = (client) =>
                 {
@@ -356,17 +591,21 @@ namespace Horizon.Plugin.Deadlocked
             {
                 MaxNumTeams = 2,
                 IdealNumTeams = 2,
-                MinNumPlayers = 1,
+                MinNumPlayers = 4,
                 MaxNumPlayers = 10,
                 IdealNumPlayers = 8,
                 MapIds = new MapId[]
                 {
                     MapId.CATACROM,
                     MapId.SARATHOS,
+                    MapId.DARK_CATHEDRAL,
                     MapId.SHAAR,
                     MapId.VALIX,
+                    MapId.MINING_FACILITY,
                     MapId.TORVAL,
-                    MapId.MARAXUS
+                    MapId.TEMPUS,
+                    MapId.MARAXUS,
+                    MapId.GHOST_STATION
                 },
                 RulesSet = 1,
                 GenericField1 = 0,
@@ -377,12 +616,13 @@ namespace Horizon.Plugin.Deadlocked
                 GenericField7 = 0x012046F18,
                 GenericField8 = 5609,
                 WeaponFlags = 0x000660AA,
-                GameFlags = Server.Common.Utils.FromString("0000000000000101000000010000010000010100FFFF00010A000000000000010101010005021E00010F010A1E0100000001000300000100000100"),
-                Config = new GameConfig()
+                GetGameFlags = (match) =>  Server.Common.Utils.FromString("0000000000000101000000010000010000010100FFFF00010A000000000000010101010005021E00010F010A1E0100000001000300000100000100"),
+                GetConfig = (match) => new GameConfig()
                 {
                     HalfTime = true,
                     DisableWeaponPacks = true,
-                    DisableInvHitTimer = true
+                    DisableInvHitTimer = true,
+                    FusionShotsAlwaysHit = true,
                 },
                 GetTeamIds = (game, match) =>
                 {
@@ -390,12 +630,91 @@ namespace Horizon.Plugin.Deadlocked
                     {
                         case MapId.SARATHOS:
                         case MapId.TORVAL: return new int[] { 2, 3 }; // green/orange
+                        case MapId.TEMPUS: return new int[] { 1, 2 }; // red/green
                         default: return new int[] { 0, 1 }; // red/blue
                     }
+                },
+                GetBaseRank = (client) =>
+                {
+                    return client.WideStats[(int)PlayerStatIds.STAT_CTF_RANK];
                 },
                 GetRank = (client) =>
                 {
                     return client.WideStats[(int)PlayerStatIds.STAT_CTF_RANK];
+                }
+            },
+            new QueueInstance(11184, QueueIds.FFA_DM)
+            {
+                IsFreeForAll = true,
+                MaxNumTeams = 10,
+                IdealNumTeams = 10,
+                MinNumPlayers = 2,
+                MaxNumPlayers = 10,
+                IdealNumPlayers = 4,
+                MapIds = new MapId[]
+                {
+                    MapId.CATACROM,
+                    MapId.SARATHOS,
+                    MapId.DARK_CATHEDRAL,
+                    MapId.SHAAR,
+                    MapId.VALIX,
+                    MapId.MINING_FACILITY,
+                    MapId.TORVAL,
+                    MapId.TEMPUS,
+                    MapId.MARAXUS,
+                    MapId.GHOST_STATION
+                },
+                RulesSet = 2,
+                GenericField1 = 0,
+                GenericField3 = 0,
+                GenericField4 = 0,
+                GenericField5 = 1,
+                GenericField6 = 0x40631540,
+                GenericField7 = 0x120C6F08,
+                GenericField8 = 7824,
+                WeaponFlags = 0x000660AA,
+                GetGameFlags = (match) =>
+                {
+                    if (match.Clients.Count == 2)
+                        return Server.Common.Utils.FromString("0000000000000000000000000100010000010000FFFF00010A000000000000010101010000031E00010F010A1E0100000001000300000100000101");
+
+                    return Server.Common.Utils.FromString("0000000000000000000000000100010000010000FFFF00010A000000000000010101010005031E00010F010A1E0100000001000300000100000101");
+                },
+                GetConfig = (match) =>
+                {
+                    if (match.Clients.Count == 2)
+                    {
+                        return new GameConfig()
+                        {
+                            DisableWeaponPacks = true,
+                            HideWeaponPickups = true,
+                            DisableInvHitTimer = true,
+                            FusionShotsAlwaysHit = true,
+                            Vampire = 3,
+                            DisableHealthBoxes = true,
+                            V2s = 2
+                        };
+                    }
+
+                    return new GameConfig()
+                    {
+                        DisableWeaponPacks = true,
+                        HideWeaponPickups = true,
+                        DisableInvHitTimer = true,
+                        FusionShotsAlwaysHit = true,
+                    };
+                },
+                GetTeamIds = (game, match) =>
+                {
+                    return Enumerable.Range(0, 10).OrderBy(x=> Guid.NewGuid()).ToArray();
+                },
+                GetBaseRank = (client) =>
+                {
+                    return client.WideStats[(int)PlayerStatIds.STAT_DEATHMATCH_RANK];
+                },
+                GetRank = (client) =>
+                {
+                    return client.WideStats[(int)PlayerStatIds.STAT_DEATHMATCH_RANK];
                 }
             }
         };
@@ -435,6 +754,19 @@ namespace Horizon.Plugin.Deadlocked
                 PlayersInQueue = queue?.Queue?.Count ?? 0,
                 SecondsInQueue = (int)((DateTime.UtcNow - me?.QueueBegan)?.TotalSeconds ?? 0),
             });
+
+            return Task.CompletedTask;
+        }
+
+        public static Task OnPlayerLoggedIn(ClientObject client)
+        {
+            // check if client has channel it can connect to
+            // if not, make one
+            var channel = Server.Medius.Program.Manager.GetChannelByChannelName("Default", client.ApplicationId);
+            if (channel == null)
+            { 
+                Server.Medius.Program.Manager.AddChannel(new Channel() { Name = "Default", Type = ChannelType.Lobby, ApplicationId = client.ApplicationId });
+            }
 
             return Task.CompletedTask;
         }

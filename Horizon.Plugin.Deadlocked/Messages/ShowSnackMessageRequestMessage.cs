@@ -8,34 +8,25 @@ using System.Text;
 
 namespace Horizon.Plugin.Deadlocked.Messages
 {
-    public enum VoteContext : int
+    public class ShowSnackMessageRequestMessage : BasePluginMessage
     {
-        SkipMap = 0,
-        NewTeams = 1,
-    };
-
-    public class VoteRequestMessage : BasePluginMessage
-    {
-        public override byte CustomMsgId => 29;
+        public override byte CustomMsgId => 34;
         public override bool SkipEncryption { get => true; set { } }
 
-        public VoteContext Context { get; set; }
-        public int Vote { get; set; }
+        public string Message { get; set; }
 
         public override void Deserialize(MessageReader reader)
         {
             base.Deserialize(reader);
 
-            Context = reader.Read<VoteContext>();
-            Vote = reader.ReadInt32();
+            Message = reader.ReadString(64);
         }
 
         public override void Serialize(MessageWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write(Context);
-            writer.Write(Vote);
+            writer.WriteStr(Message, 64);
         }
     }
 }

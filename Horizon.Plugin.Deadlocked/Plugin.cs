@@ -6,6 +6,7 @@ using Server.Common;
 using Server.Common.Stream;
 using Server.Plugins.Interface;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -20,11 +21,25 @@ namespace Horizon.Plugin.Deadlocked
         public static IPluginHost Host = null;
         public static readonly int[] SupportedAppIds = { 11184 };
 
+        private static bool hasQueriedAppSettings = false;
+        private static readonly AppSettings defaultAppSettings = new AppSettings(0);
+        private static Dictionary<int, AppSettings> appSettingsByAppId = new Dictionary<int, AppSettings>();
+
+        public static AppSettings GetAppSettingsOrDefault(int appId)
+        {
+            if (appSettingsByAppId.TryGetValue(appId, out var settings))
+                return settings;
+
+            return defaultAppSettings;
+        }
+
         public Task Start(string workingDirectory, IPluginHost host)
         {
             WorkingDirectory = workingDirectory;
             Host = host;
 
+
+            //
             host.RegisterAction(PluginEvent.TICK, OnTick);
             host.RegisterAction(PluginEvent.MEDIUS_PLAYER_ON_GET_POLICY, OnPlayerLoggedIn);
             host.RegisterAction(PluginEvent.MEDIUS_PLAYER_ON_LOGGED_OUT, OnPlayerLoggedOut);
@@ -43,20 +58,40 @@ namespace Horizon.Plugin.Deadlocked
             return Task.CompletedTask;
         }
 
-        Task OnTick(PluginEvent eventId, object data)
+        async Task OnTick(PluginEvent eventId, object data)
         {
-            return Queue.Tick();
+            // try and get app settings
+            if (!hasQueriedAppSettings && await Server.Medius.Program.Database.AmIAuthenticated() && !String.IsNullOrEmpty(Server.Medius.Program.Database.GetUsername()))
+            {
+                foreach (var supportedAppId in SupportedAppIds)
+                {
+                    var appSettings = await Server.Medius.Program.Database.GetServerSettings(supportedAppId);
+                    if (!appSettingsByAppId.TryGetValue(supportedAppId, out var settings))
+                        appSettingsByAppId.Add(supportedAppId, settings = new AppSettings(supportedAppId));
+
+                    settings.SetSettings(appSettings);
+                    
+                    // send fully parsed settings to server
+                    await Server.Medius.Program.Database.SetServerSettings(supportedAppId, settings.GetSettings());
+                }
+                
+                hasQueriedAppSettings = true;
+            }
+
+            await Queue.Tick();
         }
 
-        Task OnPlayerLoggedIn(PluginEvent eventId, object data)
+        async Task OnPlayerLoggedIn(PluginEvent eventId, object data)
         {
             var msg = (Server.Medius.PluginArgs.OnPlayerRequestArgs)data;
             if (msg.Player == null)
-                return Task.CompletedTask;
+                return;
             if (!SupportedAppIds.Contains(msg.Player.ApplicationId))
-                return Task.CompletedTask;
+                return;
 
-            return Patch.QueryForPatch(msg.Player);
+            await Downloader.OnPlayerLoggedIn(msg.Player);
+            await Patch.QueryForPatch(msg.Player);
+            await Queue.OnPlayerLoggedIn(msg.Player);
         }
 
         async Task OnPlayerLoggedOut(PluginEvent eventId, object data)
@@ -67,8 +102,8 @@ namespace Horizon.Plugin.Deadlocked
             if (!SupportedAppIds.Contains(msg.Player.ApplicationId))
                 return;
 
-            await Player.OnPlayerLoggedOut(msg.Player);
             await Downloader.OnPlayerLoggedOut(msg.Player);
+            await Player.OnPlayerLoggedOut(msg.Player);
             await Queue.OnPlayerLoggedOut(msg.Player);
         }
 
@@ -98,7 +133,10 @@ namespace Horizon.Plugin.Deadlocked
         {
             var msg = (Server.Medius.PluginArgs.OnGameArgs)data;
             if (msg.Game == null)
+            {
+                Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.ERROR, $"OnGameEnd with no game");
                 return Task.CompletedTask;
+            }
             if (!SupportedAppIds.Contains(msg.Game.ApplicationId))
                 return Task.CompletedTask;
 
@@ -225,123 +263,155 @@ namespace Horizon.Plugin.Deadlocked
             {
                 using (var reader = new MessageReader(ms))
                 {
-
-                    switch (customMsgId)
+                    // cgm custom messages begin at 100
+                    if (customMsgId >= 100)
                     {
-                        case 2: // request IRX modules
+                        var game = msg.Player.CurrentGame;
+                        if (game != null)
+                        {
+                            var metadata = await Game.GetGameMetadata(game);
+                            if (metadata != null)
                             {
-                                var irxModulesRequest = new MapModulesRequestMessage();
-                                irxModulesRequest.Deserialize(reader);
-                                await Maps.SendMapModules(msg.Player, irxModulesRequest.Module1Start, irxModulesRequest.Module2Start);
-                                break;
+                                var mode = Modes.FindCustomModeById(metadata.GameConfig.GetRealCustomModeId());
+                                if (mode != null)
+                                    await mode.OnRecvCustomMessage(msg.Player, customMsgId, reader);
                             }
-                        case 4: // player responds with map override version
-                            {
-                                var request = new SetMapOverrideResponseMessage();
-                                request.Deserialize(reader);
-
-                                await Player.SetPlayerMapVersion(msg.Player, request.ClientMapVersion);
-                                break;
-                            }
-                        case 5: // game started
-                            {
-                                var game = msg.Player.CurrentGame;
-                                if (game != null && game.Host == msg.Player && game.WorldStatus == MediusWorldStatus.WorldStaging)
-                                    await game.SetWorldStatus(MediusWorldStatus.WorldActive);
-                                break;
-                            }
-                        case 6: // set player patch config
-                            {
-                                var request = new SetPlayerPatchConfigRequestMessage();
-                                request.Deserialize(reader);
-                                await Player.SetPatchConfig(msg.Player, request.Config);
-                                break;
-                            }
-                        case 7: // request patch
-                            {
-                                await Patch.SendPatch(msg.Player);
-                                break;
-                            }
-                        case 9: // set player patch config
-                            {
-                                if (msg.Player.CurrentGame != null && msg.Player.CurrentGame.Host == msg.Player && msg.Player.CurrentGame.WorldStatus <= MediusWorldStatus.WorldStaging)
+                        }
+                    }
+                    else
+                    {
+                        switch (customMsgId)
+                        {
+                            case 2: // request IRX modules
                                 {
-                                    var request = new SetGameConfigRequestMessage();
+                                    var irxModulesRequest = new MapModulesRequestMessage();
+                                    irxModulesRequest.Deserialize(reader);
+                                    await Maps.SendMapModules(msg.Player, irxModulesRequest.Module1Start, irxModulesRequest.Module2Start);
+                                    break;
+                                }
+                            case 4: // player responds with map override version
+                                {
+                                    var request = new SetMapOverrideResponseMessage();
                                     request.Deserialize(reader);
 
-                                    // try to update game config
-                                    if (await Game.SetGameConfig(msg.Player.CurrentGame, request.Config))
+                                    await Player.SetPlayerMapVersion(msg.Player, request.ClientMapVersion);
+                                    break;
+                                }
+                            case 5: // game started
+                                {
+                                    var game = msg.Player.CurrentGame;
+                                    if (game != null && game.Host == msg.Player && game.WorldStatus == MediusWorldStatus.WorldStaging)
+                                        await game.SetWorldStatus(MediusWorldStatus.WorldActive);
+                                    break;
+                                }
+                            case 6: // set player patch config
+                                {
+                                    var request = new SetPlayerPatchConfigRequestMessage();
+                                    request.Deserialize(reader);
+                                    await Player.SetPatchConfig(msg.Player, request.Config);
+                                    break;
+                                }
+                            case 7: // request patch
+                                {
+                                    await Patch.SendPatch(msg.Player);
+                                    break;
+                                }
+                            case 9: // set player patch config
+                                {
+                                    if (msg.Player.CurrentGame != null && msg.Player.CurrentGame.Host == msg.Player && msg.Player.CurrentGame.WorldStatus <= MediusWorldStatus.WorldStaging)
                                     {
-                                        // send new game config to other players in lobby
-                                        await Game.BroadcastGameConfig(msg.Player.CurrentGame);
+                                        var request = new SetGameConfigRequestMessage();
+                                        request.Deserialize(reader);
+
+                                        // try to update game config
+                                        if (await Game.SetGameConfig(msg.Player.CurrentGame, request.Config))
+                                        {
+                                            // send new game config to other players in lobby
+                                            await Game.BroadcastGameConfig(msg.Player.CurrentGame);
+                                        }
                                     }
+                                    break;
                                 }
-                                break;
-                            }
-                        case 11: // 
-                            {
-                                if (msg.Player.CurrentGame != null)
+                            case 11: // 
                                 {
-                                    var request = new SetGameStateRequestMessage();
-                                    request.Deserialize(reader);
-                                    await Game.SetGameState(msg.Player.CurrentGame, request.State);
+                                    if (msg.Player.CurrentGame != null)
+                                    {
+                                        var request = new SetGameStateRequestMessage();
+                                        request.Deserialize(reader);
+                                        await Game.SetGameState(msg.Player.CurrentGame, request.State);
+                                    }
+                                    break;
                                 }
-                                break;
-                            }
-                        case 12: // request for current custom map override
-                            {
-                                var requestMessage = new GetMapOverrideRequestMessage();
-                                requestMessage.Deserialize(reader);
-                                await Game.SendMapOverride(msg.Player);
-                                break;
-                            }
-                        case 14: // download data response
-                            {
-                                var downloadDataResponse = new DataDownloadResponseMessage();
-                                downloadDataResponse.Deserialize(reader);
-                                await Downloader.OnDataDownloadResponse(msg.Player, downloadDataResponse);
-                                break;
-                            }
-                        case 15: // update game data
-                            {
-                                var request = new SetGameDataRequestMessage();
-                                request.Deserialize(reader);
-                                await Game.UpdateGameData(msg.Player, msg.Player.CurrentGame, request);
-                                break;
-                            }
-                        case 21: // game reached end scoreboard
-                            {
-                                var game = msg.Player.CurrentGame;
-                                if (game != null && game.WorldStatus == MediusWorldStatus.WorldActive)
-                                    await game.SetWorldStatus(MediusWorldStatus.WorldClosed);
-                                break;
-                            }
-                        case 22: // player request enter queue
-                            {
-                                var request = new QueueBeginRequestMessage();
-                                request.Deserialize(reader);
-                                await Queue.OnQueueRequest(msg.Player, request.QueueId);
-                                break;
-                            }
-                        case 24: // player request queue information
-                            {
-                                await Queue.OnGetMyQueue(msg.Player);
-                                break;
-                            }
-                        case 29: // player cast vote
-                            {
-                                var request = new VoteRequestMessage();
-                                request.Deserialize(reader);
-                                var game = msg.Player.CurrentGame;
-                                if (game is CompGame compGame)
-                                    await compGame.Vote(msg.Player, request);
-                                break;
-                            }
-                        default:
-                            {
-                                Host.Log(InternalLogLevel.WARN, $"Unhandled custom msg id {customMsgId}: {msg}");
-                                break;
-                            }
+                            case 12: // request for current custom map override
+                                {
+                                    var requestMessage = new GetMapOverrideRequestMessage();
+                                    requestMessage.Deserialize(reader);
+                                    await Game.SendMapOverride(msg.Player);
+                                    break;
+                                }
+                            case 14: // download data response
+                                {
+                                    var downloadDataResponse = new DataDownloadResponseMessage();
+                                    downloadDataResponse.Deserialize(reader);
+                                    await Downloader.OnDataDownloadResponse(msg.Player, downloadDataResponse);
+                                    break;
+                                }
+                            case 15: // update game data
+                                {
+                                    var request = new SetGameDataRequestMessage();
+                                    request.Deserialize(reader);
+                                    await Game.UpdateGameData(msg.Player, msg.Player.CurrentGame, request);
+                                    break;
+                                }
+                            case 21: // game reached end scoreboard
+                                {
+                                    var game = msg.Player.CurrentGame;
+                                    if (game != null && game.WorldStatus == MediusWorldStatus.WorldActive)
+                                    {
+                                        await game.SetWorldStatus(MediusWorldStatus.WorldClosed);
+                                        await Game.OnGameComplete(game);
+                                    }
+                                    break;
+                                }
+                            case 22: // player request enter queue
+                                {
+                                    var request = new QueueBeginRequestMessage();
+                                    request.Deserialize(reader);
+                                    await Queue.OnQueueRequest(msg.Player, request.QueueId);
+                                    break;
+                                }
+                            case 24: // player request queue information
+                                {
+                                    await Queue.OnGetMyQueue(msg.Player);
+                                    break;
+                                }
+                            case 29: // player cast vote
+                                {
+                                    var request = new VoteRequestMessage();
+                                    request.Deserialize(reader);
+                                    var game = msg.Player.CurrentGame;
+                                    if (game is CompGame compGame)
+                                        await compGame.Vote(msg.Player, request);
+                                    break;
+                                }
+                            case 36: // client wants custom mode payload
+                                {
+                                    var request = new CustomModePayloadRequest();
+                                    request.Deserialize(reader);
+                                    var game = msg.Player.CurrentGame;
+                                    if (game != null)
+                                    {
+                                        await Game.SendGameMode(game, msg.Player);
+                                        msg.Player.Queue(new CustomModePayloadResponse());
+                                    }
+                                    break;
+                                }
+                            default:
+                                {
+                                    Host.Log(InternalLogLevel.WARN, $"Unhandled custom msg id {customMsgId}: {msg}");
+                                    break;
+                                }
+                        }
                     }
                 }
             }

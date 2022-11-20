@@ -29,6 +29,8 @@ namespace Horizon.Plugin.Deadlocked
             if (chatMsg == "!")
             {
                 chatMsg = playerExtraInfo.LastChatCommand;
+                if (String.IsNullOrEmpty(chatMsg))
+                    return Task.CompletedTask;
             }
 
             var args = chatMsg.Split(' ', StringSplitOptions.RemoveEmptyEntries);

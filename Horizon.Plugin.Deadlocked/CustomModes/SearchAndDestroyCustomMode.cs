@@ -334,7 +334,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 if (team >= 0 && team < 10)
                 {
                     teamCounts[team] += 1;
-                    teamIds.Add(team);
+                    if (!teamIds.Contains(team))
+                        teamIds.Add(team);
                 }
             }
 

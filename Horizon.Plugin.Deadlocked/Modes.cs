@@ -21,7 +21,8 @@ namespace Horizon.Plugin.Deadlocked
             new SpleefCustomMode(),
             new SurvivalCustomMode(),
             new TeamDefenderCustomMode(),
-            new ThousandKillsCustomMode()
+            new ThousandKillsCustomMode(),
+            new AnimExtractorCustomMode(),
         };
 
         public static BaseCustomMode FindCustomModeById(CustomModeId id)
@@ -44,6 +45,7 @@ namespace Horizon.Plugin.Deadlocked
         CMODE_ID_THOUSAND_KILLS = CMODE_ID_SURVIVAL + 1,
         CMODE_ID_GRIDIRON = CMODE_ID_THOUSAND_KILLS + 1,
         CMODE_ID_TEAM_DEFENDER = CMODE_ID_GRIDIRON + 1,
+        CMODE_ID_ANIM_EXTRACTOR = CMODE_ID_TEAM_DEFENDER + 1,
 
         // reserved for custom maps
         CMODE_ID_DUCK_HUNT = -1,

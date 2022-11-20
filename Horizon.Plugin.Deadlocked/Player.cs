@@ -62,7 +62,7 @@ namespace Horizon.Plugin.Deadlocked
                             var playerMapVersion = GetPlayerExtraInfo(gameClient.Client.AccountId)?.CurrentMapVersion ?? 0;
                             if (playerMapVersion > 0 && playerMapVersion < highestVersion)
                             {
-                                gameClient.Client.CurrentChannel.BroadcastSystemMessage(gameClient.Client.CurrentChannel.Clients, $"A{gameClient.Client.AccountName} has an old version of {map.MapName}");
+                                gameClient.Client.CurrentChannel.BroadcastSystemMessage(gameClient.Client.CurrentChannel.Clients, $"A{gameClient.Client.AccountName} has an old version of {map.MapName} (v{playerMapVersion} of v{highestVersion})");
                             }
                         }
                     }
@@ -157,28 +157,33 @@ namespace Horizon.Plugin.Deadlocked
     {
         public int CurrentMapVersion { get; set; }
         public byte[] PatchHash { get; set; }
+        public bool PatchHandled { get; set; }
         public string LastChatCommand { get;set; }
     }
 
     public class PlayerConfig
     {
-        public bool DisableFramelimiter { get; set; }
+        public byte Framelimiter { get; set; }
         public bool EnableGamemodeAnnouncements { get; set; }
         public bool EnableSpectate { get; set; }
         public bool EnableSingleplayerMusic { get; set; }
-        public byte LevelOfDetail { get; set; }
+        public byte LevelOfDetail { get; set; } = 2; // normal
         public bool EnablePlayerStateSync { get; set; }
-        public bool EnableAutoMaps { get; set; }
+        public bool EnableAutoMaps { get; set; } = true;
         public bool EnableFpsCounter { get; set; }
         public bool DisableCircleHackerRay { get; set; }
         public sbyte PlayerAggTime { get; set; }
+        public bool DisableCameraShake { get; set; }
+        public sbyte MinimapScale { get; set; }
+        public sbyte MinimapBigZoom { get; set; }
+        public sbyte MinimapSmallZoom { get; set; }
 #if TWEAKERS
         public byte[] CharacterTweakers { get; set; } = new byte[1 + 7*2];
 #endif
 
         public byte[] Serialize()
         {
-            int bufSize = 10;
+            int bufSize = 14;
 #if TWEAKERS
             bufSize += 1 + 7*2;
 #endif
@@ -187,7 +192,7 @@ namespace Horizon.Plugin.Deadlocked
             {
                 using (var writer = new BinaryWriter(ms))
                 {
-                    writer.Write(DisableFramelimiter);
+                    writer.Write(Framelimiter);
                     writer.Write(EnableGamemodeAnnouncements);
                     writer.Write(EnableSpectate);
                     writer.Write(EnableSingleplayerMusic);
@@ -197,6 +202,10 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(EnableFpsCounter);
                     writer.Write(DisableCircleHackerRay);
                     writer.Write(PlayerAggTime);
+                    writer.Write(DisableCameraShake);
+                    writer.Write(MinimapScale);
+                    writer.Write(MinimapBigZoom);
+                    writer.Write(MinimapSmallZoom);
 #if TWEAKERS
                     writer.Write(CharacterTweakers ?? new byte[1 + 7*2]);
 #endif
@@ -208,7 +217,7 @@ namespace Horizon.Plugin.Deadlocked
 
         public void Deserialize(BinaryReader reader)
         {
-            DisableFramelimiter = reader.ReadBoolean();
+            Framelimiter = reader.ReadByte();
             EnableGamemodeAnnouncements = reader.ReadBoolean();
             EnableSpectate = reader.ReadBoolean();
             EnableSingleplayerMusic = reader.ReadBoolean();
@@ -218,6 +227,10 @@ namespace Horizon.Plugin.Deadlocked
             EnableFpsCounter = reader.ReadBoolean();
             DisableCircleHackerRay = reader.ReadBoolean();
             PlayerAggTime = reader.ReadSByte();
+            DisableCameraShake = reader.ReadBoolean();
+            MinimapScale = reader.ReadSByte();
+            MinimapBigZoom = reader.ReadSByte();
+            MinimapSmallZoom = reader.ReadSByte();
 #if TWEAKERS
             CharacterTweakers = reader.ReadBytes(1 + 7*2);
 #endif
@@ -225,7 +238,7 @@ namespace Horizon.Plugin.Deadlocked
 
         public bool SameAs(PlayerConfig other)
         {
-            return DisableFramelimiter == other.DisableFramelimiter
+            return Framelimiter == other.Framelimiter
                 && EnableGamemodeAnnouncements == other.EnableGamemodeAnnouncements
                 && EnableSpectate == other.EnableSpectate
                 && EnableSingleplayerMusic == other.EnableSingleplayerMusic
@@ -235,6 +248,10 @@ namespace Horizon.Plugin.Deadlocked
                 && EnableFpsCounter == other.EnableFpsCounter
                 && DisableCircleHackerRay == other.DisableCircleHackerRay
                 && PlayerAggTime == other.PlayerAggTime
+                && DisableCameraShake == other.DisableCameraShake
+                && MinimapScale == other.MinimapScale
+                && MinimapBigZoom == other.MinimapBigZoom
+                && MinimapSmallZoom == other.MinimapSmallZoom
 #if TWEAKERS
                 && (CharacterTweakers?.SequenceEqual(other.CharacterTweakers) ?? false)
 #endif

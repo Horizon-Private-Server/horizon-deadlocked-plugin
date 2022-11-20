@@ -1,8 +1,10 @@
-﻿using Server.Medius.Models;
+﻿using Server.Common.Stream;
+using Server.Medius.Models;
 using Server.Medius.PluginArgs;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -74,7 +76,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             };
 
             // collect custom stats for each players
-            foreach (var accountId in metadata.PreWideStats.Players.Keys)
+            var accountIdsAsStart = game.AccountIdsAtStart.Split(',').Select(x => int.TryParse(x, out var v) ? v : (int?)null).Where(x => x.HasValue).Select(x => x.Value).ToArray();
+            foreach (var accountId in accountIdsAsStart)
             {
                 var gameIdx = Array.FindIndex(gameData.StartGameSettings.PlayerAccountIds, x => x == accountId);
                 if (gameIdx < 0)
@@ -105,6 +108,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             // 
             if (!GameAcceptStats(game, metadata, gameData))
             {
+                Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.ERROR, $"Custom GameAcceptStats returned false for {game.Id} {game.Metadata}");
                 return args.PlayerCustomStats;
             }
 
@@ -130,6 +134,11 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             }
 
             return args.PlayerCustomStats;
+        }
+    
+        public virtual Task OnRecvCustomMessage(ClientObject client, int messageId, MessageReader reader)
+        {
+            return Task.CompletedTask;
         }
     }
 }

@@ -24,7 +24,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
             for (int i = 0; i < 10; ++i)
             {
                 var teamId = reader.ReadSByte();
-                if (teamId >= 0 && teamId < 10)
+                if (teamId >= 0 && teamId < 10 && i < len)
                     TeamIdPool.Add(teamId);
             }
         }
@@ -34,7 +34,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
             base.Serialize(writer);
 
             writer.Write(Seed);
-            writer.Write(TeamIdPool.Count);
+            writer.Write(Math.Min(10, TeamIdPool.Count));
             for (int i = 0; i < 10; ++i)
             {
                 if (i < TeamIdPool.Count)

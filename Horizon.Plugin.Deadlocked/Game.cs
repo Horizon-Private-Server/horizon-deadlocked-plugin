@@ -5,6 +5,7 @@ using Server.Common;
 using Server.Medius.Models;
 using Server.Medius.PluginArgs;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -17,12 +18,20 @@ namespace Horizon.Plugin.Deadlocked
     {
         private static readonly Dictionary<int, GameMetadata> _metadatas = new Dictionary<int, GameMetadata>();
 
-        public static async Task BroadcastGameConfig(Server.Medius.Models.Game game)
+        public static async Task BroadcastGameConfig(Server.Medius.Models.Game game, bool skipSendChatMessage = false)
         {
             var metadata = await GetGameMetadata(game);
 
+            // send custom ranks
+            BroadcastCustomModeRanks(game);
+
             foreach (var gameClient in game.Clients)
             {
+                // reset map version
+                var extraInfo = Player.GetPlayerExtraInfo(gameClient.Client.AccountId);
+                if (extraInfo != null)
+                    extraInfo.CurrentMapVersion = 0;
+
                 // send config
                 gameClient.Client.Queue(new SetGameConfigResponseMessage()
                 {
@@ -30,12 +39,48 @@ namespace Horizon.Plugin.Deadlocked
                 });
 
                 // send chat message
-                game.ChatChannel.SendSystemMessage(gameClient.Client, "AThe host has updated the game settings.");
+                if (!skipSendChatMessage)
+                {
+                    game.ChatChannel.SendSystemMessage(gameClient.Client, "AThe host has updated the game settings.");
+                }
 
                 // send custom map override
                 var map = Maps.FindCustomMapById((CustomMapId)metadata.GameConfig.MapOverride);
                 await Maps.SendMapOverride(gameClient.Client, map);
             }
+        }
+
+        public static async Task BroadcastCustomModeRanks(Server.Medius.Models.Game game)
+        {
+            var metadata = await GetGameMetadata(game);
+            if (metadata == null)
+                return;
+
+            // send custom ranks
+            var setRanksMessage = new SetPlayerRanksMessage();
+            var customMode = Modes.FindCustomModeById(metadata.GameConfig.GetRealCustomModeId());
+            if (customMode != null)
+            {
+                for (int i = 0; i < game.Clients.Count; ++i)
+                {
+                    // get rank
+                    // if rank is null then mode doesn't have its own rank
+                    // so just send disabled message
+                    var rank = await customMode.GetRank(game.Clients[i].Client);
+                    if (!rank.HasValue)
+                    {
+                        setRanksMessage.Enabled = false;
+                        break;
+                    }
+
+                    setRanksMessage.AccountIds[i] = game.Clients[i].Client.AccountId;
+                    setRanksMessage.Ranks[i] = rank ?? 0;
+                    setRanksMessage.Enabled = true;
+                }
+            };
+
+            foreach (var gameClient in game.Clients)
+                gameClient?.Client?.Queue(setRanksMessage);
         }
 
         public static async Task BroadcastMapOverride(Server.Medius.Models.Game game)
@@ -78,6 +123,9 @@ namespace Horizon.Plugin.Deadlocked
                 {
                     Config = metadata.GameConfig
                 });
+
+                // resend custom mode stats
+                BroadcastCustomModeRanks(game);
             }
 
             // broadcast player's patch config
@@ -102,7 +150,7 @@ namespace Horizon.Plugin.Deadlocked
             var metadata = await GetGameMetadata(game);
 
             // pass to gamemode
-            var mode = Modes.FindCustomModeById((CustomModeId)metadata.GameConfig.GamemodeOverride);
+            var mode = Modes.FindCustomModeById(metadata.GameConfig.GetRealCustomModeId());
             if (mode != null)
             {
                 await mode.OnClientPostWideStats(args);
@@ -116,10 +164,31 @@ namespace Horizon.Plugin.Deadlocked
                     if (args.IsClan)
                     {
                         if (args.Player.ClanId.HasValue)
+                        {
+                            // make sure we have a copy of the pre wide stats!
+                            if (!metadata.PreWideStats.Clans.ContainsKey(args.Player.ClanId.Value))
+                            {
+                                var clan = await Server.Medius.Program.Database.GetClanById(args.Player.ClanId.Value);
+                                if (clan != null)
+                                {
+                                    metadata.PreWideStats.Clans.TryAdd(args.Player.ClanId.Value, clan.ClanWideStats.ToArray());
+                                    if (!metadata.PreCustomWideStats.Clans.ContainsKey(args.Player.ClanId.Value))
+                                        metadata.PreCustomWideStats.Clans.TryAdd(args.Player.ClanId.Value, clan.ClanCustomWideStats.ToArray());
+                                }
+                            }
+
                             metadata.PostWideStats.Clans[args.Player.ClanId.Value] = args.WideStats.ToArray();
+                        }
                     }
                     else
                     {
+                        // make sure we have a copy of the pre wide stats!
+                        if (!metadata.PreWideStats.Players.ContainsKey(args.Player.AccountId))
+                            metadata.PreWideStats.Players.TryAdd(args.Player.AccountId, args.Player.WideStats.ToArray());
+                        if (!metadata.PreCustomWideStats.Players.ContainsKey(args.Player.AccountId))
+                            metadata.PreCustomWideStats.Players.TryAdd(args.Player.AccountId, args.Player.CustomWideStats.ToArray());
+
+                        // store post wide stats
                         metadata.PostWideStats.Players[args.Player.AccountId] = args.WideStats.ToArray();
                     }
                 }
@@ -148,12 +217,14 @@ namespace Horizon.Plugin.Deadlocked
             if (metadata.GameConfig.SameAs(config))
                 return false;
 
+            var modeChanged = config.GamemodeOverride != metadata.GameConfig.GamemodeOverride;
+
             // update
             metadata.GameConfig = config;
 
             // update other metadata
             metadata.CustomMap = Maps.FindCustomMapById((CustomMapId)metadata.GameConfig.MapOverride)?.MapName;
-            metadata.CustomGameMode = Modes.FindCustomModeById((CustomModeId)metadata.GameConfig.GamemodeOverride)?.Name;
+            metadata.CustomGameMode = Modes.FindCustomModeById(metadata.GameConfig.GetRealCustomModeId())?.Name;
             metadata.Weather = metadata.GameConfig.WeatherOverride.ToString();
             metadata.GameInfo = await GetGameInfo(game, metadata);
 
@@ -198,7 +269,7 @@ namespace Horizon.Plugin.Deadlocked
             // 
             if (request.EndOfList)
             {
-                Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, "GAME STATS RECEIVED");
+                Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, $"GAME STATS RECEIVED from {client}");
 
                 metadata.ReceivedGameData = true;
             }
@@ -207,23 +278,24 @@ namespace Horizon.Plugin.Deadlocked
             await SetGameMetadata(game, metadata);
         }
 
-        public static async Task OnGameStarted(Server.Medius.Models.Game game)
+        public static async Task SendGameMode(Server.Medius.Models.Game game, ClientObject targetClient = null)
         {
             var metadata = await GetGameMetadata(game);
-
-            // send map override to all clients
-            await BroadcastMapOverride(game);
 
             // construct payloads to send to client
             var payloads = new List<Payload>();
 
-            // parse gamemode
-            var mode = Modes.FindCustomModeById((CustomModeId)metadata.GameConfig.GamemodeOverride);
-            var map = Maps.FindCustomMapById((CustomMapId)metadata.GameConfig.MapOverride);
-            if (map != null && map.ModeId.HasValue)
+            // add remove module entry
+            payloads.Add(new Payload(0x000CF000, new PatchModuleEntry()
             {
-                mode = Modes.FindCustomModeById(map.ModeId.Value);
-            }
+                Type = PatchModuleEntryType.DISABLED,
+                ModeId = 0,
+                MapId = 0,
+            }.Serialize()));
+
+            // parse gamemode
+            var mode = Modes.FindCustomModeById(metadata.GameConfig.GetRealCustomModeId());
+            var map = Maps.FindCustomMapById((CustomMapId)metadata.GameConfig.MapOverride);
 
             if (mode != null)
             {
@@ -237,6 +309,8 @@ namespace Horizon.Plugin.Deadlocked
                     payloads.Add(new Payload(0x000CF000, new PatchModuleEntry()
                     {
                         Type = PatchModuleEntryType.RUN_ONCE_GAME,
+                        ModeId = (sbyte)mode.Id,
+                        MapId = (sbyte)metadata.GameConfig.MapOverride,
                         GameEntrypoint = modePayload.Address,
                         LobbyEntrypoint = modePayload.Address + 8,
                         LoadEntrypoint = modePayload.Address + 16,
@@ -247,76 +321,88 @@ namespace Horizon.Plugin.Deadlocked
             // send payloads to all clients
             if (payloads.Count > 0)
                 foreach (var gameClient in game.Clients)
-                    await Downloader.InitiateDataDownload(gameClient.Client, 201, payloads);
+                    if (targetClient == null || gameClient.Client == targetClient)
+                        await Downloader.InitiateDataDownload(gameClient.Client, 201, payloads);
+        }
+
+        public static async Task OnGameStarted(Server.Medius.Models.Game game)
+        {
+            var metadata = await GetGameMetadata(game);
+
+            // send map override to all clients
+            await BroadcastGameConfig(game, true);
 
             // store player wide stats
-            _ = Task.Run(async () =>
+            var tasks = game.Clients.Select(async (gameClient) =>
             {
-                foreach (var gameClient in game.Clients)
-                {
-                    metadata.PreWideStats.Players.Add(gameClient.Client.AccountId, gameClient.Client.WideStats.ToArray());
-                    metadata.PreCustomWideStats.Players.Add(gameClient.Client.AccountId, gameClient.Client.CustomWideStats.ToArray());
-                    metadata.PostWideStats.Players.Add(gameClient.Client.AccountId, gameClient.Client.WideStats.ToArray());
-                    metadata.PostCustomWideStats.Players.Add(gameClient.Client.AccountId, gameClient.Client.CustomWideStats.ToArray());
+                metadata.PreWideStats.Players.TryAdd(gameClient.Client.AccountId, gameClient.Client.WideStats.ToArray());
+                metadata.PreCustomWideStats.Players.TryAdd(gameClient.Client.AccountId, gameClient.Client.CustomWideStats.ToArray());
+                metadata.PostWideStats.Players.TryAdd(gameClient.Client.AccountId, gameClient.Client.WideStats.ToArray());
+                metadata.PostCustomWideStats.Players.TryAdd(gameClient.Client.AccountId, gameClient.Client.CustomWideStats.ToArray());
 
-                    if (gameClient.Client.ClanId.HasValue)
+                if (gameClient.Client.ClanId.HasValue)
+                {
+                    var clanId = gameClient.Client.ClanId.Value;
+                    if (!metadata.PreWideStats.Clans.ContainsKey(clanId))
                     {
-                        var clanId = gameClient.Client.ClanId.Value;
-                        if (!metadata.PreWideStats.Clans.ContainsKey(clanId))
+                        var clan = await Server.Medius.Program.Database.GetClanById(clanId);
+                        if (clan != null)
                         {
-                            var clan = await Server.Medius.Program.Database.GetClanById(clanId);
-                            if (clan != null)
-                            {
-                                metadata.PreWideStats.Clans.Add(clanId, clan.ClanWideStats.ToArray());
-                                metadata.PreCustomWideStats.Clans.Add(clanId, clan.ClanCustomWideStats.ToArray());
-                                metadata.PostWideStats.Clans.Add(clanId, clan.ClanWideStats.ToArray());
-                                metadata.PostCustomWideStats.Clans.Add(clanId, clan.ClanCustomWideStats.ToArray());
-                            }
+                            metadata.PreWideStats.Clans.TryAdd(clanId, clan.ClanWideStats.ToArray());
+                            metadata.PreCustomWideStats.Clans.TryAdd(clanId, clan.ClanCustomWideStats.ToArray());
+                            metadata.PostWideStats.Clans.TryAdd(clanId, clan.ClanWideStats.ToArray());
+                            metadata.PostCustomWideStats.Clans.TryAdd(clanId, clan.ClanCustomWideStats.ToArray());
                         }
                     }
                 }
-
-                await SetGameMetadata(game, metadata);
             });
+
+            await Task.WhenAll(tasks);
+            await SetGameMetadata(game, metadata);
         }
 
-        public static async Task OnGameEnded(Server.Medius.Models.Game game)
+        public static async Task OnGameComplete(Server.Medius.Models.Game game)
         {
             var metadata = await GetGameMetadata(game);
             Dictionary<int, int[]> playerCustomStats = null;
 
-            // pass to gamemode
-            var mode = Modes.FindCustomModeById((CustomModeId)metadata.GameConfig.GamemodeOverride);
-            if (mode != null)
-                playerCustomStats = await mode.OnGameEnd(game, metadata);
-
-            // store new custom stats in PostStats metadata
-            if (playerCustomStats != null)
+            if (!metadata.ProcessedComplete)
             {
-                foreach (var kvp in playerCustomStats)
+                // pass to gamemode
+                var mode = Modes.FindCustomModeById(metadata.GameConfig.GetRealCustomModeId());
+                if (mode != null)
+                    playerCustomStats = await mode.OnGameEnd(game, metadata);
+
+                // store new custom stats in PostStats metadata
+                if (playerCustomStats != null)
                 {
-                    metadata.PostCustomWideStats.Players[kvp.Key] = kvp.Value.ToArray();
+                    foreach (var kvp in playerCustomStats)
+                    {
+                        metadata.PostCustomWideStats.Players[kvp.Key] = kvp.Value.ToArray();
+                    }
                 }
-            }
 
 #warning TODO: Add support for custom clan stats
 
-            Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, "GAME ENDED");
+                metadata.ProcessedComplete = true;
+                Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, "GAME COMPLETED");
+            }
 
             // send last metadata to server
             await SetGameMetadata(game, metadata);
         }
 
+        public static async Task OnGameEnded(Server.Medius.Models.Game game)
+        {
+
+        }
+
         public static async Task OnGameDestroyed(Server.Medius.Models.Game game)
         {
+            // pass to complete
+            await OnGameComplete(game);
+
             Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, "GAME DESTROYED");
-
-            var metadata = await GetGameMetadata(game);
-
-            // send last metadata to server
-            await SetGameMetadata(game, metadata);
-
-            Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, game.Metadata);
 
             // remove from cache
             _metadatas.Remove(game.Id);
@@ -327,7 +413,7 @@ namespace Horizon.Plugin.Deadlocked
             string gameInfo = null;
 
             // let custom game mode override the gameinfo string
-            var mode = Modes.FindCustomModeById((CustomModeId)metadata.GameConfig.GamemodeOverride);
+            var mode = Modes.FindCustomModeById(metadata.GameConfig.GetRealCustomModeId());
             if (mode != null)
             {
                 gameInfo = await mode.GetGameInfo(game, metadata);
@@ -433,12 +519,13 @@ namespace Horizon.Plugin.Deadlocked
         public GameStats PostWideStats { get; set; } = new GameStats();
         public GameStats PreCustomWideStats { get; set; } = new GameStats();
         public GameStats PostCustomWideStats { get; set; } = new GameStats();
+        public bool ProcessedComplete { get; set; } = false;
     }
 
     public class GameStats
     {
-        public Dictionary<int, int[]> Players { get; set; } = new Dictionary<int, int[]>();
-        public Dictionary<int, int[]> Clans { get; set; } = new Dictionary<int, int[]>();
+        public ConcurrentDictionary<int, int[]> Players { get; set; } = new ConcurrentDictionary<int, int[]>();
+        public ConcurrentDictionary<int, int[]> Clans { get; set; } = new ConcurrentDictionary<int, int[]>();
     }
 
     public class PackedGameState
@@ -859,7 +946,7 @@ namespace Horizon.Plugin.Deadlocked
     public class GameConfig
     {
         public byte MapOverride { get; set; }
-        public byte GamemodeOverride { get; set; }
+        public sbyte GamemodeOverride { get; set; }
         public byte WeatherOverride { get; set; }
         public bool DisableWeaponPacks { get; set; }
         public byte V2s { get; set; }
@@ -872,16 +959,27 @@ namespace Horizon.Plugin.Deadlocked
         public bool DisableNames { get; set; }
         public bool DisableInvHitTimer { get; set; }
         public bool HideWeaponPickups { get; set; }
+        public bool FusionShotsAlwaysHit { get;set;}
         public byte PlayerSize { get; set; }
         public bool RotatingWeapons { get; set; }
         public byte Headbutt { get; set; }
         public bool HeadbuttFriendlyFire { get; set; }
         public bool ChargebootForever { get; set; }
         public byte Survival_Difficulty { get; set; }
+        public byte Payload_ContestMode { get; set; }
+
+        public CustomModeId GetRealCustomModeId()
+        {
+            var map = Maps.FindCustomMapById((CustomMapId)MapOverride);
+            if (map != null && map.ModeId.HasValue)
+                return map.ModeId.Value;
+
+            return (CustomModeId)GamemodeOverride;
+        }
 
         public byte[] Serialize()
         {
-            byte[] output = new byte[20];
+            byte[] output = new byte[22];
             using (var ms = new MemoryStream(output, true))
             {
                 using (var writer = new BinaryWriter(ms))
@@ -900,12 +998,14 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(DisableNames);
                     writer.Write(DisableInvHitTimer);
                     writer.Write(HideWeaponPickups);
+                    writer.Write(FusionShotsAlwaysHit);
                     writer.Write(PlayerSize);
                     writer.Write(RotatingWeapons);
                     writer.Write(Headbutt);
                     writer.Write(HeadbuttFriendlyFire);
                     writer.Write(ChargebootForever);
                     writer.Write(Survival_Difficulty);
+                    writer.Write(Payload_ContestMode);
                 }
             }
 
@@ -915,7 +1015,7 @@ namespace Horizon.Plugin.Deadlocked
         public void Deserialize(BinaryReader reader)
         {
             MapOverride = reader.ReadByte();
-            GamemodeOverride = reader.ReadByte();
+            GamemodeOverride = reader.ReadSByte();
             WeatherOverride = reader.ReadByte();
             DisableWeaponPacks = reader.ReadBoolean();
             V2s = reader.ReadByte();
@@ -928,12 +1028,14 @@ namespace Horizon.Plugin.Deadlocked
             DisableNames = reader.ReadBoolean();
             DisableInvHitTimer = reader.ReadBoolean();
             HideWeaponPickups = reader.ReadBoolean();
+            FusionShotsAlwaysHit = reader.ReadBoolean();
             PlayerSize = reader.ReadByte();
             RotatingWeapons = reader.ReadBoolean();
             Headbutt = reader.ReadByte();
             HeadbuttFriendlyFire = reader.ReadBoolean();
             ChargebootForever = reader.ReadBoolean();
             Survival_Difficulty = reader.ReadByte();
+            Payload_ContestMode = reader.ReadByte();
         }
 
         public bool SameAs(GameConfig other)
@@ -952,12 +1054,14 @@ namespace Horizon.Plugin.Deadlocked
                 && DisableNames == other.DisableNames
                 && DisableInvHitTimer == other.DisableInvHitTimer
                 && HideWeaponPickups == other.HideWeaponPickups
+                && FusionShotsAlwaysHit == other.FusionShotsAlwaysHit
                 && PlayerSize == other.PlayerSize
                 && RotatingWeapons == other.RotatingWeapons
                 && Headbutt == other.Headbutt
                 && HeadbuttFriendlyFire == other.HeadbuttFriendlyFire
                 && ChargebootForever == other.ChargebootForever
                 && Survival_Difficulty == other.Survival_Difficulty
+                && Payload_ContestMode == other.Payload_ContestMode
                 ;
         }
     }

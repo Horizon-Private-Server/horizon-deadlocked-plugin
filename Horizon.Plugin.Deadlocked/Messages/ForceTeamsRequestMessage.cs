@@ -14,6 +14,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
         public override bool SkipEncryption { get => true; set { } }
 
         public int[] AccountIds { get; set; }
+        public float[] BaseRanks { get; set; }
         public byte[] Teams { get; set; }
 
         public override void Deserialize(MessageReader reader)
@@ -21,6 +22,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
             base.Deserialize(reader);
 
             AccountIds = reader.ReadArray<int>(10);
+            BaseRanks = reader.ReadArray<float>(10);
             Teams = reader.ReadBytes(10);
             reader.ReadBytes(2);
         }
@@ -35,6 +37,14 @@ namespace Horizon.Plugin.Deadlocked.Messages
                     writer.Write(-1);
                 else
                     writer.Write(AccountIds[i]);
+            }
+
+            for (int i = 0; i < 10; ++i)
+            {
+                if (BaseRanks == null || i >= BaseRanks.Length)
+                    writer.Write((float)-1);
+                else
+                    writer.Write(BaseRanks[i]);
             }
 
             for (int i = 0; i < 10; ++i)

@@ -13,6 +13,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
         public override byte CustomMsgId => 26;
         public override bool SkipEncryption { get => true; set { } }
 
+        public int DmeWorldId { get; set; }
         public int ChannelMediusWorldId { get; set; }
         public int GameMediusWorldId { get; set; }
         public int PlayerCount { get; set; }
@@ -26,6 +27,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
         {
             base.Deserialize(reader);
 
+            DmeWorldId = reader.ReadInt32();
             ChannelMediusWorldId = reader.ReadInt32();
             GameMediusWorldId = reader.ReadInt32();
             PlayerCount = reader.ReadInt32();
@@ -41,6 +43,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
         {
             base.Serialize(writer);
 
+            writer.Write(DmeWorldId);
             writer.Write(ChannelMediusWorldId);
             writer.Write(GameMediusWorldId);
             writer.Write(PlayerCount);
