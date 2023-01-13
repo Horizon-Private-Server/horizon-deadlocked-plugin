@@ -23,6 +23,7 @@ namespace Horizon.Plugin.Deadlocked
             new TeamDefenderCustomMode(),
             new ThousandKillsCustomMode(),
             new AnimExtractorCustomMode(),
+            new TrainingCustomMode()
         };
 
         public static BaseCustomMode FindCustomModeById(CustomModeId id)
@@ -43,7 +44,8 @@ namespace Horizon.Plugin.Deadlocked
         CMODE_ID_SEARCH_AND_DESTROY = CMODE_ID_PAYLOAD + 1,
         CMODE_ID_SURVIVAL = CMODE_ID_SEARCH_AND_DESTROY + 1,
         CMODE_ID_THOUSAND_KILLS = CMODE_ID_SURVIVAL + 1,
-        CMODE_ID_GRIDIRON = CMODE_ID_THOUSAND_KILLS + 1,
+        CMODE_ID_TRAINING = CMODE_ID_THOUSAND_KILLS + 1,
+        CMODE_ID_GRIDIRON = CMODE_ID_TRAINING + 1,
         CMODE_ID_TEAM_DEFENDER = CMODE_ID_GRIDIRON + 1,
         CMODE_ID_ANIM_EXTRACTOR = CMODE_ID_TEAM_DEFENDER + 1,
 

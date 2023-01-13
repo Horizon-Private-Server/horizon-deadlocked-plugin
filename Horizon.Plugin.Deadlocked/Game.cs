@@ -609,7 +609,7 @@ namespace Horizon.Plugin.Deadlocked
                 var clientId = packedGameState.ClientIds[i];
                 var teamId = packedGameState.Teams[i];
                 var player = game.Clients.FirstOrDefault(x => x.DmeId == clientId);
-                if (player != null)
+                if (player != null && teamId >= 0 && teamId < 10)
                 {
                     clientIdCounter[clientId]++;
                     var score = packedGameState.TeamScores[teamId];
@@ -967,6 +967,7 @@ namespace Horizon.Plugin.Deadlocked
         public bool ChargebootForever { get; set; }
         public byte Survival_Difficulty { get; set; }
         public byte Payload_ContestMode { get; set; }
+        public byte Training_Type { get; set; }
 
         public CustomModeId GetRealCustomModeId()
         {
@@ -979,7 +980,7 @@ namespace Horizon.Plugin.Deadlocked
 
         public byte[] Serialize()
         {
-            byte[] output = new byte[22];
+            byte[] output = new byte[23];
             using (var ms = new MemoryStream(output, true))
             {
                 using (var writer = new BinaryWriter(ms))
@@ -1006,6 +1007,7 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(ChargebootForever);
                     writer.Write(Survival_Difficulty);
                     writer.Write(Payload_ContestMode);
+                    writer.Write(Training_Type);
                 }
             }
 
@@ -1036,6 +1038,7 @@ namespace Horizon.Plugin.Deadlocked
             ChargebootForever = reader.ReadBoolean();
             Survival_Difficulty = reader.ReadByte();
             Payload_ContestMode = reader.ReadByte();
+            Training_Type = reader.ReadByte();
         }
 
         public bool SameAs(GameConfig other)
@@ -1062,6 +1065,7 @@ namespace Horizon.Plugin.Deadlocked
                 && ChargebootForever == other.ChargebootForever
                 && Survival_Difficulty == other.Survival_Difficulty
                 && Payload_ContestMode == other.Payload_ContestMode
+                && Training_Type == other.Training_Type
                 ;
         }
     }
