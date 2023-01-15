@@ -78,6 +78,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             var customGameData = args.GameData.CustomGameData as TrainingCustomData;
             var gameData = args.GameData;
             var game = args.Game;
+            if (customGameData == null)
+                return Task.CompletedTask;
 
             // set rank and score of players
             //foreach (var player in args.Players)
@@ -98,6 +100,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             {
                 var player = args.Players.FirstOrDefault(x => x.AccountId == accountId);
                 var gameIdx = player.Index;
+                var timeSeconds = (int)((game.UtcTimeEnded - game.UtcTimeStarted)?.TotalSeconds ?? 0);
 
                 // ignore players who leave
                 if (player.Left)
@@ -105,18 +108,23 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
                 args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_RANK] = player.Rank;
                 args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_GAMES_PLAYED] += 1;
-                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_TIME_PLAYED] += (int)Math.Ceiling(customGameData.Time / 1000f); // (int)((game.UtcTimeEnded - game.UtcTimeStarted)?.TotalSeconds ?? 0);
+                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_TIME_PLAYED] += timeSeconds;
                 args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_TOTAL_KILLS] += customGameData.Kills;
 
                 switch ((TrainingTypes)args.Metadata.GameConfig.Training_Type)
                 {
                     case TrainingTypes.FusionRifle:
                         {
+                            int bestTime = args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_FUSION_BEST_TIME];
+                            if (bestTime <= 0)
+                                bestTime = int.MaxValue;
+
                             args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_FUSION_BEST_POINTS] = Math.Max(customGameData.Points, args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_FUSION_BEST_POINTS]);
-                            args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_FUSION_BEST_TIME] = Math.Min(customGameData.Time, args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_FUSION_BEST_TIME]);
+                            args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_FUSION_BEST_COMBO] = Math.Max(customGameData.BestCombo, args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_FUSION_BEST_COMBO]);
+                            args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_FUSION_BEST_TIME] = 0; // Math.Min(customGameData.Time, bestTime);
+                            args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_FUSION_MISSES] += customGameData.Misses;
                             args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_FUSION_KILLS] += customGameData.Kills;
                             args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_FUSION_HITS] += customGameData.Hits;
-                            args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_FUSION_MISSES] += customGameData.Misses;
 
                             float totalHits = args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_FUSION_HITS];
                             float totalMisses = args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_FUSION_MISSES];
@@ -146,6 +154,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public int Kills { get; set; }
         public int Hits { get; set; }
         public int Misses { get; set; }
+        public int BestCombo { get; set; }
 
         public void Deserialize(BinaryReader reader)
         {
@@ -160,6 +169,16 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                         Kills = reader.ReadInt32();
                         Hits = reader.ReadInt32();
                         Misses = reader.ReadInt32();
+                        break;
+                    }
+                case 2:
+                    {
+                        Points = reader.ReadInt32();
+                        Time = reader.ReadInt32();
+                        Kills = reader.ReadInt32();
+                        Hits = reader.ReadInt32();
+                        Misses = reader.ReadInt32();
+                        BestCombo = reader.ReadInt32();
                         break;
                     }
                 default:

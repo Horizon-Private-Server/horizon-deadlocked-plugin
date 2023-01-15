@@ -261,7 +261,7 @@ namespace Horizon.Plugin.Deadlocked
 
             var metadata = await GetGameMetadata(game);
             if (metadata.GameData == null)
-                metadata.GameData = new byte[3152];
+                metadata.GameData = new byte[3172];
 
             // copy
             Array.Copy(request.Payload, 0, metadata.GameData, request.Offset, request.Payload.Length);
@@ -532,19 +532,28 @@ namespace Horizon.Plugin.Deadlocked
     {
         public bool TeamsEnabled { get; set; }
         public int RoundNumber { get; set; }
-        public short[] TeamScores { get; set; }
+        public int[] TeamScores { get; set; }
         public sbyte[] ClientIds { get; set; }
         public sbyte[] Teams { get; set; }
 
 
         public void Deserialize(BinaryReader reader)
         {
-            TeamsEnabled = reader.ReadInt32() != 0;
+            TeamsEnabled = reader.ReadBoolean();
+            reader.ReadBytes(1); // padding
+            var version = reader.ReadInt16();
             RoundNumber = reader.ReadInt32();
 
-            TeamScores = new short[10];
+            
+
+            TeamScores = new int[10];
             for (int i = 0; i < 10; ++i)
-                TeamScores[i] = reader.ReadInt16();
+            {
+                if (version > 0)
+                    TeamScores[i] = reader.ReadInt32();
+                else
+                    TeamScores[i] = reader.ReadInt16();
+            }
 
             ClientIds = new sbyte[10];
             for (int i = 0; i < 10; ++i)
