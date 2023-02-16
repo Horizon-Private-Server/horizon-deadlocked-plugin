@@ -23,9 +23,10 @@ namespace Horizon.Plugin.Deadlocked
             var metadata = await GetGameMetadata(game);
 
             // send custom ranks
-            BroadcastCustomModeRanks(game);
+            _ = BroadcastCustomModeRanks(game);
 
-            foreach (var gameClient in game.Clients)
+            // send 
+            var tasks = game.Clients.Select(async (gameClient) =>
             {
                 // reset map version
                 var extraInfo = Player.GetPlayerExtraInfo(gameClient.Client.AccountId);
@@ -47,7 +48,9 @@ namespace Horizon.Plugin.Deadlocked
                 // send custom map override
                 var map = Maps.FindCustomMapById((CustomMapId)metadata.GameConfig.MapOverride);
                 await Maps.SendMapOverride(gameClient.Client, map);
-            }
+            });
+
+            await Task.WhenAll(tasks);
         }
 
         public static async Task BroadcastCustomModeRanks(Server.Medius.Models.Game game)
@@ -261,7 +264,7 @@ namespace Horizon.Plugin.Deadlocked
 
             var metadata = await GetGameMetadata(game);
             if (metadata.GameData == null)
-                metadata.GameData = new byte[3172];
+                metadata.GameData = new byte[3168];
 
             // copy
             Array.Copy(request.Payload, 0, metadata.GameData, request.Offset, request.Payload.Length);
@@ -678,10 +681,10 @@ namespace Horizon.Plugin.Deadlocked
             EndGameSettings.Deserialize(reader);
             GameOptions.Deserialize(reader);
 
-            // custom data block is always 484 bytes long
+            // custom data block is always 480 bytes long
             // we'll ensure that the variable sized data structure doesn't mess up our deserialization
             // by moving the stream to the end of the data block after deserializing the custom game data
-            var targetEndPosition = reader.BaseStream.Position + 484;
+            var targetEndPosition = reader.BaseStream.Position + 480;
             CustomGameData?.Deserialize(reader);
             reader.BaseStream.Seek(targetEndPosition, SeekOrigin.Begin);
 
@@ -964,6 +967,7 @@ namespace Horizon.Plugin.Deadlocked
         public byte Vampire { get; set; }
         public bool HalfTime { get; set; }
         public bool BetterHills { get; set; }
+        public bool BetterFlags { get; set; }
         public bool Healthbars { get; set; }
         public bool DisableNames { get; set; }
         public bool DisableInvHitTimer { get; set; }
@@ -989,7 +993,7 @@ namespace Horizon.Plugin.Deadlocked
 
         public byte[] Serialize()
         {
-            byte[] output = new byte[23];
+            byte[] output = new byte[24];
             using (var ms = new MemoryStream(output, true))
             {
                 using (var writer = new BinaryWriter(ms))
@@ -1004,6 +1008,7 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(Vampire);
                     writer.Write(HalfTime);
                     writer.Write(BetterHills);
+                    writer.Write(BetterFlags);
                     writer.Write(Healthbars);
                     writer.Write(DisableNames);
                     writer.Write(DisableInvHitTimer);
@@ -1035,6 +1040,7 @@ namespace Horizon.Plugin.Deadlocked
             Vampire = reader.ReadByte();
             HalfTime = reader.ReadBoolean();
             BetterHills = reader.ReadBoolean();
+            BetterFlags = reader.ReadBoolean();
             Healthbars = reader.ReadBoolean();
             DisableNames = reader.ReadBoolean();
             DisableInvHitTimer = reader.ReadBoolean();
@@ -1062,6 +1068,7 @@ namespace Horizon.Plugin.Deadlocked
                 && Vampire == other.Vampire
                 && HalfTime == other.HalfTime
                 && BetterHills == other.BetterHills
+                && BetterFlags == other.BetterFlags
                 && Healthbars == other.Healthbars
                 && DisableNames == other.DisableNames
                 && DisableInvHitTimer == other.DisableInvHitTimer

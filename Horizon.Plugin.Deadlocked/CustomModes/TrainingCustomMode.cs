@@ -14,8 +14,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public enum TrainingTypes
         {
             FusionRifle,
+            Cycle,
             B6,
-            Cycle
         }
 
         public static readonly Dictionary<TrainingTypes, string> TrainingTypeNames = new Dictionary<TrainingTypes, string>()
@@ -49,7 +49,9 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         public override Task<Payload> GetPayload(Server.Medius.Models.Game game, GameMetadata metadata)
         {
-            return Task.FromResult(new Payload(0x000F0000, File.ReadAllBytes(Path.Combine(Plugin.WorkingDirectory, "bin/patch/training-11184.bin"))));
+            var trainingType = (TrainingTypes)metadata.GameConfig.Training_Type;
+
+            return Task.FromResult(new Payload(0x000F0000, File.ReadAllBytes(Path.Combine(Plugin.WorkingDirectory, $"bin/patch/training-{trainingType.ToString().ToLower()}-11184.bin"))));
         }
 
         protected override ICustomGameData CreateCustomGameData()
@@ -132,6 +134,23 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
                             if (totalMisses > 0 || totalHits > 0)
                                 args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_FUSION_ACCURACY] = (int)(100 * 100 * (totalHits / (totalHits + totalMisses)));
+                            break;
+                        }
+                    case TrainingTypes.Cycle:
+                        {
+                            args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_CYCLE_BEST_POINTS] = Math.Max(customGameData.Points, args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_CYCLE_BEST_POINTS]);
+                            args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_CYCLE_BEST_COMBO] = Math.Max(customGameData.BestCombo, args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_CYCLE_BEST_COMBO]);
+                            args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_CYCLE_FUSION_MISSES] += customGameData.Misses;
+                            args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_CYCLE_FUSION_HITS] += customGameData.Hits;
+                            args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_CYCLE_KILLS] += customGameData.Kills;
+                            args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_CYCLE_DEATHS] += gameData.Data.Deaths[0];
+
+                            float totalHits = args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_CYCLE_FUSION_HITS];
+                            float totalMisses = args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_CYCLE_FUSION_MISSES];
+                            args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_CYCLE_FUSION_ACCURACY] = 0;
+
+                            if (totalMisses > 0 || totalHits > 0)
+                                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_TRAINING_CYCLE_FUSION_ACCURACY] = (int)(100 * 100 * (totalHits / (totalHits + totalMisses)));
                             break;
                         }
                     default:

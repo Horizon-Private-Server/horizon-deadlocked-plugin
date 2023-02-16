@@ -9,7 +9,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
 {
     public class DataDownloadRequestMessage : BasePluginMessage
     {
-        public const int MAX_DATA_SIZE = 2048;
+        public const int MAX_DATA_SIZE = 1362;
 
         public override byte CustomMsgId => 13;
         public override bool SkipEncryption { get => true; set { } }

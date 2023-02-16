@@ -47,9 +47,10 @@ namespace Horizon.Plugin.Deadlocked
             host.RegisterAction(PluginEvent.MEDIUS_GAME_ON_DESTROYED, OnGameDestroyed);
             host.RegisterAction(PluginEvent.MEDIUS_GAME_ON_STARTED, OnGameStarted);
             host.RegisterAction(PluginEvent.MEDIUS_GAME_ON_ENDED, OnGameEnded);
+            host.RegisterAction(PluginEvent.MEDIUS_GAME_ON_HOST_LEFT, OnHostLeftGame);
+            host.RegisterAction(PluginEvent.MEDIUS_GAME_ON_PLAYER_JOIN_RESPONSE, OnGamePlayerJoinResponse);
             host.RegisterAction(PluginEvent.MEDIUS_PLAYER_ON_JOINED_GAME, OnPlayerJoinedGame);
             host.RegisterAction(PluginEvent.MEDIUS_PLAYER_ON_CHAT_MESSAGE, OnPlayerChatMessage);
-            host.RegisterAction(PluginEvent.MEDIUS_GAME_ON_HOST_LEFT, OnHostLeftGame);
             host.RegisterAction(PluginEvent.MEDIUS_PLAYER_POST_WIDE_STATS, OnPlayerPostWideStats);
             host.RegisterMediusMessageAction(NetMessageTypes.MessageClassDME, 7, OnRecvCustomMessage);
             host.RegisterMediusMessageAction(NetMessageTypes.MessageClassLobby, (byte)MediusLobbyMessageIds.UpdateClanStats, OnRecvUpdateClanStats);
@@ -187,6 +188,14 @@ namespace Horizon.Plugin.Deadlocked
             return Task.CompletedTask;
         }
 
+        Task OnGamePlayerJoinResponse(PluginEvent eventId, object data)
+        {
+            // deadlocked clients will lag out if joining too fast
+            // dumb fix for that
+            //return Task.Delay(500);
+            return Task.CompletedTask;
+        }
+
         Task OnPlayerJoinedGame(PluginEvent eventId, object data)
         {
             var msg = (Server.Medius.PluginArgs.OnPlayerGameArgs)data;
@@ -203,7 +212,8 @@ namespace Horizon.Plugin.Deadlocked
             playerExtraInfo.CurrentMapVersion = 0;
 
             // pass to game
-            return Game.PlayerJoined(client, game);
+            _ = Game.PlayerJoined(client, game);
+            return Task.CompletedTask;
         }
 
         Task OnPlayerPostWideStats(PluginEvent eventId, object data)

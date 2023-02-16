@@ -31,7 +31,20 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         private static readonly SurvivalConfig[] _configs = new SurvivalConfig[]
         {
-            new SurvivalConfig(CustomMapId.CMAP_ID_SURVIVAL_MINING_FACILITY) { MapSize = 1.5f },
+            new SurvivalConfig(CustomMapId.CMAP_ID_SURVIVAL_MINING_FACILITY)
+            {
+                MapSize = 1.5f,
+                BakedSpawnpoints = new List<SurvivalConfig.BakedSpawnpoint>()
+                {
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.PlayerStart, 0, 328.6f, 544.8498f, 433.9998f, 0f, 0f, 0f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 525.73f, 537.75f, 429.64f, 0f, 0f, -1.570796f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 478.72f, 691.459f, 430.73f, 0f, 0f, -3.141592f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 478.9f, 508.54f, 430.73f, 0f, 0f, 0f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 339.205f, 562.895f, 431.67f, -0.0006243868f, 1.079918E-05f, -1.660341f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 525.73f, 661.89f, 429.64f, 0f, 0f, -1.570797f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 335.47f, 650.277f, 430.623f, -6.167562f, -7.500661E-09f, -1.570796f),
+                }
+            },
             new SurvivalConfig(CustomMapId.CMAP_ID_SURVIVAL_MARCADIA) { MapSize = 1.0f },
             new SurvivalConfig(CustomMapId.CMAP_ID_SURVIVAL_VELDIN) { MapSize = 1.0f },
         };
@@ -68,6 +81,11 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
             // find config by custom map then by regular map
             var config = _configs.FirstOrDefault(x => x.CustomMapId == (CustomMapId)metadata.GameConfig.MapOverride);
+            if (config == null)
+            {
+                // default to first
+                config = _configs[0];
+            }
 
             // insert config into payload
             if (config != null)
@@ -95,15 +113,15 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 return false;
 
             // game must have custom data
-            if (gameData.CustomGameData == null)
+            if (gameData.CustomGameData == null || gameData.GameOptions == null)
                 return false;
 
             // game must have survivor on
-            if ((game.GenericField7 & 0x80) == 0)
+            if (gameData.GameOptions.GameFlags[0x1E] == 0)
                 return false;
 
             // game must have unlimited ammo off
-            if ((game.GenericField7 & 0x200) != 0)
+            if (gameData.GameOptions.GameFlags[0x20] != 0)
                 return false;
 
             return true;
@@ -260,8 +278,42 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
     {
         public const uint Offset = 0x18;
 
+        public class BakedSpawnpoint
+        {
+            public enum TypeId
+            {
+                None = 0,
+                Upgrade = 1,
+                PlayerStart = 2,
+            };
+
+            public TypeId Type { get; set; }
+            public int Params { get; set; }
+            public float PositionX { get; set; }
+            public float PositionY { get; set; }
+            public float PositionZ { get; set; }
+            public float RotationX { get; set; }
+            public float RotationY { get; set; }
+            public float RotationZ { get; set; }
+
+            public BakedSpawnpoint() { }
+
+            public BakedSpawnpoint(TypeId type, int @params, float positionX, float positionY, float positionZ, float rotationX, float rotationY, float rotationZ)
+            {
+                Type = type;
+                Params = @params;
+                PositionX = positionX;
+                PositionY = positionY;
+                PositionZ = positionZ;
+                RotationX = rotationX;
+                RotationY = rotationY;
+                RotationZ = rotationZ;
+            }
+        }
+
         public CustomMapId CustomMapId { get; }
         public float MapSize { get; set; }
+        public List<BakedSpawnpoint> BakedSpawnpoints { get; set; }
 
         public SurvivalConfig(CustomMapId mapId)
         {
@@ -273,6 +325,34 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             writer.BaseStream.Seek(Offset, SeekOrigin.Begin);
 
             writer.Write(MapSize);
+
+            // write 16 baked spawnpoints
+            for (int i = 0; i < 16; ++i)
+            {
+                var bakedSp = BakedSpawnpoints?.ElementAtOrDefault(i);
+                if (bakedSp != null)
+                {
+                    writer.Write((int)bakedSp.Type);
+                    writer.Write((int)bakedSp.Params);
+                    writer.Write(bakedSp.PositionX);
+                    writer.Write(bakedSp.PositionY);
+                    writer.Write(bakedSp.PositionZ);
+                    writer.Write(bakedSp.RotationX);
+                    writer.Write(bakedSp.RotationY);
+                    writer.Write(bakedSp.RotationZ);
+                }
+                else
+                {
+                    writer.Write((int)BakedSpawnpoint.TypeId.None);
+                    writer.Write(0);
+                    writer.Write(0);
+                    writer.Write(0);
+                    writer.Write(0);
+                    writer.Write(0);
+                    writer.Write(0);
+                    writer.Write(0);
+                }
+            }
         }
     }
 }

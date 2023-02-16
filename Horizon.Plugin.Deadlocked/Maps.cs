@@ -20,6 +20,7 @@ namespace Horizon.Plugin.Deadlocked
 
         static readonly CustomMap[] CustomMaps = new CustomMap[]
         {
+            new CustomMap(CustomMapId.CMAP_ID_ACE_HARDLIGHT_SUITE, "Ace Hardlight's Suite", "ace suite", 51),
             new CustomMap(CustomMapId.CMAP_ID_ANNIHILATION_NATION, "Annihilation Nation", "annihilation nation", 48),
             new CustomMap(CustomMapId.CMAP_ID_BAKISI_ISLES, "Bakisi Isles", "bakisi isles", 44),
             new CustomMap(CustomMapId.CMAP_ID_BDOME_SP, "Battledome SP", "battledome sp", 51),
@@ -120,7 +121,8 @@ namespace Horizon.Plugin.Deadlocked
     public enum CustomMapId : byte
     {
         // custom map ids
-        CMAP_ID_ANNIHILATION_NATION = 1,
+        CMAP_ID_ACE_HARDLIGHT_SUITE = 1,
+        CMAP_ID_ANNIHILATION_NATION = CMAP_ID_ACE_HARDLIGHT_SUITE + 1,
         CMAP_ID_BAKISI_ISLES = CMAP_ID_ANNIHILATION_NATION + 1,
         CMAP_ID_BDOME_SP = CMAP_ID_BAKISI_ISLES + 1,
         CMAP_ID_BLACKWATER_CITY = CMAP_ID_BDOME_SP + 1,
