@@ -43,6 +43,17 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 339.205f, 562.895f, 431.67f, -0.0006243868f, 1.079918E-05f, -1.660341f),
                     new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 525.73f, 661.89f, 429.64f, 0f, 0f, -1.570797f),
                     new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 335.47f, 650.277f, 430.623f, -6.167562f, -7.500661E-09f, -1.570796f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 545.2199f, 513.7399f, 427.4603f, 0f, 0f, -3.951303f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 584.0499f, 537.26f, 427.5132f, 0f, 0f, -3.951303f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 569.03f, 578.3799f, 427.3436f, 0f, 0f, -2.904106f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 526.77f, 629.11f, 427.3436f, 0f, 0f, 0f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 531.7f, 599.54f, 427.3436f, 0f, 0f, -0.0726434f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 569.3099f, 617.9299f, 427.3436f, 0f, 0f, -4.359524f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 634.9299f, 663.7299f, 427.3435f, 0f, 0f, -1.811819f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 632.84f, 591.1099f, 427.3436f, 0f, 0f, -4.518756f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 576.21f, 599.5599f, 427.3436f, 0f, 0f, -0.3983178f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 634.3499f, 580.2599f, 427.3435f, 0f, 0f, -1.949298f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 622.39f, 615.9099f, 427.4686f, 0f, 0f, -3.729555f),
                 }
             },
             new SurvivalConfig(CustomMapId.CMAP_ID_SURVIVAL_MARCADIA) { MapSize = 1.0f },
@@ -285,6 +296,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 None = 0,
                 Upgrade = 1,
                 PlayerStart = 2,
+                MysteryBox = 3,
             };
 
             public TypeId Type { get; set; }
@@ -326,8 +338,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
             writer.Write(MapSize);
 
-            // write 16 baked spawnpoints
-            for (int i = 0; i < 16; ++i)
+            // write 24 baked spawnpoints
+            for (int i = 0; i < 24; ++i)
             {
                 var bakedSp = BakedSpawnpoints?.ElementAtOrDefault(i);
                 if (bakedSp != null)

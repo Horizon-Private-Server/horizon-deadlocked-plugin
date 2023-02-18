@@ -47,7 +47,7 @@ namespace Horizon.Plugin.Deadlocked
             new CustomMap(CustomMapId.CMAP_ID_TORVAL_SP, "Torval SP", "torval sp", 50),
             new CustomMap(CustomMapId.CMAP_ID_TYHRRANOSIS, "Tyhrranosis", "tyhrranosis", 53),
             new CustomMap(CustomMapId.CMAP_ID_SURVIVAL_MARCADIA, "Marcadia Palace", "marcadia survival", 48),
-            new CustomMap(CustomMapId.CMAP_ID_SURVIVAL_MINING_FACILITY, "Mining Facility", "mining facility survival", 48),
+            new CustomMap(CustomMapId.CMAP_ID_SURVIVAL_MINING_FACILITY, "Mining Facility", "survival v2 mf", 48),
             new CustomMap(CustomMapId.CMAP_ID_SURVIVAL_VELDIN, "Veldin", "veldin survival", 48),
         };
 
