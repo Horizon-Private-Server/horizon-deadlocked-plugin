@@ -82,30 +82,40 @@ namespace Horizon.Plugin.Deadlocked
             await Queue.Tick();
         }
 
-        async Task OnPlayerLoggedIn(PluginEvent eventId, object data)
+        Task OnPlayerLoggedIn(PluginEvent eventId, object data)
         {
             var msg = (Server.Medius.PluginArgs.OnPlayerRequestArgs)data;
             if (msg.Player == null)
-                return;
+                return Task.CompletedTask;
             if (!SupportedAppIds.Contains(msg.Player.ApplicationId))
-                return;
+                return Task.CompletedTask;
 
-            await Downloader.OnPlayerLoggedIn(msg.Player);
-            await Patch.QueryForPatch(msg.Player);
-            await Queue.OnPlayerLoggedIn(msg.Player);
+            _ = Task.Run(async () =>
+            {
+                await Downloader.OnPlayerLoggedIn(msg.Player);
+                await Patch.QueryForPatch(msg.Player);
+                await Queue.OnPlayerLoggedIn(msg.Player);
+            });
+
+            return Task.CompletedTask;
         }
 
-        async Task OnPlayerLoggedOut(PluginEvent eventId, object data)
+        Task OnPlayerLoggedOut(PluginEvent eventId, object data)
         {
             var msg = (Server.Medius.PluginArgs.OnPlayerArgs)data;
             if (msg.Player == null)
-                return;
+                return Task.CompletedTask;
             if (!SupportedAppIds.Contains(msg.Player.ApplicationId))
-                return;
+                return Task.CompletedTask;
 
-            await Downloader.OnPlayerLoggedOut(msg.Player);
-            await Player.OnPlayerLoggedOut(msg.Player);
-            await Queue.OnPlayerLoggedOut(msg.Player);
+            _ = Task.Run(async () =>
+            {
+                await Downloader.OnPlayerLoggedOut(msg.Player);
+                await Player.OnPlayerLoggedOut(msg.Player);
+                await Queue.OnPlayerLoggedOut(msg.Player);
+            });
+
+            return Task.CompletedTask;
         }
 
         Task OnPlayerChatMessage(PluginEvent eventId, object data)
@@ -127,7 +137,8 @@ namespace Horizon.Plugin.Deadlocked
             if (!SupportedAppIds.Contains(msg.Game.ApplicationId))
                 return Task.CompletedTask;
 
-            return Game.OnGameStarted(msg.Game);
+            _ = Game.OnGameStarted(msg.Game);
+            return Task.CompletedTask;
         }
 
         Task OnGameEnded(PluginEvent eventId, object data)
