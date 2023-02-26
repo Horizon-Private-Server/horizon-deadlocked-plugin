@@ -1,4 +1,5 @@
-﻿using RT.Models;
+﻿using Horizon.Plugin.Deadlocked.Messages;
+using RT.Models;
 using Server.Common;
 using Server.Medius.Models;
 using System;
@@ -155,6 +156,8 @@ namespace Horizon.Plugin.Deadlocked
                 }
                 else
                 {
+                    playerInfo.PatchHandled = true;
+
                     // just send player patch config
                     _ = SendConfig(client, patch);
                 }
@@ -309,6 +312,8 @@ namespace Horizon.Plugin.Deadlocked
                     client.Queue(configMsgs);
                 }
 
+                // send global map version
+                await Maps.SendMapVersion(client);
             }
             catch (Exception ex)
             {

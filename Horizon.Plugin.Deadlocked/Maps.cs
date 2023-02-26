@@ -47,9 +47,7 @@ namespace Horizon.Plugin.Deadlocked
             new CustomMap(CustomMapId.CMAP_ID_TORVAL_LOST_FACTORY, "Torval Lost Factory", "torval lost factory", 50),
             new CustomMap(CustomMapId.CMAP_ID_TORVAL_SP, "Torval SP", "torval sp", 50),
             new CustomMap(CustomMapId.CMAP_ID_TYHRRANOSIS, "Tyhrranosis", "tyhrranosis", 53),
-            new CustomMap(CustomMapId.CMAP_ID_SURVIVAL_MARCADIA, "Marcadia Palace", "marcadia survival", 48),
             new CustomMap(CustomMapId.CMAP_ID_SURVIVAL_MINING_FACILITY, "Orxon", "survival v2 mf", 48),
-            new CustomMap(CustomMapId.CMAP_ID_SURVIVAL_VELDIN, "Veldin", "veldin survival", 48),
         };
 
         public static CustomMap FindCustomMapById(CustomMapId id)
@@ -80,11 +78,9 @@ namespace Horizon.Plugin.Deadlocked
 
         public static Task SendMapVersion(ClientObject client)
         {
-            client.Queue(new MapModulesResponseMessage()
+            client.Queue(new MapGlobalVersionMessage()
             {
-                CustomMapsVersion = int.Parse(File.ReadAllText(MapVersionPath)),
-                Module1Size = File.ReadAllBytes(MapModules[0]).Length,
-                Module2Size = File.ReadAllBytes(MapModules[1]).Length,
+                CustomMapsVersion = int.Parse(File.ReadAllText(MapVersionPath))
             });
 
             return Task.CompletedTask;
@@ -151,9 +147,7 @@ namespace Horizon.Plugin.Deadlocked
         CMAP_ID_TYHRRANOSIS = CMAP_ID_TORVAL_SP + 1,
 
         // survival custom map ids
-        CMAP_ID_SURVIVAL_MARCADIA = CMAP_ID_TYHRRANOSIS + 1,
-        CMAP_ID_SURVIVAL_MINING_FACILITY = CMAP_ID_SURVIVAL_MARCADIA + 1,
-        CMAP_ID_SURVIVAL_VELDIN = CMAP_ID_SURVIVAL_MINING_FACILITY + 1,
+        CMAP_ID_SURVIVAL_MINING_FACILITY = CMAP_ID_TYHRRANOSIS + 1,
     }
 
     public class CustomMap

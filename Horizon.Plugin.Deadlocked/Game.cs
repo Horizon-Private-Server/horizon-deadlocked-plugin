@@ -119,6 +119,9 @@ namespace Horizon.Plugin.Deadlocked
             var map = Maps.FindCustomMapById((CustomMapId)metadata.GameConfig.MapOverride);
             await Maps.SendMapOverride(client, map);
 
+            // send global maps version
+            await Maps.SendMapVersion(client);
+
             // send game config if not host
             if (game.Host != client)
             {
@@ -371,21 +374,28 @@ namespace Horizon.Plugin.Deadlocked
 
             if (!metadata.ProcessedComplete)
             {
-                // pass to gamemode
-                var mode = Modes.FindCustomModeById(metadata.GameConfig.GetRealCustomModeId());
-                if (mode != null)
-                    playerCustomStats = await mode.OnGameEnd(game, metadata);
-
-                // store new custom stats in PostStats metadata
-                if (playerCustomStats != null)
+                try
                 {
-                    foreach (var kvp in playerCustomStats)
+                    // pass to gamemode
+                    var mode = Modes.FindCustomModeById(metadata.GameConfig.GetRealCustomModeId());
+                    if (mode != null)
+                        playerCustomStats = await mode.OnGameEnd(game, metadata);
+
+                    // store new custom stats in PostStats metadata
+                    if (playerCustomStats != null)
                     {
-                        metadata.PostCustomWideStats.Players[kvp.Key] = kvp.Value.ToArray();
+                        foreach (var kvp in playerCustomStats)
+                        {
+                            metadata.PostCustomWideStats.Players[kvp.Key] = kvp.Value.ToArray();
+                        }
                     }
-                }
 
 #warning TODO: Add support for custom clan stats
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.ERROR, $"{ex}");
+                }
 
                 metadata.ProcessedComplete = true;
                 Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, "GAME COMPLETED");

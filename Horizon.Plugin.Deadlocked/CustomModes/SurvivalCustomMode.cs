@@ -59,8 +59,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 622.39f, 615.9099f, 427.4686f, 0f, 0f, -3.729555f),
                 }
             },
-            new SurvivalConfig(CustomMapId.CMAP_ID_SURVIVAL_MARCADIA) { MapSize = 1.0f },
-            new SurvivalConfig(CustomMapId.CMAP_ID_SURVIVAL_VELDIN) { MapSize = 1.0f },
         };
 
         public override CustomModeId Id => CustomModeId.CMODE_ID_SURVIVAL;
