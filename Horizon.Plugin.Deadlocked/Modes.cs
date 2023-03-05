@@ -39,8 +39,7 @@ namespace Horizon.Plugin.Deadlocked
         // custom map ids
         CMODE_ID_GUN_GAME = 1,
         CMODE_ID_INFECTED = CMODE_ID_GUN_GAME + 1,
-        CMODE_ID_INFINITE_CLIMBER = CMODE_ID_INFECTED + 1,
-        CMODE_ID_PAYLOAD = CMODE_ID_INFINITE_CLIMBER + 1,
+        CMODE_ID_PAYLOAD = CMODE_ID_INFECTED + 1,
         CMODE_ID_SEARCH_AND_DESTROY = CMODE_ID_PAYLOAD + 1,
         CMODE_ID_SURVIVAL = CMODE_ID_SEARCH_AND_DESTROY + 1,
         CMODE_ID_THOUSAND_KILLS = CMODE_ID_SURVIVAL + 1,
@@ -53,6 +52,7 @@ namespace Horizon.Plugin.Deadlocked
         CMODE_ID_DUCK_HUNT = -1,
         CMODE_ID_SPLEEF = -2,
         CMODE_ID_HOVERBIKE_RACE = -3,
+        CMODE_ID_INFINITE_CLIMBER = -4,
 
     }
 
