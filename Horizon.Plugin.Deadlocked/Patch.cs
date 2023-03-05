@@ -15,7 +15,7 @@ namespace Horizon.Plugin.Deadlocked
     {
         private static readonly uint PATCH_HASH_ADDRESS = 0x000CFFD0;
 
-        class PatchSetup
+        public class PatchSetup
         {
             public enum PatchHookType
             {
@@ -68,7 +68,7 @@ namespace Horizon.Plugin.Deadlocked
             }
         }
 
-        static readonly PatchSetup[] PatchSetups = new PatchSetup[]
+        public static readonly PatchSetup[] PatchSetups = new PatchSetup[]
         {
             new PatchSetup()
             {
@@ -86,6 +86,30 @@ namespace Horizon.Plugin.Deadlocked
                     (0x000C8000, Path.Combine(Plugin.WorkingDirectory,  "bin/exceptiondisplay.bin"))
                 },
                 ConfigAddress = 0x000D0008
+            },
+            new PatchSetup()
+            {
+                AppId = -1,
+                HookAddress = 0x00138DFC,
+                HookType = PatchSetup.PatchHookType.JUMP,
+                UnpatchPayload = (0x000CE000, Path.Combine(Plugin.WorkingDirectory, "bin/patch/unpatch-11184.bin")),
+                Payloads = new (uint, string)[]
+                {
+                    (0x000FC000, Path.Combine(Plugin.WorkingDirectory, "bin/patch/elfloader-11184.bin")),
+                },
+                ConfigAddress = null
+            },
+            new PatchSetup()
+            {
+                AppId = -2,
+                HookAddress = 0x00138DFC,
+                HookType = PatchSetup.PatchHookType.JUMP,
+                UnpatchPayload = (0x000CE000, Path.Combine(Plugin.WorkingDirectory, "bin/patch/unpatch-11184.bin")),
+                Payloads = new (uint, string)[]
+                {
+                    (0x000D0000, Path.Combine(Plugin.WorkingDirectory, "bin/patch/mapdownloader-11184.bin")),
+                },
+                ConfigAddress = null
             }
         };
 
@@ -193,7 +217,7 @@ namespace Horizon.Plugin.Deadlocked
             return path;
         }
 
-        private static async Task Apply(ClientObject client, PatchSetup setup)
+        public static async Task Apply(ClientObject client, PatchSetup setup)
         {
             try
             {
