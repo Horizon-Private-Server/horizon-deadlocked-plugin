@@ -7,6 +7,7 @@ using Server.Medius.PluginArgs;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -228,11 +229,20 @@ namespace Horizon.Plugin.Deadlocked
             // update
             metadata.GameConfig = config;
 
+            // force mode to maps custom mode
+            // or 0 if map mode is selected on unsupported map
+            var map = Maps.FindCustomMapById((CustomMapId)config.MapOverride);
+            if (map != null && map.ModeId.HasValue)
+                config.GamemodeOverride = (sbyte)map.ModeId.Value;
+            else if (config.GamemodeOverride < 0)
+                config.GamemodeOverride = 0;
+
             // update other metadata
             metadata.CustomMap = Maps.FindCustomMapById((CustomMapId)metadata.GameConfig.MapOverride)?.MapName;
             metadata.CustomGameMode = Modes.FindCustomModeById(metadata.GameConfig.GetRealCustomModeId())?.Name;
             metadata.Weather = metadata.GameConfig.WeatherOverride.ToString();
             metadata.GameInfo = await GetGameInfo(game, metadata);
+
 
             // send to database
             return await SetGameMetadata(game, metadata);
@@ -266,17 +276,20 @@ namespace Horizon.Plugin.Deadlocked
                 return;
 
             var metadata = await GetGameMetadata(game);
-            if (metadata.GameData == null)
-                metadata.GameData = new byte[3168];
+            if (metadata.TempGameData == null)
+                metadata.TempGameData = new byte[1024 * 6];
 
             // copy
-            Array.Copy(request.Payload, 0, metadata.GameData, request.Offset, request.Payload.Length);
+            Array.Copy(request.Payload, 0, metadata.TempGameData, request.Offset, request.Payload.Length);
 
             // 
             if (request.EndOfList)
             {
                 Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, $"GAME STATS RECEIVED from {client}");
 
+                metadata.GameData = new byte[request.Offset + request.Payload.Length];
+                Array.Copy(metadata.TempGameData, 0, metadata.GameData, 0, metadata.GameData.Length);
+                metadata.TempGameData = null;
                 metadata.ReceivedGameData = true;
             }
 
@@ -533,6 +546,10 @@ namespace Horizon.Plugin.Deadlocked
         public GameStats PreCustomWideStats { get; set; } = new GameStats();
         public GameStats PostCustomWideStats { get; set; } = new GameStats();
         public bool ProcessedComplete { get; set; } = false;
+
+
+        [NotMapped, JsonIgnore]
+        public byte[] TempGameData { get; set; }
     }
 
     public class GameStats
@@ -680,6 +697,9 @@ namespace Horizon.Plugin.Deadlocked
 
         public void Deserialize(BinaryReader reader)
         {
+            int magic = reader.ReadInt32();
+            int version = reader.ReadInt32();
+
             Data = new NWGameData();
             StartGameSettings = new NWGameSettings();
             EndGameSettings = new NWGameSettings();
@@ -690,15 +710,11 @@ namespace Horizon.Plugin.Deadlocked
             StartGameSettings.Deserialize(reader);
             EndGameSettings.Deserialize(reader);
             GameOptions.Deserialize(reader);
-
-            // custom data block is always 480 bytes long
-            // we'll ensure that the variable sized data structure doesn't mess up our deserialization
-            // by moving the stream to the end of the data block after deserializing the custom game data
-            var targetEndPosition = reader.BaseStream.Position + 480;
-            CustomGameData?.Deserialize(reader);
-            reader.BaseStream.Seek(targetEndPosition, SeekOrigin.Begin);
-
             LastPackedGameState.Deserialize(reader);
+
+            // 
+            CustomGameData?.Deserialize(reader);
+
         }
     }
 
@@ -988,7 +1004,7 @@ namespace Horizon.Plugin.Deadlocked
         public byte Headbutt { get; set; }
         public bool HeadbuttFriendlyFire { get; set; }
         public bool ChargebootForever { get; set; }
-        public byte Survival_Difficulty { get; set; }
+        //public byte Survival_Difficulty { get; set; }
         public byte Payload_ContestMode { get; set; }
         public byte Training_Type { get; set; }
 
@@ -1003,7 +1019,7 @@ namespace Horizon.Plugin.Deadlocked
 
         public byte[] Serialize()
         {
-            byte[] output = new byte[24];
+            byte[] output = new byte[23];
             using (var ms = new MemoryStream(output, true))
             {
                 using (var writer = new BinaryWriter(ms))
@@ -1029,7 +1045,7 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(Headbutt);
                     writer.Write(HeadbuttFriendlyFire);
                     writer.Write(ChargebootForever);
-                    writer.Write(Survival_Difficulty);
+                    //writer.Write(Survival_Difficulty);
                     writer.Write(Payload_ContestMode);
                     writer.Write(Training_Type);
                 }
@@ -1061,7 +1077,7 @@ namespace Horizon.Plugin.Deadlocked
             Headbutt = reader.ReadByte();
             HeadbuttFriendlyFire = reader.ReadBoolean();
             ChargebootForever = reader.ReadBoolean();
-            Survival_Difficulty = reader.ReadByte();
+            //Survival_Difficulty = reader.ReadByte();
             Payload_ContestMode = reader.ReadByte();
             Training_Type = reader.ReadByte();
         }
@@ -1089,7 +1105,7 @@ namespace Horizon.Plugin.Deadlocked
                 && Headbutt == other.Headbutt
                 && HeadbuttFriendlyFire == other.HeadbuttFriendlyFire
                 && ChargebootForever == other.ChargebootForever
-                && Survival_Difficulty == other.Survival_Difficulty
+                //&& Survival_Difficulty == other.Survival_Difficulty
                 && Payload_ContestMode == other.Payload_ContestMode
                 && Training_Type == other.Training_Type
                 ;

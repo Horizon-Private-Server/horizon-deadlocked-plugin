@@ -4,36 +4,35 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+using static Horizon.Plugin.Deadlocked.CustomModes.SurvivalCustomMode;
 
 namespace Horizon.Plugin.Deadlocked.CustomModes
 {
     public class SurvivalCustomMode : BaseCustomMode
     {
-        public static readonly string[] DifficultyNames = new string[]
+        public enum SurvivalMobStatIds : int
         {
-            "Couch Potato",
-            "Contestant",
-            "Gladiator",
-            "Hero",
-            "Exterminator"
-        };
+            None = 0,
+            Zombie = 1,
+            ZombieFreeze = 2,
+            ZombieAcid = 3,
+            ZombieGhost = 4,
+            ZombieExplode = 5,
+            Tremor = 6,
+            Executioner = 7,
+        }
 
-        public static readonly double[] DifficultyXpMultipliers = new double[]
+        private static readonly Dictionary<CustomMapId, CustomPlayerStatIds> _survivalMapToHighScoreStatIndex = new Dictionary<CustomMapId, CustomPlayerStatIds>()
         {
-            0.1,
-            0.3,
-            0.6,
-            1.0,
-            2.0
+            { CustomMapId.CMAP_ID_SURVIVAL_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_HIGH_SCORE }
         };
 
         private static readonly SurvivalConfig[] _configs = new SurvivalConfig[]
         {
-            new SurvivalConfig(CustomMapId.CMAP_ID_SURVIVAL_MINING_FACILITY)
+            new SurvivalConfig(CustomMapId.CMAP_ID_SURVIVAL_ORXON)
             {
-                MapSize = 1.5f,
+                Difficulty = 1.5f,
                 BakedSpawnpoints = new List<SurvivalConfig.BakedSpawnpoint>()
                 {
                     new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.PlayerStart, 0, 328.6f, 544.8498f, 433.9998f, 0f, 0f, 0f),
@@ -57,6 +56,9 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 579.17f, 598f, 427.3436f, 0f, 0f, -0.5679857f),
                     new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 633.56f, 579.13f, 427.3435f, 0f, 0f, -2.09181f),
                     new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 622.39f, 615.9099f, 427.4686f, 0f, 0f, -3.729555f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.DemonBell, 0, 324f, 566.83f, 440.94f, 0f, 0f, -1.570796f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.DemonBell, 0, 327f, 566.83f, 440.94f, 0f, 0f, -1.570796f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.DemonBell, 0, 330f, 566.83f, 440.94f, 0f, 0f, -1.570796f),
                 }
             },
         };
@@ -77,10 +79,9 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         public override Task<string> GetGameInfo(Server.Medius.Models.Game game, GameMetadata metadata)
         {
-            var difficulty = metadata.GameConfig.Survival_Difficulty;
             var round = metadata.GameState.RoundNumber;
 
-            var info = $"Difficulty: {DifficultyNames[difficulty]}";
+            string info = "";
             if (round > 0)
                 info += $"\nRound: {round}";
 
@@ -128,14 +129,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             if (gameData.CustomGameData == null || gameData.GameOptions == null)
                 return false;
 
-            // game must have survivor on
-            if (gameData.GameOptions.GameFlags[0x1E] == 0)
-                return false;
-
-            // game must have unlimited ammo off
-            if (gameData.GameOptions.GameFlags[0x20] != 0)
-                return false;
-
             return true;
         }
 
@@ -151,14 +144,16 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 var player = args.Players.FirstOrDefault(x => x.AccountId == accountId);
                 var gameIdx = player.Index;
 
-                var points = customGameData.Points[gameIdx] * DifficultyXpMultipliers[args.Metadata.GameConfig.Survival_Difficulty];
-                var xp = (int)Math.Max(0, Math.Min(0x7FFFFFFF, args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_XP] + points));
+                var points = customGameData.Points[gameIdx];
+                var xp = (int)Math.Max(0, Math.Min(int.MaxValue, (ulong)args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_XP] + points));
                 var rating = (int)Math.Max(100, Math.Min(10000, 100 + Math.Sqrt(xp)));
+
+                // xp
+                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_RANK] = rating;
+                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_XP] = xp;
 
                 if (!player.Left)
                 {
-                    args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_RANK] = rating;
-                    args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_XP] = xp;
                     args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TIME_PLAYED] += (int)((game.UtcTimeEnded - game.UtcTimeStarted)?.TotalSeconds ?? 0);
                 }
 
@@ -168,6 +163,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_GAMES_PLAYED] += 1;
                 args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_REVIVES] += customGameData.Revives[gameIdx];
                 args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TIMES_REVIVED] += customGameData.TimesRevived[gameIdx];
+
+                // general mechanics
+                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TIMES_ROLLED_MYSTERY_BOX] += customGameData.TimesRolledMysteryBox[gameIdx];
+                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TIMES_ACTIVATED_DEMON_BELL] += customGameData.TimesActivatedDemonBell[gameIdx];
+                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TIMES_ACTIVATED_POWER] += customGameData.TimesActivatedPower[gameIdx];
+                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TOKENS_USED_ON_GATES] += customGameData.TokensUsedOnGates[gameIdx];
 
                 // weapon stats
                 args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_WRENCH_KILLS] += gameData.Data.WeaponKills[gameIdx][0];
@@ -180,42 +181,13 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_SCORPION_FLAIL_KILLS] += gameData.Data.WeaponKills[gameIdx][7];
 
                 // high scores
-                if (!player.Left)
-                {
-                    int? statIndex = null;
-                    switch (args.Metadata.GameConfig.Survival_Difficulty)
-                    {
-                        case 0:
-                            {
-                                statIndex = (int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_D1_HIGH_SCORE;
-                                break;
-                            }
-                        case 1:
-                            {
-                                statIndex = (int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_D2_HIGH_SCORE;
-                                break;
-                            }
-                        case 2:
-                            {
-                                statIndex = (int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_D3_HIGH_SCORE;
-                                break;
-                            }
-                        case 3:
-                            {
-                                statIndex = (int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_D4_HIGH_SCORE;
-                                break;
-                            }
-                        case 4:
-                            {
-                                statIndex = (int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_D5_HIGH_SCORE;
-                                break;
-                            }
-                    }
+                int? statIndex = null;
+                if (_survivalMapToHighScoreStatIndex.TryGetValue((CustomMapId)args.Metadata.GameConfig.MapOverride, out var customStatId))
+                    statIndex = (int)customStatId;
 
-                    if (statIndex.HasValue)
-                    {
-                        args.PlayerCustomStats[accountId][statIndex.Value] = Math.Max(args.PlayerCustomStats[accountId][statIndex.Value], customGameData.Rounds);
-                    }
+                if (statIndex.HasValue)
+                {
+                    args.PlayerCustomStats[accountId][statIndex.Value] = Math.Max(args.PlayerCustomStats[accountId][statIndex.Value], customGameData.BestRound[gameIdx]);
                 }
             }
 
@@ -233,6 +205,15 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public int[] TimesRevived { get; set; }
         public byte[][] AlphaModsReceived { get; set; }
         public byte[][] BestWeaponLevels { get; set; }
+        public short[] BestRound { get; set; }
+        public int[][] KillsPerMob { get; set; }
+        public short[][] DeathsByMob { get; set; }
+        public short[][] PlayerUpgrades { get; set; }
+        public short[] TimesRolledMysteryBox { get; set; }
+        public short[] TimesActivatedDemonBell { get; set; }
+        public short[] TimesActivatedPower { get; set; }
+        public short[] TokensUsedOnGates { get; set; }
+        public SurvivalMobStatIds[] MobIds { get; set; }
 
         public void Deserialize(BinaryReader reader)
         {
@@ -246,6 +227,15 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                         Points = new ulong[10];
                         AlphaModsReceived = new byte[10][];
                         BestWeaponLevels = new byte[10][];
+                        BestRound = new short[10];
+                        KillsPerMob = new int[10][];
+                        DeathsByMob = new short[10][];
+                        PlayerUpgrades = new short[10][];
+                        TimesRolledMysteryBox = new short[10];
+                        TimesActivatedDemonBell = new short[10];
+                        TimesActivatedPower = new short[10];
+                        TokensUsedOnGates = new short[10];
+                        MobIds = new SurvivalMobStatIds[0];
 
                         Rounds = reader.ReadInt32();
                         Kills = reader.ReadArray<int>(10);
@@ -263,12 +253,63 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     {
                         AlphaModsReceived = new byte[10][];
                         BestWeaponLevels = new byte[10][];
+                        BestRound = new short[10];
+                        KillsPerMob = new int[10][];
+                        DeathsByMob = new short[10][];
+                        PlayerUpgrades = new short[10][];
+                        TimesRolledMysteryBox = new short[10];
+                        TimesActivatedDemonBell = new short[10];
+                        TimesActivatedPower = new short[10];
+                        TokensUsedOnGates = new short[10];
+                        MobIds = new SurvivalMobStatIds[0];
 
                         Rounds = reader.ReadInt32();
                         Points = reader.ReadArray<ulong>(10);
                         Kills = reader.ReadArray<int>(10);
                         Revives = reader.ReadArray<int>(10);
                         TimesRevived = reader.ReadArray<int>(10);
+
+                        for (int i = 0; i < 10; ++i)
+                            AlphaModsReceived[i] = reader.ReadArray<byte>(8);
+
+                        for (int i = 0; i < 10; ++i)
+                            BestWeaponLevels[i] = reader.ReadArray<byte>(8);
+                        break;
+                    }
+                case 3:
+                    {
+                        const int MAX_MOB_SPAWN_PARAMS = 10;
+                        const int PLAYER_UPGRADE_COUNT = 5;
+
+                        AlphaModsReceived = new byte[10][];
+                        BestWeaponLevels = new byte[10][];
+                        KillsPerMob = new int[10][];
+                        DeathsByMob = new short[10][];
+                        PlayerUpgrades = new short[10][];
+
+                        Rounds = reader.ReadInt32();
+                        Points = reader.ReadArray<ulong>(10);
+                        Kills = reader.ReadArray<int>(10);
+                        Revives = reader.ReadArray<int>(10);
+                        TimesRevived = reader.ReadArray<int>(10);
+
+                        for (int i = 0; i < 10; ++i)
+                            KillsPerMob[i] = reader.ReadArray<int>(MAX_MOB_SPAWN_PARAMS);
+
+                        for (int i = 0; i < 10; ++i)
+                            DeathsByMob[i] = reader.ReadArray<short>(MAX_MOB_SPAWN_PARAMS);
+
+                        var mobIds = reader.ReadArray<short>(10);
+                        MobIds = mobIds.Select(x => (SurvivalMobStatIds)x).ToArray();
+                        BestRound = reader.ReadArray<short>(10);
+
+                        for (int i = 0; i < 10; ++i)
+                            PlayerUpgrades[i] = reader.ReadArray<short>(PLAYER_UPGRADE_COUNT);
+
+                        TimesRolledMysteryBox = reader.ReadArray<short>(10);
+                        TimesActivatedDemonBell = reader.ReadArray<short>(10);
+                        TimesActivatedPower = reader.ReadArray<short>(10);
+                        TokensUsedOnGates = reader.ReadArray<short>(10);
 
                         for (int i = 0; i < 10; ++i)
                             AlphaModsReceived[i] = reader.ReadArray<byte>(8);
@@ -298,6 +339,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 Upgrade = 1,
                 PlayerStart = 2,
                 MysteryBox = 3,
+                DemonBell = 4,
             };
 
             public TypeId Type { get; set; }
@@ -325,7 +367,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         }
 
         public CustomMapId CustomMapId { get; }
-        public float MapSize { get; set; }
+        public float Difficulty { get; set; }
         public List<BakedSpawnpoint> BakedSpawnpoints { get; set; }
 
         public SurvivalConfig(CustomMapId mapId)
@@ -337,7 +379,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         {
             writer.BaseStream.Seek(Offset, SeekOrigin.Begin);
 
-            writer.Write(MapSize);
+            writer.Write(Difficulty);
 
             // write 24 baked spawnpoints
             for (int i = 0; i < 24; ++i)
