@@ -318,6 +318,48 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                             BestWeaponLevels[i] = reader.ReadArray<byte>(8);
                         break;
                     }
+                case 4:
+                    {
+                        const int MAX_MOB_SPAWN_PARAMS = 10;
+                        const int PLAYER_UPGRADE_COUNT = 6;
+
+                        AlphaModsReceived = new byte[10][];
+                        BestWeaponLevels = new byte[10][];
+                        KillsPerMob = new int[10][];
+                        DeathsByMob = new short[10][];
+                        PlayerUpgrades = new short[10][];
+
+                        Rounds = reader.ReadInt32();
+                        Points = reader.ReadArray<ulong>(10);
+                        Kills = reader.ReadArray<int>(10);
+                        Revives = reader.ReadArray<int>(10);
+                        TimesRevived = reader.ReadArray<int>(10);
+
+                        for (int i = 0; i < 10; ++i)
+                            KillsPerMob[i] = reader.ReadArray<int>(MAX_MOB_SPAWN_PARAMS);
+
+                        for (int i = 0; i < 10; ++i)
+                            DeathsByMob[i] = reader.ReadArray<short>(MAX_MOB_SPAWN_PARAMS);
+
+                        var mobIds = reader.ReadArray<short>(10);
+                        MobIds = mobIds.Select(x => (SurvivalMobStatIds)x).ToArray();
+                        BestRound = reader.ReadArray<short>(10);
+
+                        for (int i = 0; i < 10; ++i)
+                            PlayerUpgrades[i] = reader.ReadArray<short>(PLAYER_UPGRADE_COUNT);
+
+                        TimesRolledMysteryBox = reader.ReadArray<short>(10);
+                        TimesActivatedDemonBell = reader.ReadArray<short>(10);
+                        TimesActivatedPower = reader.ReadArray<short>(10);
+                        TokensUsedOnGates = reader.ReadArray<short>(10);
+
+                        for (int i = 0; i < 10; ++i)
+                            AlphaModsReceived[i] = reader.ReadArray<byte>(8);
+
+                        for (int i = 0; i < 10; ++i)
+                            BestWeaponLevels[i] = reader.ReadArray<byte>(8);
+                        break;
+                    }
                 default:
                     {
                         Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, $"Unsupported survival data version {Version}");
