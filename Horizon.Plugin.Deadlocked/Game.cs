@@ -992,6 +992,7 @@ namespace Horizon.Plugin.Deadlocked
         public bool DisableHealthBoxes { get; set; }
         public byte Vampire { get; set; }
         public bool HalfTime { get; set; }
+        public bool Overtime { get; set; }
         public bool BetterHills { get; set; }
         public bool BetterFlags { get; set; }
         public bool Healthbars { get; set; }
@@ -1019,7 +1020,7 @@ namespace Horizon.Plugin.Deadlocked
 
         public byte[] Serialize()
         {
-            byte[] output = new byte[23];
+            byte[] output = new byte[24];
             using (var ms = new MemoryStream(output, true))
             {
                 using (var writer = new BinaryWriter(ms))
@@ -1033,6 +1034,7 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(DisableHealthBoxes);
                     writer.Write(Vampire);
                     writer.Write(HalfTime);
+                    writer.Write(Overtime);
                     writer.Write(BetterHills);
                     writer.Write(BetterFlags);
                     writer.Write(Healthbars);
@@ -1065,6 +1067,7 @@ namespace Horizon.Plugin.Deadlocked
             DisableHealthBoxes = reader.ReadBoolean();
             Vampire = reader.ReadByte();
             HalfTime = reader.ReadBoolean();
+            Overtime = reader.ReadBoolean();
             BetterHills = reader.ReadBoolean();
             BetterFlags = reader.ReadBoolean();
             Healthbars = reader.ReadBoolean();
@@ -1093,6 +1096,7 @@ namespace Horizon.Plugin.Deadlocked
                 && DisableHealthBoxes == other.DisableHealthBoxes
                 && Vampire == other.Vampire
                 && HalfTime == other.HalfTime
+                && Overtime == other.Overtime
                 && BetterHills == other.BetterHills
                 && BetterFlags == other.BetterFlags
                 && Healthbars == other.Healthbars
