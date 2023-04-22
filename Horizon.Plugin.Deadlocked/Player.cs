@@ -121,6 +121,23 @@ namespace Horizon.Plugin.Deadlocked
                 Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, $"Unable to post player metadata to {client.AccountId}: {client.Metadata}");
         }
 
+        public static async Task SetClientType(ClientObject client, PlayerClientType clientType)
+        {
+            // update
+            var metadata = GetPlayerMetadata(client);
+            metadata.LastLoginClientType = clientType;
+
+            if (metadata.LastLoginPerClientType == null)
+                metadata.LastLoginPerClientType = new Dictionary<PlayerClientType, DateTimeOffset?>();
+            metadata.LastLoginPerClientType[clientType] = DateTimeOffset.UtcNow;
+
+            client.Metadata = JsonConvert.SerializeObject(metadata);
+
+            var result = await Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
+            if (!result)
+                Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, $"Unable to post player metadata to {client.AccountId}: {client.Metadata}");
+        }
+
         private static PlayerMetadata GetPlayerMetadata(ClientObject client)
         {
             PlayerMetadata metadata = null;
@@ -148,9 +165,17 @@ namespace Horizon.Plugin.Deadlocked
         }
     }
 
+    public enum PlayerClientType
+    {
+        Normal = 0,
+        DZO = 1
+    }
+
     public class PlayerMetadata
     {
         public PlayerConfig Config { get; set; } = new PlayerConfig();
+        public PlayerClientType? LastLoginClientType { get; set; } = null;
+        public Dictionary<PlayerClientType, DateTimeOffset?> LastLoginPerClientType { get; set; } = new Dictionary<PlayerClientType, DateTimeOffset?>();
     }
 
     public class PlayerExtraInfo

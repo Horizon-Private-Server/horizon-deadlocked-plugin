@@ -468,6 +468,14 @@ namespace Horizon.Plugin.Deadlocked
 
                                     break;
                                 }
+                            case 41: // set client type
+                                {
+                                    var request = new SetClientTypeRequestMessage();
+                                    request.Deserialize(reader);
+
+                                    await Player.SetClientType(msg.Player, request.ClientType);
+                                    break;
+                                }
                             default:
                                 {
                                     Host.Log(InternalLogLevel.WARN, $"Unhandled custom msg id {customMsgId}: {msg}");
