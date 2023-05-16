@@ -28,10 +28,10 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             new PayloadConfig(MapId.GHOST_STATION, "bin/payload/ghost_station_0.bin"),
 
             // custom maps
-            new PayloadConfig(CustomMapId.CMAP_ID_SARATHOS_SP, "bin/payload/sarathos_sp_0.bin"),
-            new PayloadConfig(CustomMapId.CMAP_ID_DESERT_PRISON, "bin/payload/desert_prison_0.bin"),
-            new PayloadConfig(CustomMapId.CMAP_ID_DESERT_PRISON, "bin/payload/desert_prison_1.bin"),
-            new PayloadConfig(CustomMapId.CMAP_ID_DESERT_PRISON, "bin/payload/desert_prison_2.bin"),
+            //new PayloadConfig(CustomMapId.CMAP_ID_SARATHOS_SP, "bin/payload/sarathos_sp_0.bin"),
+            //new PayloadConfig(CustomMapId.CMAP_ID_DESERT_PRISON, "bin/payload/desert_prison_0.bin"),
+            //new PayloadConfig(CustomMapId.CMAP_ID_DESERT_PRISON, "bin/payload/desert_prison_1.bin"),
+            //new PayloadConfig(CustomMapId.CMAP_ID_DESERT_PRISON, "bin/payload/desert_prison_2.bin"),
             new PayloadConfig(CustomMapId.CMAP_ID_SNIVELAK, "bin/payload/snivelak_0.bin"),
         };
 
