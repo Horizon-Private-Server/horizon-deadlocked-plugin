@@ -112,11 +112,11 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             },
             new SNDConfig(CustomMapId.CMAP_ID_BAKISI_ISLES) // Bakisi
             {
-                DefendSpawnPoint  = new float[] { 376.523f, 574.788f, 200.000f, -1.442f },
-                AttackSpawnPoint  = new float[] { 419.824f, 255.069f, 231.656f, 1.695f },
-                Node1SpawnPoint   = new float[] { 503.978f, 459.699f, 200.281f, 0.000f },
-                Node2SpawnPoint   = new float[] { 282.378f, 424.257f, 200.281f, 0.000f },
-                PackSpawnPoint    = new float[] { 418.727f, 265.168f, 230.688f, 0.000f },
+                DefendSpawnPoint  = new float[] { 163.26f, 374.4901f, 200.4458f, -0.7855f },
+                AttackSpawnPoint  = new float[] { 341.9801f, 287.8101f, 200.0726f, 2.2823f },
+                Node1SpawnPoint   = new float[] { 219.21f, 254.28f, 200.6407f, 0.000f },
+                Node2SpawnPoint   = new float[] { 262.5701f, 408.7101f, 200.6939f, 0.000f },
+                PackSpawnPoint    = new float[] { 338.69f, 291.63f, 200.0726f, 0.000f },
             },
             new SNDConfig(CustomMapId.CMAP_ID_BDOME_SP) // Battledome SP
             {
@@ -142,6 +142,14 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 Node2SpawnPoint   = new float[] { 271.568f, 264.302f, 97.250f, 0.000f },
                 PackSpawnPoint    = new float[] { 263.924f, 189.667f, 99.729f, 0.000f },
             },
+            new SNDConfig(CustomMapId.CMAP_ID_CANAL_CITY) // Canal City
+            {
+                DefendSpawnPoint  = new float[] { 341.57f, 324.27f, 50.00006f, -2.3561925f },
+                AttackSpawnPoint  = new float[] { 212.1801f, 116.3f, 50.12504f, 1.571f },
+                Node1SpawnPoint   = new float[] { 311.3901f, 224.7501f, 50.03131f, 0.000f },
+                Node2SpawnPoint   = new float[] { 264.44f, 342.22f, 62.00009f, 0.000f },
+                PackSpawnPoint    = new float[] { 212.1802f, 134.48f, 51.08156f, 0.000f },
+            },
             new SNDConfig(CustomMapId.CMAP_ID_CONTAINMENT_SUITE) // Containment suite
             {
                 DefendSpawnPoint  = new float[] { 202.610f, 480.593f, 125.844f, -0.976f },
@@ -166,6 +174,14 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             //    Node2SpawnPoint   = new float[] { 537.053f, 499.883f, 101.109f, 0.000f },
             //    PackSpawnPoint    = new float[] { 464.699f, 602.947f, 101.001f, 0.000f },
             //},
+            new SNDConfig(CustomMapId.CMAP_ID_GHOST_HANGAR) // Ghost hangar
+            {
+                DefendSpawnPoint  = new float[] { 115.18f, 645.26f, 112.69f, 0.000f },
+                AttackSpawnPoint  = new float[] { 312.92f, 679.34f, 101.655f, 3.141f },
+                Node1SpawnPoint   = new float[] { 189.65f, 679.2198f, 102.5422f, 0.000f },
+                Node2SpawnPoint   = new float[] { 273.582f, 593.5201f, 107.9468f, 0.000f },
+                PackSpawnPoint    = new float[] { 303.33f, 679.34f, 101.655f, 0.000f },
+            },
             new SNDConfig(CustomMapId.CMAP_ID_GHOST_SHIP) // Ghost ship
             {
                 DefendSpawnPoint  = new float[] { 73.775f, 876.340f, 360.328f, 0.000f },
@@ -238,6 +254,14 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 Node2SpawnPoint   = new float[] { 492.130f, 449.107f, 497.871f, 0.000f },
                 PackSpawnPoint    = new float[] { 617.215f, 562.665f, 509.297f, 0.000f },
             },
+            new SNDConfig(CustomMapId.CMAP_ID_SNIVELAK) // Snivelak
+            {
+                DefendSpawnPoint  = new float[] { 698.72f, 569.64f, 99.99921f, 3.141f },
+                AttackSpawnPoint  = new float[] { 558.73f, 389.26f, 99.99911f, 1.571f },
+                Node1SpawnPoint   = new float[] { 559.9001f, 591.3f, 99.99915f, 0.000f },
+                Node2SpawnPoint   = new float[] { 689.94f, 431.24f, 99.99911f, 0.000f },
+                PackSpawnPoint    = new float[] { 558.73f, 397.61f, 99.99911f, 0.000f },
+            },
             //new SNDConfig(CustomMapId.CMAP_ID_SHIPMENT) // Shipment
             //{
             //    DefendSpawnPoint  = new float[] { 336.198f, 264.246f, 167.275f, 2.318f },
@@ -246,6 +270,14 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             //    Node2SpawnPoint   = new float[] { 334.353f, 329.983f, 167.275f, 0.000f },
             //    PackSpawnPoint    = new float[] { 279.740f, 324.940f, 267.275f, 0.000f },
             //},
+            new SNDConfig(CustomMapId.CMAP_ID_TORVAL_LOST_FACTORY) // Torval Lost Factory
+            {
+                DefendSpawnPoint  = new float[] { 380.2001f, 733.1998f, 130.9217f, -1.571f },
+                AttackSpawnPoint  = new float[] { 267.2f, 375.4f, 130.8152f, 1.571f },
+                Node1SpawnPoint   = new float[] { 285.3f, 592.2f, 110.2302f, 0.000f },
+                Node2SpawnPoint   = new float[] { 382.9001f, 713.3998f, 130.4578f, 0.000f },
+                PackSpawnPoint    = new float[] { 267.1998f, 391f, 130.4634f, 0.000f },
+            },
             new SNDConfig(CustomMapId.CMAP_ID_TORVAL_SP) // Torval SP
             {
                 DefendSpawnPoint  = new float[] { 183.970f, 492.105f, 107.063f, -0.012f },
@@ -504,10 +536,10 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
     public class SNDConfig
     {
         public const uint Offset = 0x20;
-        public const int BombDetonationTimer = 30;
+        public const int BombDetonationTimer = 60;
         public const int RoundsToWin  = 6;
         public const int RoundsToFlip = 3;
-        public const int RoundTimelimit = 2 * 60;
+        public const int RoundTimelimit = 4 * 60;
 
         public CustomMapId? CustomMapId { get; }
         public int? MapId { get; }
