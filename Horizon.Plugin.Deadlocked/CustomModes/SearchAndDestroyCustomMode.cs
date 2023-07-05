@@ -24,19 +24,19 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             },
             new SNDConfig(42) // Catacrom
             {
-                DefendSpawnPoint = new float[] { 250.10f, 378.74f, 068.55f, 000.00f },
-                AttackSpawnPoint = new float[] { 461.38f, 251.86f, 068.07f, 003.11f },
+                DefendSpawnPoint = new float[] { 314.1901f, 365.4001f, 66.15561f, -1.3089f },
+                AttackSpawnPoint = new float[] { 324.32f, 238.65f, 63.21899f, 1.0472f },
                 Node1SpawnPoint  = new float[] { 363.08f, 312.48f, 067.77f, 000.00f },
-                Node2SpawnPoint  = new float[] { 270.77f, 325.58f, 062.50f, 000.00f },
-                PackSpawnPoint   = new float[] { 395.05f, 220.10f, 068.10f, 000.00f }
+                Node2SpawnPoint  = new float[] { 251.26f, 328.3101f, 65.13913f, 000.00f },
+                PackSpawnPoint   = new float[] { 327.7401f, 244.5701f, 63.1651f, 000.00f }
             },
             new SNDConfig(44) // Sarathos
             {
-                DefendSpawnPoint  = new float[] { 268.386f, 122.752f, 103.479f, 0.800f },
-                AttackSpawnPoint  = new float[] { 519.269f, 396.575f, 106.727f, -1.351f },
-                Node1SpawnPoint   = new float[] { 428.368f, 239.646f, 106.613f, 0.000f },
-                Node2SpawnPoint   = new float[] { 411.456f, 143.924f, 105.344f, 0.000f },
-                PackSpawnPoint    = new float[] { 526.056f, 370.259f, 107.271f, 0.000f },
+                DefendSpawnPoint  = new float[] { 518.63f, 399.79f, 106.72f, -1.30899f },
+                AttackSpawnPoint  = new float[] { 406.2f, 173.76f, 106.98f, 0.7853975f },
+                Node1SpawnPoint   = new float[] { 536.8f, 267.08f, 106.78f, 0.000f },
+                Node2SpawnPoint   = new float[] { 585.11f, 255.12f, 104.755f, 0.000f },
+                PackSpawnPoint    = new float[] { 412.63f, 180.19f, 107.465f, 0.000f },
             },
             new SNDConfig(45) // Dark Cathedral
             {
@@ -48,11 +48,11 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             },
             new SNDConfig(46) // Shaar
             {
-                DefendSpawnPoint  = new float[] { 544.610f, 548.150f, 509.310f, 1.570f },
-                AttackSpawnPoint  = new float[] { 638.050f, 688.370f, 515.560f, -1.570f },
-                Node1SpawnPoint   = new float[] { 544.660f, 624.500f, 521.340f, 0.000f },
-                Node2SpawnPoint   = new float[] { 459.680f, 622.620f, 515.550f, 0.000f },
-                PackSpawnPoint    = new float[] { 635.300f, 673.050f, 515.470f, 0.000f },
+                DefendSpawnPoint  = new float[] { 452.4101f, 682.7402f, 515.4749f, -1.570f },
+                AttackSpawnPoint  = new float[] { 635.67f, 682.7402f, 515.4749f, -1.570f },
+                Node1SpawnPoint   = new float[] { 473.5603f, 600.4701f, 509.348f, 0.000f },
+                Node2SpawnPoint   = new float[] { 509.73f, 659.1002f, 515.5414f, 0.000f },
+                PackSpawnPoint    = new float[] { 635.67f, 672.84f, 515.4749f, 0.000f },
             },
             new SNDConfig(47) // Valix
             {
@@ -72,11 +72,11 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             },
             new SNDConfig(50) // Torval
             {
-                DefendSpawnPoint  = new float[] { 231.230f, 277.800f, 106.950f, 0.000f },
-                AttackSpawnPoint  = new float[] { 396.140f, 319.300f, 101.030f, -3.140f },
-                Node1SpawnPoint   = new float[] { 244.850f, 401.110f, 100.820f, 0.000f },
-                Node2SpawnPoint   = new float[] { 302.000f, 269.170f, 115.080f, 0.000f },
-                PackSpawnPoint    = new float[] { 388.240f, 318.150f, 102.000f, 0.000f },
+                DefendSpawnPoint  = new float[] { 298.9f, 418.46f, 106.0001f, -1.570f },
+                AttackSpawnPoint  = new float[] { 229.1501f, 275.9101f, 107.0573f, 0.7853975f },
+                Node1SpawnPoint   = new float[] { 357.2902f, 332.5802f, 100.9188f, 0.000f },
+                Node2SpawnPoint   = new float[] { 245.9401f, 396.4802f, 100.8504f, 0.000f },
+                PackSpawnPoint    = new float[] { 234.44f, 281.2001f, 106.5617f, 0.000f },
             },
             new SNDConfig(51) // Tempus
             {
@@ -91,7 +91,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 DefendSpawnPoint  = new float[] { 390.920f, 690.330f, 106.200f, 0.780f },
                 AttackSpawnPoint  = new float[] { 589.590f, 701.020f, 102.240f, 2.440f },
                 Node1SpawnPoint   = new float[] { 485.980f, 707.050f, 108.800f, 0.000f },
-                Node2SpawnPoint   = new float[] { 445.240f, 637.080f, 102.550f, 0.000f },
+                Node2SpawnPoint   = new float[] { 485.21f, 659.19f, 98.183f, 0.000f },
                 PackSpawnPoint    = new float[] { 569.630f, 718.320f, 103.000f, 0.000f },
             },
             new SNDConfig(54) // Ghost Station
@@ -193,8 +193,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             new SNDConfig(CustomMapId.CMAP_ID_HOVEN_GORGE) // Hoven
             {
                 DefendSpawnPoint  = new float[] { 357.103f, 353.035f, 67.781f, -2.279f },
-                AttackSpawnPoint  = new float[] { 164.648f, 257.566f, 66.158f, 0.062f },
-                Node1SpawnPoint   = new float[] { 255.952f, 332.026f, 78.516f, 0.000f },
+                AttackSpawnPoint  = new float[] { 164.648f, 257.566f, 66.158f, 0.000f },
+                Node1SpawnPoint   = new float[] { 312.1f, 345f, 66.86f, 0.000f },
                 Node2SpawnPoint   = new float[] { 290.515f, 207.614f, 73.390f, 0.000f },
                 PackSpawnPoint    = new float[] { 177.378f, 258.349f, 65.944f, 0.000f },
             },
@@ -202,8 +202,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             {
                 DefendSpawnPoint  = new float[] { 203.545f, 344.146f, 97.734f, -0.166f },
                 AttackSpawnPoint  = new float[] { 442.846f, 343.799f, 97.734f, -2.909f },
-                Node1SpawnPoint   = new float[] { 322.487f, 408.496f, 96.016f, 0.000f },
-                Node2SpawnPoint   = new float[] { 300.532f, 233.370f, 96.016f, 0.000f },
+                Node1SpawnPoint   = new float[] { 322.487f, 434.59f, 95.832f, 0.000f },
+                Node2SpawnPoint   = new float[] { 322.58f, 368.14f, 95.959f, 0.000f },
                 PackSpawnPoint    = new float[] { 431.093f, 338.332f, 96.020f, 0.000f },
             },
             new SNDConfig(CustomMapId.CMAP_ID_LAUNCH_SITE) // Launch site
@@ -250,8 +250,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             {
                 DefendSpawnPoint  = new float[] { 453.367f, 683.798f, 515.469f, -1.392f },
                 AttackSpawnPoint  = new float[] { 629.879f, 555.042f, 509.297f, 2.599f },
-                Node1SpawnPoint   = new float[] { 544.672f, 624.565f, 511.562f, 0.000f },
-                Node2SpawnPoint   = new float[] { 492.130f, 449.107f, 497.871f, 0.000f },
+                Node1SpawnPoint   = new float[] { 512.27f, 677.51f, 509.31f, 0.000f },
+                Node2SpawnPoint   = new float[] { 483.35f, 521.87f, 503.74f, 0.000f },
                 PackSpawnPoint    = new float[] { 617.215f, 562.665f, 509.297f, 0.000f },
             },
             new SNDConfig(CustomMapId.CMAP_ID_SNIVELAK) // Snivelak
@@ -288,11 +288,11 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             },
             new SNDConfig(CustomMapId.CMAP_ID_TYHRRANOSIS) // Tyhrranosis
             {
-                DefendSpawnPoint  = new float[] { 555.673f, 669.214f, 94.000f, 0.850f },
-                AttackSpawnPoint  = new float[] { 945.619f, 542.867f, 100.515f, 2.550f },
-                Node1SpawnPoint   = new float[] { 773.373f, 602.050f, 100.018f, 0.000f },
-                Node2SpawnPoint   = new float[] { 864.899f, 743.047f, 112.000f, 0.000f },
-                PackSpawnPoint    = new float[] { 933.878f, 550.395f, 101.507f, 0.000f },
+                DefendSpawnPoint  = new float[] { 878.29f, 590.92f, 100.597f, 2.6179f },
+                AttackSpawnPoint  = new float[] { 623.34f, 661.31f, 100.044f, 0.000f },
+                Node1SpawnPoint   = new float[] { 761.73f, 568.92f, 99.782f, 0.000f },
+                Node2SpawnPoint   = new float[] { 756.91f, 720.18f, 99.955f, 0.000f },
+                PackSpawnPoint    = new float[] { 633.04f, 660.28f, 100.044f, 0.000f },
             }
         };
 
