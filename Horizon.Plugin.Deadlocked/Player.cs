@@ -202,13 +202,14 @@ namespace Horizon.Plugin.Deadlocked
         public sbyte MinimapScale { get; set; }
         public sbyte MinimapBigZoom { get; set; }
         public sbyte MinimapSmallZoom { get; set; }
+        public sbyte EnableFusionReticule { get; set; }
 #if TWEAKERS
         public byte[] CharacterTweakers { get; set; } = new byte[1 + 7*2];
 #endif
 
         public byte[] Serialize()
         {
-            int bufSize = 14;
+            int bufSize = 15;
 #if TWEAKERS
             bufSize += 1 + 7*2;
 #endif
@@ -231,6 +232,7 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(MinimapScale);
                     writer.Write(MinimapBigZoom);
                     writer.Write(MinimapSmallZoom);
+                    writer.Write(EnableFusionReticule);
 #if TWEAKERS
                     writer.Write(CharacterTweakers ?? new byte[1 + 7*2]);
 #endif
@@ -256,6 +258,7 @@ namespace Horizon.Plugin.Deadlocked
             MinimapScale = reader.ReadSByte();
             MinimapBigZoom = reader.ReadSByte();
             MinimapSmallZoom = reader.ReadSByte();
+            EnableFusionReticule = reader.ReadSByte();
 #if TWEAKERS
             CharacterTweakers = reader.ReadBytes(1 + 7*2);
 #endif
@@ -277,6 +280,7 @@ namespace Horizon.Plugin.Deadlocked
                 && MinimapScale == other.MinimapScale
                 && MinimapBigZoom == other.MinimapBigZoom
                 && MinimapSmallZoom == other.MinimapSmallZoom
+                && EnableFusionReticule == other.EnableFusionReticule
 #if TWEAKERS
                 && (CharacterTweakers?.SequenceEqual(other.CharacterTweakers) ?? false)
 #endif

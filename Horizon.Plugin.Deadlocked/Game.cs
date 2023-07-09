@@ -999,7 +999,8 @@ namespace Horizon.Plugin.Deadlocked
         public bool DisableNames { get; set; }
         public bool DisableInvHitTimer { get; set; }
         public bool HideWeaponPickups { get; set; }
-        public bool FusionShotsAlwaysHit { get;set;}
+        public bool FusionShotsAlwaysHit { get; set; }
+        public bool NoSniperHelpers { get;set; }
         public byte PlayerSize { get; set; }
         public bool RotatingWeapons { get; set; }
         public byte Headbutt { get; set; }
@@ -1020,7 +1021,7 @@ namespace Horizon.Plugin.Deadlocked
 
         public byte[] Serialize()
         {
-            byte[] output = new byte[24];
+            byte[] output = new byte[25];
             using (var ms = new MemoryStream(output, true))
             {
                 using (var writer = new BinaryWriter(ms))
@@ -1042,6 +1043,7 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(DisableInvHitTimer);
                     writer.Write(HideWeaponPickups);
                     writer.Write(FusionShotsAlwaysHit);
+                    writer.Write(NoSniperHelpers);
                     writer.Write(PlayerSize);
                     writer.Write(RotatingWeapons);
                     writer.Write(Headbutt);
@@ -1075,6 +1077,7 @@ namespace Horizon.Plugin.Deadlocked
             DisableInvHitTimer = reader.ReadBoolean();
             HideWeaponPickups = reader.ReadBoolean();
             FusionShotsAlwaysHit = reader.ReadBoolean();
+            NoSniperHelpers = reader.ReadBoolean();
             PlayerSize = reader.ReadByte();
             RotatingWeapons = reader.ReadBoolean();
             Headbutt = reader.ReadByte();
@@ -1104,6 +1107,7 @@ namespace Horizon.Plugin.Deadlocked
                 && DisableInvHitTimer == other.DisableInvHitTimer
                 && HideWeaponPickups == other.HideWeaponPickups
                 && FusionShotsAlwaysHit == other.FusionShotsAlwaysHit
+                && NoSniperHelpers == other.NoSniperHelpers
                 && PlayerSize == other.PlayerSize
                 && RotatingWeapons == other.RotatingWeapons
                 && Headbutt == other.Headbutt
