@@ -1006,7 +1006,10 @@ namespace Horizon.Plugin.Deadlocked
         public bool DisableInvHitTimer { get; set; }
         public bool HideWeaponPickups { get; set; }
         public bool FusionShotsAlwaysHit { get; set; }
-        public bool NoSniperHelpers { get;set; }
+        public bool NoSniperHelpers { get; set; }
+        public bool CqPersistentCapture { get; set; }
+        public bool CqDisableTurrets { get; set; }
+        public bool CqDisableUpgrades { get; set; }
         public byte PlayerSize { get; set; }
         public bool RotatingWeapons { get; set; }
         public byte Headbutt { get; set; }
@@ -1030,7 +1033,7 @@ namespace Horizon.Plugin.Deadlocked
 
         public byte[] Serialize()
         {
-            byte[] output = new byte[26];
+            byte[] output = new byte[29];
             using (var ms = new MemoryStream(output, true))
             {
                 using (var writer = new BinaryWriter(ms))
@@ -1053,6 +1056,9 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(HideWeaponPickups);
                     writer.Write(FusionShotsAlwaysHit);
                     writer.Write(NoSniperHelpers);
+                    writer.Write(CqPersistentCapture);
+                    writer.Write(CqDisableTurrets);
+                    writer.Write(CqDisableUpgrades);
                     writer.Write(PlayerSize);
                     writer.Write(RotatingWeapons);
                     writer.Write(Headbutt);
@@ -1088,6 +1094,9 @@ namespace Horizon.Plugin.Deadlocked
             HideWeaponPickups = reader.ReadBoolean();
             FusionShotsAlwaysHit = reader.ReadBoolean();
             NoSniperHelpers = reader.ReadBoolean();
+            CqPersistentCapture = reader.ReadBoolean();
+            CqDisableTurrets = reader.ReadBoolean();
+            CqDisableUpgrades = reader.ReadBoolean();
             PlayerSize = reader.ReadByte();
             RotatingWeapons = reader.ReadBoolean();
             Headbutt = reader.ReadByte();
@@ -1119,6 +1128,9 @@ namespace Horizon.Plugin.Deadlocked
                 && HideWeaponPickups == other.HideWeaponPickups
                 && FusionShotsAlwaysHit == other.FusionShotsAlwaysHit
                 && NoSniperHelpers == other.NoSniperHelpers
+                && CqPersistentCapture == other.CqPersistentCapture
+                && CqDisableTurrets == other.CqDisableTurrets
+                && CqDisableUpgrades == other.CqDisableUpgrades
                 && PlayerSize == other.PlayerSize
                 && RotatingWeapons == other.RotatingWeapons
                 && Headbutt == other.Headbutt
