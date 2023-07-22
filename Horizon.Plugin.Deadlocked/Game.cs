@@ -156,6 +156,12 @@ namespace Horizon.Plugin.Deadlocked
 
             var metadata = await GetGameMetadata(game);
 
+            // reject if freecam
+            if (metadata.GameConfig.HasDevRule())
+            {
+                args.Reject = true;
+            }
+
             // pass to gamemode
             var mode = Modes.FindCustomModeById(metadata.GameConfig.GetRealCustomModeId());
             if (mode != null)
@@ -1006,9 +1012,12 @@ namespace Horizon.Plugin.Deadlocked
         public byte Headbutt { get; set; }
         public bool HeadbuttFriendlyFire { get; set; }
         public bool ChargebootForever { get; set; }
+        public bool Freecam { get; set; }
         //public byte Survival_Difficulty { get; set; }
         public byte Payload_ContestMode { get; set; }
         public byte Training_Type { get; set; }
+
+        public bool HasDevRule() => Freecam;
 
         public CustomModeId GetRealCustomModeId()
         {
@@ -1021,7 +1030,7 @@ namespace Horizon.Plugin.Deadlocked
 
         public byte[] Serialize()
         {
-            byte[] output = new byte[25];
+            byte[] output = new byte[26];
             using (var ms = new MemoryStream(output, true))
             {
                 using (var writer = new BinaryWriter(ms))
@@ -1049,6 +1058,7 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(Headbutt);
                     writer.Write(HeadbuttFriendlyFire);
                     writer.Write(ChargebootForever);
+                    writer.Write(Freecam);
                     //writer.Write(Survival_Difficulty);
                     writer.Write(Payload_ContestMode);
                     writer.Write(Training_Type);
@@ -1083,6 +1093,7 @@ namespace Horizon.Plugin.Deadlocked
             Headbutt = reader.ReadByte();
             HeadbuttFriendlyFire = reader.ReadBoolean();
             ChargebootForever = reader.ReadBoolean();
+            Freecam = reader.ReadBoolean();
             //Survival_Difficulty = reader.ReadByte();
             Payload_ContestMode = reader.ReadByte();
             Training_Type = reader.ReadByte();
@@ -1113,6 +1124,7 @@ namespace Horizon.Plugin.Deadlocked
                 && Headbutt == other.Headbutt
                 && HeadbuttFriendlyFire == other.HeadbuttFriendlyFire
                 && ChargebootForever == other.ChargebootForever
+                && Freecam == other.Freecam
                 //&& Survival_Difficulty == other.Survival_Difficulty
                 && Payload_ContestMode == other.Payload_ContestMode
                 && Training_Type == other.Training_Type

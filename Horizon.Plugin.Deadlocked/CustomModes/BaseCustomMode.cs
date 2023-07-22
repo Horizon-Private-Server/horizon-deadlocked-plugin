@@ -105,6 +105,10 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 });
             }
 
+            // reject if dev rules enabled
+            if (metadata.GameConfig.HasDevRule())
+                return args.PlayerCustomStats;
+
             // 
             if (!GameAcceptStats(game, metadata, gameData))
             {
