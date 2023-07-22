@@ -536,10 +536,10 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
     public class SNDConfig
     {
         public const uint Offset = 0x20;
-        public const int BombDetonationTimer = 60;
+        public const int BombDetonationTimer = 40;
         public const int RoundsToWin  = 6;
         public const int RoundsToFlip = 3;
-        public const int RoundTimelimit = 4 * 60;
+        public const int RoundTimelimit = 2 * 60;
 
         public CustomMapId? CustomMapId { get; }
         public int? MapId { get; }
