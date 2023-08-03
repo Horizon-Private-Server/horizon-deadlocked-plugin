@@ -50,9 +50,21 @@ namespace Horizon.Plugin.Deadlocked
                 Team = 0
             }).ToList();
 
+            var preferredLocations = match.Clients.GroupBy(x => x.Client.Location).ToDictionary(x => x.Key, x => x.Count());
+            var preferredLocation = 0;
+            var preferredLocationCount = 0;
+            foreach (var item in preferredLocations)
+            {
+                if (item.Value > preferredLocationCount)
+                {
+                    preferredLocation = item.Key;
+                    preferredLocation = item.Value;
+                }
+            }
+
             // Try to get next free dme server
             // If none exist, return error to clist
-            DMEServer = Server.Medius.Program.ProxyServer.GetFreeDme(ApplicationId);
+            DMEServer = Server.Medius.Program.ProxyServer.GetFreeDme(ApplicationId, preferredLocation);
             if (DMEServer == null)
                 return false;
 

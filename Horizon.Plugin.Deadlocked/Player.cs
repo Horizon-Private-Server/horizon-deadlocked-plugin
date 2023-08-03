@@ -76,6 +76,9 @@ namespace Horizon.Plugin.Deadlocked
             if (metadata.Config == null)
                 metadata.Config = new PlayerConfig();
 
+            // update location
+            client.Location = metadata.Config.PreferredGameServer;
+
             return Task.FromResult(metadata.Config);
         }
 
@@ -111,6 +114,9 @@ namespace Horizon.Plugin.Deadlocked
             var changed = metadata.Config == null || !metadata.Config.SameAs(config);
             metadata.Config = config;
             client.Metadata = JsonConvert.SerializeObject(metadata);
+
+            // update location
+            client.Location = config.PreferredGameServer;
 
             // send to other game clients
             if (changed)
@@ -203,13 +209,15 @@ namespace Horizon.Plugin.Deadlocked
         public sbyte MinimapBigZoom { get; set; }
         public sbyte MinimapSmallZoom { get; set; }
         public sbyte EnableFusionReticule { get; set; }
+        public sbyte PlayerFov { get; set; }
+        public byte PreferredGameServer { get; set; }
 #if TWEAKERS
         public byte[] CharacterTweakers { get; set; } = new byte[1 + 7*2];
 #endif
 
         public byte[] Serialize()
         {
-            int bufSize = 15;
+            int bufSize = 17;
 #if TWEAKERS
             bufSize += 1 + 7*2;
 #endif
@@ -233,6 +241,8 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(MinimapBigZoom);
                     writer.Write(MinimapSmallZoom);
                     writer.Write(EnableFusionReticule);
+                    writer.Write(PlayerFov);
+                    writer.Write(PreferredGameServer);
 #if TWEAKERS
                     writer.Write(CharacterTweakers ?? new byte[1 + 7*2]);
 #endif
@@ -259,6 +269,8 @@ namespace Horizon.Plugin.Deadlocked
             MinimapBigZoom = reader.ReadSByte();
             MinimapSmallZoom = reader.ReadSByte();
             EnableFusionReticule = reader.ReadSByte();
+            PlayerFov = reader.ReadSByte();
+            PreferredGameServer = reader.ReadByte();
 #if TWEAKERS
             CharacterTweakers = reader.ReadBytes(1 + 7*2);
 #endif
@@ -281,6 +293,8 @@ namespace Horizon.Plugin.Deadlocked
                 && MinimapBigZoom == other.MinimapBigZoom
                 && MinimapSmallZoom == other.MinimapSmallZoom
                 && EnableFusionReticule == other.EnableFusionReticule
+                && PlayerFov == other.PlayerFov
+                && PreferredGameServer == other.PreferredGameServer
 #if TWEAKERS
                 && (CharacterTweakers?.SequenceEqual(other.CharacterTweakers) ?? false)
 #endif
