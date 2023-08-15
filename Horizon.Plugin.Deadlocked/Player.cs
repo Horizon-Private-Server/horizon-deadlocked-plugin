@@ -211,13 +211,14 @@ namespace Horizon.Plugin.Deadlocked
         public sbyte EnableFusionReticule { get; set; }
         public sbyte PlayerFov { get; set; }
         public byte PreferredGameServer { get; set; }
+        public bool EnableSingleTapChargeboot { get; set; }
 #if TWEAKERS
         public byte[] CharacterTweakers { get; set; } = new byte[1 + 7*2];
 #endif
 
         public byte[] Serialize()
         {
-            int bufSize = 17;
+            int bufSize = 18;
 #if TWEAKERS
             bufSize += 1 + 7*2;
 #endif
@@ -243,6 +244,7 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(EnableFusionReticule);
                     writer.Write(PlayerFov);
                     writer.Write(PreferredGameServer);
+                    writer.Write(EnableSingleTapChargeboot);
 #if TWEAKERS
                     writer.Write(CharacterTweakers ?? new byte[1 + 7*2]);
 #endif
@@ -271,6 +273,7 @@ namespace Horizon.Plugin.Deadlocked
             EnableFusionReticule = reader.ReadSByte();
             PlayerFov = reader.ReadSByte();
             PreferredGameServer = reader.ReadByte();
+            EnableSingleTapChargeboot = reader.ReadBoolean();
 #if TWEAKERS
             CharacterTweakers = reader.ReadBytes(1 + 7*2);
 #endif
@@ -295,6 +298,7 @@ namespace Horizon.Plugin.Deadlocked
                 && EnableFusionReticule == other.EnableFusionReticule
                 && PlayerFov == other.PlayerFov
                 && PreferredGameServer == other.PreferredGameServer
+                && EnableSingleTapChargeboot == other.EnableSingleTapChargeboot
 #if TWEAKERS
                 && (CharacterTweakers?.SequenceEqual(other.CharacterTweakers) ?? false)
 #endif
