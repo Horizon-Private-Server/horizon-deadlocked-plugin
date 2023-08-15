@@ -1019,6 +1019,9 @@ namespace Horizon.Plugin.Deadlocked
         //public byte Survival_Difficulty { get; set; }
         public byte Payload_ContestMode { get; set; }
         public byte Training_Type { get; set; }
+        public byte Training_Variation { get; set; }
+        public byte Training_Aggression { get; set; }
+        public byte Training_Opt3 { get; set; }
 
         public bool HasDevRule() => Freecam;
 
@@ -1033,7 +1036,7 @@ namespace Horizon.Plugin.Deadlocked
 
         public byte[] Serialize()
         {
-            byte[] output = new byte[29];
+            byte[] output = new byte[32];
             using (var ms = new MemoryStream(output, true))
             {
                 using (var writer = new BinaryWriter(ms))
@@ -1068,6 +1071,9 @@ namespace Horizon.Plugin.Deadlocked
                     //writer.Write(Survival_Difficulty);
                     writer.Write(Payload_ContestMode);
                     writer.Write(Training_Type);
+                    writer.Write(Training_Variation);
+                    writer.Write(Training_Aggression);
+                    writer.Write(Training_Opt3);
                 }
             }
 
@@ -1106,6 +1112,9 @@ namespace Horizon.Plugin.Deadlocked
             //Survival_Difficulty = reader.ReadByte();
             Payload_ContestMode = reader.ReadByte();
             Training_Type = reader.ReadByte();
+            Training_Variation = reader.ReadByte();
+            Training_Aggression = reader.ReadByte();
+            Training_Opt3 = reader.ReadByte();
         }
 
         public bool SameAs(GameConfig other)
@@ -1140,6 +1149,9 @@ namespace Horizon.Plugin.Deadlocked
                 //&& Survival_Difficulty == other.Survival_Difficulty
                 && Payload_ContestMode == other.Payload_ContestMode
                 && Training_Type == other.Training_Type
+                && Training_Variation == other.Training_Variation
+                && Training_Aggression == other.Training_Aggression
+                && Training_Opt3 == other.Training_Opt3
                 ;
         }
     }

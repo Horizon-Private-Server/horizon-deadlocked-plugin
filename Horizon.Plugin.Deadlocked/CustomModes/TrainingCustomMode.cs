@@ -18,11 +18,33 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             B6,
         }
 
+        public enum TrainingAggression
+        {
+            Aggro,
+            AggroNoDamage,
+            Passive,
+            Idle
+        }
+
         public static readonly Dictionary<TrainingTypes, string> TrainingTypeNames = new Dictionary<TrainingTypes, string>()
         {
             { TrainingTypes.FusionRifle, "Fusion Rifle" },
             { TrainingTypes.B6, "B6 Obliterator" },
             { TrainingTypes.Cycle, "Cycle" },
+        };
+
+        public static readonly Dictionary<int, string> TrainingVariationNames = new Dictionary<int, string>()
+        {
+            { 0, "Ranked" },
+            { 1, "Endless" },
+        };
+
+        public static readonly Dictionary<TrainingAggression, string> TrainingAggressionNames = new Dictionary<TrainingAggression, string>()
+        {
+            { TrainingAggression.Aggro, "Aggressive" },
+            { TrainingAggression.AggroNoDamage, "No Damage" },
+            { TrainingAggression.Passive, "Passive" },
+            { TrainingAggression.Idle, "Idle" },
         };
 
         public override CustomModeId Id => CustomModeId.CMODE_ID_TRAINING;
@@ -44,7 +66,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         {
             var trainingType = (TrainingTypes)metadata.GameConfig.Training_Type;
 
-            return Task.FromResult($"Training: {TrainingTypeNames[trainingType]}");
+            return Task.FromResult($"Training: {TrainingTypeNames[trainingType]} {TrainingVariationNames[metadata.GameConfig.Training_Variation]}\nAggression: {TrainingAggressionNames[(TrainingAggression)metadata.GameConfig.Training_Aggression]}");
         }
 
         public override Task<Payload> GetPayload(Server.Medius.Models.Game game, GameMetadata metadata)
@@ -66,6 +88,10 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
             // need exactly one player
             if (gameData.StartGameSettings.PlayerAccountIds.Count(x => x > 0) != 1)
+                return false;
+
+            // needs to be ranked
+            if (metadata.GameConfig.Training_Variation != 0)
                 return false;
 
             // game must have custom data
