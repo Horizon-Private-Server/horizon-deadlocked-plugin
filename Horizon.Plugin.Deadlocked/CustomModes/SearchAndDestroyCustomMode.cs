@@ -1,4 +1,5 @@
-﻿using Server.Medius.Models;
+﻿using Server.Common.Stream;
+using Server.Medius.Models;
 using Server.Medius.PluginArgs;
 using System;
 using System.Collections.Generic;
@@ -473,7 +474,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public short[] BombsDefused { get; set; }
         public short[] BombsNinjaDefused { get; set; }
 
-        public void Deserialize(BinaryReader reader)
+        public void Deserialize(MessageReader reader)
         {
             // parse by version
             Version = reader.ReadInt32();

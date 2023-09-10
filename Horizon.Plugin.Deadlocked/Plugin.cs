@@ -75,7 +75,8 @@ namespace Horizon.Plugin.Deadlocked
                     // send fully parsed settings to server
                     await Server.Medius.Program.Database.SetServerSettings(supportedAppId, settings.GetSettings());
                 }
-                
+
+                Host.Log(InternalLogLevel.WARN, $"ADDED APPSETTINGS FOR {Server.Medius.Program.Database.GetUsername()}");
                 hasQueriedAppSettings = true;
             }
 
@@ -532,7 +533,7 @@ namespace Horizon.Plugin.Deadlocked
 
             using (var ms = new MemoryStream(stats, true))
             {
-                using (var writer = new BinaryWriter(ms))
+                using (var writer = new MessageWriter(ms))
                 {
                     foreach (var i in Enumerable.Range(0, 0x18 - ctag.Length))
                     {

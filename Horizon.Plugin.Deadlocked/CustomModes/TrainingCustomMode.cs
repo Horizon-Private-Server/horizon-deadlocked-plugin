@@ -1,4 +1,5 @@
-﻿using Server.Medius.Models;
+﻿using Server.Common.Stream;
+using Server.Medius.Models;
 using Server.Medius.PluginArgs;
 using System;
 using System.Collections.Generic;
@@ -60,6 +61,11 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             // reject all
             args.Reject = true;
             return Task.CompletedTask;
+        }
+
+        public override sbyte GetModuleArg3(Server.Medius.Models.Game game, GameMetadata metadata)
+        {
+            return (sbyte)metadata.GameConfig.Training_Type;
         }
 
         public override Task<string> GetGameInfo(Server.Medius.Models.Game game, GameMetadata metadata)
@@ -201,7 +207,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public int Misses { get; set; }
         public int BestCombo { get; set; }
 
-        public void Deserialize(BinaryReader reader)
+        public void Deserialize(MessageReader reader)
         {
             // parse by version
             Version = reader.ReadInt32();

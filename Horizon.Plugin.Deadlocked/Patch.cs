@@ -1,6 +1,7 @@
 ﻿using Horizon.Plugin.Deadlocked.Messages;
 using RT.Models;
 using Server.Common;
+using Server.Common.Stream;
 using Server.Medius.Models;
 using System;
 using System.Collections.Generic;
@@ -360,6 +361,7 @@ namespace Horizon.Plugin.Deadlocked
         public PatchModuleEntryType Type { get; set; }
         public sbyte ModeId { get; set; }
         public sbyte MapId { get; set; }
+        public sbyte Arg3 { get; set; }
         public uint GameEntrypoint { get; set; }
         public uint LobbyEntrypoint { get; set; }
         public uint LoadEntrypoint { get; set; }
@@ -369,12 +371,12 @@ namespace Horizon.Plugin.Deadlocked
             byte[] output = new byte[16];
             using (var ms = new MemoryStream(output, true))
             {
-                using (var writer = new BinaryWriter(ms))
+                using (var writer = new MessageWriter(ms))
                 {
                     writer.Write((byte)Type);
                     writer.Write(ModeId);
                     writer.Write(MapId);
-                    writer.Write(new byte[1]);
+                    writer.Write(Arg3);
                     writer.Write(GameEntrypoint);
                     writer.Write(LobbyEntrypoint);
                     writer.Write(LoadEntrypoint);
@@ -384,12 +386,12 @@ namespace Horizon.Plugin.Deadlocked
             return output;
         }
 
-        public void Deserialize(BinaryReader reader)
+        public void Deserialize(MessageReader reader)
         {
             Type = reader.Read<PatchModuleEntryType>();
             ModeId = reader.ReadSByte();
             MapId = reader.ReadSByte();
-            reader.ReadBytes(1);
+            Arg3 = reader.ReadSByte();
             GameEntrypoint = reader.ReadUInt32();
             LobbyEntrypoint = reader.ReadUInt32();
             LoadEntrypoint = reader.ReadUInt32();

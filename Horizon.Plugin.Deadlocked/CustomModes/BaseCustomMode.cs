@@ -59,7 +59,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             gameData.CustomGameData = CreateCustomGameData();
             using (var ms = new MemoryStream(metadata.GameData))
             {
-                using (var reader = new BinaryReader(ms))
+                using (var reader = new MessageReader(ms))
                 {
                     gameData.Deserialize(reader);
                 }
@@ -143,6 +143,11 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public virtual Task OnRecvCustomMessage(ClientObject client, int messageId, MessageReader reader)
         {
             return Task.CompletedTask;
+        }
+
+        public virtual sbyte GetModuleArg3(Server.Medius.Models.Game game, GameMetadata metadata)
+        {
+            return 0;
         }
     }
 }

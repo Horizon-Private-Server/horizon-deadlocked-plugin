@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using RT.Common;
 using Server.Common;
+using Server.Common.Stream;
 using Server.Medius.Models;
 using Server.Medius.PluginArgs;
 using System;
@@ -316,6 +317,7 @@ namespace Horizon.Plugin.Deadlocked
                 Type = PatchModuleEntryType.DISABLED,
                 ModeId = 0,
                 MapId = 0,
+                Arg3 = 0,
             }.Serialize()));
 
             // parse gamemode
@@ -336,6 +338,7 @@ namespace Horizon.Plugin.Deadlocked
                         Type = PatchModuleEntryType.RUN_ONCE_GAME,
                         ModeId = (sbyte)mode.Id,
                         MapId = (sbyte)metadata.GameConfig.MapOverride,
+                        Arg3 = mode.GetModuleArg3(game, metadata),
                         GameEntrypoint = modePayload.Address,
                         LobbyEntrypoint = modePayload.Address + 8,
                         LoadEntrypoint = modePayload.Address + 16,
@@ -701,7 +704,7 @@ namespace Horizon.Plugin.Deadlocked
         public ICustomGameData CustomGameData { get; set; }
 
 
-        public void Deserialize(BinaryReader reader)
+        public void Deserialize(MessageReader reader)
         {
             int magic = reader.ReadInt32();
             int version = reader.ReadInt32();
@@ -726,7 +729,7 @@ namespace Horizon.Plugin.Deadlocked
 
     public interface ICustomGameData
     {
-        void Deserialize(BinaryReader reader);
+        void Deserialize(MessageReader reader);
     }
 
     public class NWGameData
@@ -794,7 +797,7 @@ namespace Horizon.Plugin.Deadlocked
         public float[] NodeHoldTime { get; set; }
         public byte[] FlagCaptureCounts { get; set; }
 
-        public void Deserialize(BinaryReader reader)
+        public void Deserialize(MessageReader reader)
         {
             TimeEnd = reader.ReadInt32();
             TimeStart = reader.ReadInt32();
@@ -923,7 +926,7 @@ namespace Horizon.Plugin.Deadlocked
         public sbyte[] TeamSpawnPointIds { get; set; }
         public uint SpawnSeed { get; set; }
 
-        public void Deserialize(BinaryReader reader)
+        public void Deserialize(MessageReader reader)
         {
             PlayerNames = new string[10];
             for (int i = 0; i < 10; ++i)
