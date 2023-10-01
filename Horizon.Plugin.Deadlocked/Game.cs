@@ -269,7 +269,7 @@ namespace Horizon.Plugin.Deadlocked
             // try parse from game
             try { metadata = JsonConvert.DeserializeObject<GameMetadata>(game.Metadata); } catch (Exception) { }
             if (metadata == null)
-                metadata = new GameMetadata();
+                metadata = new GameMetadata() { Location = game.DMEServer?.Location ?? 0 };
 
             // add to cache
             _metadatas.Add(game.Id, metadata);
@@ -546,6 +546,7 @@ namespace Horizon.Plugin.Deadlocked
         public string CustomMap { get; set; }
         public string Weather { get; set; }
         public string GameInfo { get; set; }
+        public int Location { get; set; }
         public GameConfig GameConfig { get; set; } = new GameConfig();
         public GameState GameState { get; set; } = new GameState();
         public byte[] GameData { get; set; }

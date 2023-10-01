@@ -14,7 +14,8 @@ namespace Horizon.Plugin.Deadlocked
         private static readonly BaseChatCommand[] _commands = new BaseChatCommand[]
         {
             new RollChatCommand(),
-            new TeamChatCommand()
+            new TeamChatCommand(),
+            new CaptainChatCommand()
         };
 
         public static Task OnChatMessage(ClientObject client, IMediusChatMessage message)
