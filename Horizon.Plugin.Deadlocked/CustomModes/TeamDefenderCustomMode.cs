@@ -1,4 +1,5 @@
-﻿using Server.Medius.Models;
+﻿using Server.Common.Stream;
+using Server.Medius.Models;
 using Server.Medius.PluginArgs;
 using System;
 using System.Collections.Generic;
@@ -28,7 +29,11 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         public override Task<string> GetGameInfo(Server.Medius.Models.Game game, GameMetadata metadata)
         {
-            return Task.FromResult((string)null);
+            var timelimit = (game.GenericField7 >> 27) & 7;
+            if (timelimit <= 0) timelimit = 1;
+            var time = $"{timelimit * 5} minutes";
+
+            return Task.FromResult($"Timelimit: {time}");
         }
 
         public override Task<Payload> GetPayload(Server.Medius.Models.Game game, GameMetadata metadata)
@@ -38,7 +43,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         protected override ICustomGameData CreateCustomGameData()
         {
-            return null;
+            return new TeamDefenderCustomData();
         }
 
         protected override bool GameAcceptStats(Server.Medius.Models.Game game, GameMetadata metadata, GameData gameData)
@@ -50,6 +55,35 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         protected override Task UpdateCustomStats(CustomModeUpdateStatsArgs args)
         {
             throw new NotImplementedException();
+        }
+    }
+
+    public class TeamDefenderCustomData : ICustomGameData
+    {
+        public int Version { get; set; }
+        public int[] TeamScores { get; set; }
+        public int[] PlayerPoints { get; set; }
+        public float[] PlayerTimeWithFlag { get; set; }
+
+        public void Deserialize(MessageReader reader)
+        {
+            // parse by version
+            Version = reader.ReadInt32();
+            switch (Version)
+            {
+                case 1:
+                    {
+                        TeamScores = reader.ReadArray<int>(10);
+                        PlayerPoints = reader.ReadArray<int>(10);
+                        PlayerTimeWithFlag = reader.ReadArray<float>(10);
+                        break;
+                    }
+                default:
+                    {
+                        Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, $"Unsupported team defender data version {Version}");
+                        break;
+                    }
+            }
         }
     }
 }
