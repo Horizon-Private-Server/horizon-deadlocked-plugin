@@ -62,6 +62,37 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.DemonBell, 0, 330f, 566.83f, 440.94f, 0f, 0f, -1.570796f),
                 }
             },
+            new SurvivalConfig(CustomMapId.CMAP_ID_SURVIVAL_MOUNTAIN_PASS)
+            {
+                Difficulty = 1.5f,
+                BakedSpawnpoints = new List<SurvivalConfig.BakedSpawnpoint>()
+                {
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.PlayerStart, 0, 658.3901f, 828.0401f, 499.7961f, 0f, 0f, -3.141593f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 635.38f, 804.98f, 505.72f, 0f, 0f, -1.570796f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 635.38f, 806.68f, 505.72f, 0f, 0f, -1.570796f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 635.38f, 808.16f, 505.72f, 0f, 0f, -1.570796f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 635.38f, 809.52f, 505.72f, 0f, 0f, -1.570796f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 635.38f, 810.78f, 505.72f, 0f, 0f, -1.570796f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 635.38f, 812.07f, 505.72f, 0f, 0f, -1.570796f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 635.38f, 813.55f, 505.72f, 0f, 0f, -1.570796f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 635.38f, 815.28f, 505.72f, 0f, 0f, -1.570796f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 635.38f, 816.63f, 505.72f, 0f, 0f, -1.570796f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 639.44f, 847.07f, 499.28f, 0f, 0f, -3.951303f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 639.44f, 847.07f, 499.28f, 0f, 0f, -3.951303f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 639.44f, 847.07f, 499.28f, 0f, 0f, -2.904106f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 639.44f, 847.07f, 499.28f, 0f, 0f, 0f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 639.44f, 847.07f, 499.28f, 0f, 0f, -0.0726434f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 639.44f, 847.07f, 499.28f, 0f, 0f, -4.359524f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 639.44f, 847.07f, 499.28f, 0f, 0f, -2.795064f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 639.44f, 847.07f, 499.28f, 0f, 0f, -4.633354f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 639.44f, 847.07f, 499.28f, 0f, 0f, -0.5679857f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 639.44f, 847.07f, 499.28f, 0f, 0f, -2.09181f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 639.44f, 847.07f, 499.28f, 0f, 0f, -3.729555f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.DemonBell, 0, 660.2f, 797.91f, 511.52f, 0f, 0f, -1.570796f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.DemonBell, 0, 663.2f, 797.91f, 511.52f, 0f, 0f, -1.570796f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.DemonBell, 0, 666.2f, 797.91f, 511.52f, 0f, 0f, -1.570796f),
+                }
+            },
         };
 
         public override CustomModeId Id => CustomModeId.CMODE_ID_SURVIVAL;

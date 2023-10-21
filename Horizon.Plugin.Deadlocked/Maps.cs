@@ -51,6 +51,7 @@ namespace Horizon.Plugin.Deadlocked
             new CustomMap(CustomMapId.CMAP_ID_TORVAL_SP, "Torval SP", "torval sp", 50),
             new CustomMap(CustomMapId.CMAP_ID_TYHRRANOSIS, "Tyhrranosis", "tyhrranosis", 53),
             new CustomMap(CustomMapId.CMAP_ID_SURVIVAL_ORXON, "Orxon", "survival v2 mf", 48),
+            new CustomMap(CustomMapId.CMAP_ID_SURVIVAL_MOUNTAIN_PASS, "Mountain Pass", "survival mpass", 50),
         };
 
         public static CustomMap FindCustomMapById(CustomMapId id)
@@ -149,6 +150,7 @@ namespace Horizon.Plugin.Deadlocked
 
         // survival custom map ids
         CMAP_ID_SURVIVAL_ORXON = CMAP_ID_TYHRRANOSIS + 1,
+        CMAP_ID_SURVIVAL_MOUNTAIN_PASS = CMAP_ID_SURVIVAL_ORXON + 1,
     }
 
     public class CustomMap
