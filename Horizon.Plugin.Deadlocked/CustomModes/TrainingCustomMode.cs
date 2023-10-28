@@ -16,7 +16,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         {
             FusionRifle,
             Cycle,
-            B6,
+            Rush,
         }
 
         public enum TrainingAggression
@@ -30,7 +30,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public static readonly Dictionary<TrainingTypes, string> TrainingTypeNames = new Dictionary<TrainingTypes, string>()
         {
             { TrainingTypes.FusionRifle, "Fusion Rifle" },
-            { TrainingTypes.B6, "B6 Obliterator" },
+            { TrainingTypes.Rush, "Rushing" },
             { TrainingTypes.Cycle, "Cycle" },
         };
 
