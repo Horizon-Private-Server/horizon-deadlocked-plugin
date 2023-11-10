@@ -174,7 +174,8 @@ namespace Horizon.Plugin.Deadlocked
     public enum PlayerClientType
     {
         Normal = 0,
-        DZO = 1
+        DZO = 1,
+        PCSX2 = 2,
     }
 
     public class PlayerMetadata
