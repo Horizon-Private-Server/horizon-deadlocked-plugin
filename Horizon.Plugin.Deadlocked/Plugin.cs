@@ -4,6 +4,7 @@ using RT.Common;
 using RT.Models;
 using Server.Common;
 using Server.Common.Stream;
+using Server.Medius;
 using Server.Plugins.Interface;
 using System;
 using System.Collections.Generic;
@@ -474,6 +475,10 @@ namespace Horizon.Plugin.Deadlocked
                                     var request = new SetClientTypeRequestMessage();
                                     request.Deserialize(reader);
 
+                                    // send to db
+                                    await Program.Database.PostMachineId(msg.Player.AccountId, BitConverter.ToString(request.MachineId));
+
+                                    // set client type
                                     await Player.SetClientType(msg.Player, request.ClientType);
                                     break;
                                 }
