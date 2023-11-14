@@ -4,6 +4,7 @@ using RT.Common;
 using RT.Models;
 using Server.Common;
 using Server.Common.Stream;
+using Server.Medius;
 using Server.Plugins.Interface;
 using System;
 using System.Collections.Generic;
@@ -54,6 +55,7 @@ namespace Horizon.Plugin.Deadlocked
             host.RegisterAction(PluginEvent.MEDIUS_PLAYER_POST_WIDE_STATS, OnPlayerPostWideStats);
             host.RegisterMediusMessageAction(NetMessageTypes.MessageClassDME, 7, OnRecvCustomMessage);
             host.RegisterMediusMessageAction(NetMessageTypes.MessageClassLobby, (byte)MediusLobbyMessageIds.UpdateClanStats, OnRecvUpdateClanStats);
+            host.RegisterMediusMessageAction(NetMessageTypes.MessageClassLobbyExt, (byte)MediusLobbyExtMessageIds.DnasSignaturePost, OnRecvDnasSignaturePost);
             host.RegisterMessageAction(RT_MSG_TYPE.RT_MSG_SERVER_CHEAT_QUERY, OnRecvCheatQuery);
 
             return Task.CompletedTask;
@@ -474,6 +476,10 @@ namespace Horizon.Plugin.Deadlocked
                                     var request = new SetClientTypeRequestMessage();
                                     request.Deserialize(reader);
 
+                                    // send to db
+                                    await Program.Database.PostMachineId(msg.Player.AccountId, BitConverter.ToString(request.MachineId));
+
+                                    // set client type
                                     await Player.SetClientType(msg.Player, request.ClientType);
                                     break;
                                 }
@@ -486,6 +492,18 @@ namespace Horizon.Plugin.Deadlocked
                     }
                 }
             }
+        }
+
+        Task OnRecvDnasSignaturePost(NetMessageTypes msgClass, byte msgType, object data)
+        {
+            var msg = (Server.Medius.PluginArgs.OnMediusMessageArgs)data;
+            if (msg.Ignore || !msg.IsIncoming || msg.Player == null)
+                return Task.CompletedTask;
+            if (!SupportedAppIds.Contains(msg.Player.ApplicationId))
+                return Task.CompletedTask;
+
+            msg.Ignore = true;
+            return Task.CompletedTask;
         }
 
         Task OnRecvUpdateClanStats(NetMessageTypes msgClass, byte msgType, object data)
