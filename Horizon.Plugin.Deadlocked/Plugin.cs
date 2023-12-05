@@ -483,6 +483,14 @@ namespace Horizon.Plugin.Deadlocked
                                     await Player.SetClientType(msg.Player, request.ClientType);
                                     break;
                                 }
+                            case 42: // player picked up horizon bolt
+                                {
+                                    var request = new PlayerPickedUpHorizonBoltMessage();
+                                    request.Deserialize(reader);
+
+                                    await Player.OnPickedUpHorizonBolt(msg.Player);
+                                    break;
+                                }
                             default:
                                 {
                                     Host.Log(InternalLogLevel.WARN, $"Unhandled custom msg id {customMsgId}: {msg}");

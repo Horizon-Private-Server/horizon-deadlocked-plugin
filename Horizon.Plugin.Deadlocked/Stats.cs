@@ -265,6 +265,8 @@ namespace Horizon.Plugin.Deadlocked
 
     public enum CustomPlayerStatIds : int
     {
+        CUSTOM_STAT_HBOLT_TOTAL_COUNT = 0,
+        CUSTOM_STAT_HBOLT_CURRENT_COUNT = 1,
         CUSTOM_STAT_SND_RANK = 50,
         CUSTOM_STAT_SND_WINS = 51,
         CUSTOM_STAT_SND_LOSSES = 52,
