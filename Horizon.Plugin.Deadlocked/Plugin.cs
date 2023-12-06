@@ -23,6 +23,7 @@ namespace Horizon.Plugin.Deadlocked
         public static readonly int[] SupportedAppIds = { 11184 };
 
         private static bool hasQueriedAppSettings = false;
+        private static DateTime timeLastQueriedAppSettings = DateTime.MinValue;
         private static readonly AppSettings defaultAppSettings = new AppSettings(0);
         private static Dictionary<int, AppSettings> appSettingsByAppId = new Dictionary<int, AppSettings>();
 
@@ -80,6 +81,20 @@ namespace Horizon.Plugin.Deadlocked
 
                 Host.Log(InternalLogLevel.WARN, $"ADDED APPSETTINGS FOR {Server.Medius.Program.Database.GetUsername()}");
                 hasQueriedAppSettings = true;
+                timeLastQueriedAppSettings = DateTime.UtcNow;
+            }
+            else if (hasQueriedAppSettings && (DateTime.UtcNow - timeLastQueriedAppSettings).TotalMinutes > 5)
+            {
+                timeLastQueriedAppSettings = DateTime.UtcNow;
+
+                foreach (var supportedAppId in SupportedAppIds)
+                {
+                    var appSettings = await Server.Medius.Program.Database.GetServerSettings(supportedAppId);
+                    if (!appSettingsByAppId.TryGetValue(supportedAppId, out var settings))
+                        appSettingsByAppId.Add(supportedAppId, settings = new AppSettings(supportedAppId));
+
+                    settings.SetSettings(appSettings);
+                }
             }
 
             await Queue.Tick();
@@ -489,6 +504,19 @@ namespace Horizon.Plugin.Deadlocked
                                     request.Deserialize(reader);
 
                                     await Player.OnPickedUpHorizonBolt(msg.Player);
+                                    break;
+                                }
+                            case 43: // request scavenger hunt settings
+                                {
+                                    var request = new GetScavengerHuntSettingsRequestMessage();
+                                    request.Deserialize(reader);
+
+                                    var appSettings = GetAppSettingsOrDefault(msg.Player.ApplicationId);
+                                    var response = new GetScavengerHuntSettingsResponseMessage();
+                                    response.Enabled = DateTimeOffset.UtcNow >= appSettings.ScavengerHuntBeginDate && DateTimeOffset.UtcNow <= appSettings.ScavengerHuntEndDate;
+                                    response.SpawnFactor = appSettings.ScavengerHuntSpawnRateFactor;
+
+                                    msg.Player.Queue(response);
                                     break;
                                 }
                             default:
