@@ -1,5 +1,6 @@
 ﻿using Horizon.Plugin.Deadlocked.Messages;
 using Newtonsoft.Json;
+using Server.Medius;
 using Server.Medius.Models;
 using System;
 using System.Collections.Generic;
@@ -144,6 +145,22 @@ namespace Horizon.Plugin.Deadlocked
                 Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, $"Unable to post player metadata to {client.AccountId}: {client.Metadata}");
         }
 
+        public static async Task OnPickedUpHorizonBolt(ClientObject client)
+        {
+            var total = client.CustomWideStats[(int)CustomPlayerStatIds.CUSTOM_STAT_HBOLT_TOTAL_COUNT] += 1;
+            var current = client.CustomWideStats[(int)CustomPlayerStatIds.CUSTOM_STAT_HBOLT_CURRENT_COUNT] += 1;
+
+            // send to db
+            await Server.Medius.Program.Database.PostAccountLadderCustomStats(new Server.Database.Models.StatPostDTO()
+            {
+                AccountId = client.AccountId,
+                Stats = client.CustomWideStats
+            });
+
+            // log
+            await Program.Database.Log(client.AccountId, "OnPickedUpHorizonBolt", "Horizon Bolt Picked Up", $"Total {total}, current {current}", null, null);
+        }
+
         private static PlayerMetadata GetPlayerMetadata(ClientObject client)
         {
             PlayerMetadata metadata = null;
@@ -204,7 +221,7 @@ namespace Horizon.Plugin.Deadlocked
         public bool EnableAutoMaps { get; set; } = true;
         public bool EnableFpsCounter { get; set; }
         public bool DisableCircleHackerRay { get; set; }
-        public sbyte PlayerAggTime { get; set; }
+        public bool DisableScavengerHunt { get; set; }
         public bool DisableCameraShake { get; set; }
         public sbyte MinimapScale { get; set; }
         public sbyte MinimapBigZoom { get; set; }
@@ -238,7 +255,7 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(EnableAutoMaps);
                     writer.Write(EnableFpsCounter);
                     writer.Write(DisableCircleHackerRay);
-                    writer.Write(PlayerAggTime);
+                    writer.Write(DisableScavengerHunt);
                     writer.Write(DisableCameraShake);
                     writer.Write(MinimapScale);
                     writer.Write(MinimapBigZoom);
@@ -268,7 +285,7 @@ namespace Horizon.Plugin.Deadlocked
             EnableAutoMaps = reader.ReadBoolean();
             EnableFpsCounter = reader.ReadBoolean();
             DisableCircleHackerRay = reader.ReadBoolean();
-            PlayerAggTime = reader.ReadSByte();
+            DisableScavengerHunt = reader.ReadBoolean();
             DisableCameraShake = reader.ReadBoolean();
             MinimapScale = reader.ReadSByte();
             MinimapBigZoom = reader.ReadSByte();
@@ -294,7 +311,7 @@ namespace Horizon.Plugin.Deadlocked
                 && EnableAutoMaps == other.EnableAutoMaps
                 && EnableFpsCounter == other.EnableFpsCounter
                 && DisableCircleHackerRay == other.DisableCircleHackerRay
-                && PlayerAggTime == other.PlayerAggTime
+                && DisableScavengerHunt == other.DisableScavengerHunt
                 && DisableCameraShake == other.DisableCameraShake
                 && MinimapScale == other.MinimapScale
                 && MinimapBigZoom == other.MinimapBigZoom

@@ -29,6 +29,21 @@ namespace Horizon.Plugin.Deadlocked
         /// </summary>
         public string PatchOverrideName { get; private set; } = null;
 
+        /// <summary>
+        /// 
+        /// </summary>
+        public DateTimeOffset? ScavengerHuntBeginDate { get; private set; } = null;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public DateTimeOffset? ScavengerHuntEndDate { get; private set; } = null;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public float ScavengerHuntSpawnRateFactor { get; private set; } = 1f;
+
         public AppSettings(int appId)
         {
             AppId = appId;
@@ -48,6 +63,19 @@ namespace Horizon.Plugin.Deadlocked
             // PatchOverrideName
             if (settings.TryGetValue($"{prefix}_PatchOverrideName", out value))
                 PatchOverrideName = value;
+            // ScavengerHuntBeginDate
+            if (settings.TryGetValue($"{prefix}_ScavengerHuntBeginDate", out value) && DateTimeOffset.TryParse(value, out var bdt))
+                ScavengerHuntBeginDate = bdt;
+            else
+                ScavengerHuntBeginDate = null;
+            // ScavengerHuntEndDate
+            if (settings.TryGetValue($"{prefix}_ScavengerHuntEndDate", out value) && DateTimeOffset.TryParse(value, out var edt))
+                ScavengerHuntEndDate = edt;
+            else
+                ScavengerHuntEndDate = null;
+            // ScavengerHuntSpawnRateFactor
+            if (settings.TryGetValue($"{prefix}_ScavengerHuntSpawnRateFactor", out value) && float.TryParse(value, out var spawnRate))
+                ScavengerHuntSpawnRateFactor = spawnRate;
         }
 
         public Dictionary<string, string> GetSettings()
@@ -58,6 +86,9 @@ namespace Horizon.Plugin.Deadlocked
                 { $"{prefix}_EnablePatch", EnablePatch.ToString() },
                 { $"{prefix}_EnableUnpatch", EnableUnpatch.ToString() },
                 { $"{prefix}_PatchOverrideName", PatchOverrideName },
+                { $"{prefix}_ScavengerHuntBeginDate", ScavengerHuntBeginDate?.ToString() },
+                { $"{prefix}_ScavengerHuntEndDate", ScavengerHuntEndDate?.ToString() },
+                { $"{prefix}_ScavengerHuntSpawnRateFactor", ScavengerHuntSpawnRateFactor.ToString() },
             };
         }
     }
