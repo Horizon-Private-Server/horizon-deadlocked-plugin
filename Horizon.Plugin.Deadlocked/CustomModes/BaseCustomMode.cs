@@ -36,7 +36,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             return Task.FromResult<string>(null);
         }
 
-        public abstract Task<int?> GetRank(ClientObject client);
+        public abstract Task<int?> GetRank(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client);
 
         public abstract Task<Payload> GetPayload(Server.Medius.Models.Game game, GameMetadata metadata);
 

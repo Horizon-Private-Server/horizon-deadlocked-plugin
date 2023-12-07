@@ -71,7 +71,7 @@ namespace Horizon.Plugin.Deadlocked
                     // get rank
                     // if rank is null then mode doesn't have its own rank
                     // so just send disabled message
-                    var rank = await customMode.GetRank(game.Clients[i].Client);
+                    var rank = await customMode.GetRank(game, metadata, game.Clients[i].Client);
                     if (!rank.HasValue)
                     {
                         setRanksMessage.Enabled = false;

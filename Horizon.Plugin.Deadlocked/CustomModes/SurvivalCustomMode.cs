@@ -22,11 +22,21 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             ZombieExplode = 5,
             Tremor = 6,
             Executioner = 7,
+            Swarmer = 8,
+            Reactor = 9,
+            Reaper = 10
         }
 
         private static readonly Dictionary<CustomMapId, CustomPlayerStatIds> _survivalMapToHighScoreStatIndex = new Dictionary<CustomMapId, CustomPlayerStatIds>()
         {
-            { CustomMapId.CMAP_ID_SURVIVAL_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_HIGH_SCORE }
+            { CustomMapId.CMAP_ID_SURVIVAL_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_HIGH_SCORE },
+            { CustomMapId.CMAP_ID_SURVIVAL_MOUNTAIN_PASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_HIGH_SCORE },
+        };
+
+        private static readonly Dictionary<CustomMapId, CustomPlayerStatIds> _survivalMapToXpStatIndex = new Dictionary<CustomMapId, CustomPlayerStatIds>()
+        {
+            { CustomMapId.CMAP_ID_SURVIVAL_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_ORXON_XP },
+            { CustomMapId.CMAP_ID_SURVIVAL_MOUNTAIN_PASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MPASS_XP },
         };
 
         private static readonly SurvivalConfig[] _configs = new SurvivalConfig[]
@@ -98,9 +108,22 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public override CustomModeId Id => CustomModeId.CMODE_ID_SURVIVAL;
         public override string Name => "Survival";
 
-        public override Task<int?> GetRank(ClientObject client)
+        private int GetRatingFromXp(long xp)
         {
-            return Task.FromResult((int?)client.CustomWideStats[(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_RANK]);
+            return (int)Math.Max(100, Math.Min(10000, 100 + Math.Sqrt(xp)));
+        }
+
+        public override Task<int?> GetRank(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
+        {
+            // invalid
+            if (metadata == null || metadata.GameConfig.MapOverride == 0)
+                return Task.FromResult((int?)0);
+
+            // no mapping
+            if (!_survivalMapToXpStatIndex.TryGetValue((CustomMapId)metadata.GameConfig.MapOverride, out var statId))
+                return Task.FromResult((int?)0);
+
+            return Task.FromResult((int?)GetRatingFromXp(client.CustomWideStats[(int)statId]));
         }
 
         public override Task OnClientPostWideStats(OnPlayerWideStatsArgs args)
@@ -177,12 +200,24 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 var gameIdx = player.Index;
 
                 var points = customGameData.Points[gameIdx];
-                var xp = (int)Math.Max(0, Math.Min(int.MaxValue, (ulong)args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_XP] + points));
-                var rating = (int)Math.Max(100, Math.Min(10000, 100 + Math.Sqrt(xp)));
 
-                // xp
-                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_RANK] = rating;
-                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_XP] = xp;
+                int? xpStatIndex = null;
+                if (_survivalMapToXpStatIndex.TryGetValue((CustomMapId)args.Metadata.GameConfig.MapOverride, out var customXpStatId))
+                    xpStatIndex = (int)customXpStatId;
+
+                if (xpStatIndex.HasValue)
+                {
+                    var xp = (int)Math.Max(0, Math.Min(int.MaxValue, (ulong)args.PlayerCustomStats[accountId][xpStatIndex.Value] + points));
+
+                    // xp
+                    args.PlayerCustomStats[accountId][xpStatIndex.Value] = xp;
+
+                    // update overall rank
+                    var totalXp = 0;
+                    foreach (var xpStatMapping in _survivalMapToXpStatIndex)
+                        totalXp += args.PlayerCustomStats[accountId][(int)xpStatMapping.Value];
+                    args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_OVERALL_RANK] = GetRatingFromXp(totalXp);
+                }
 
                 if (!player.Left)
                 {

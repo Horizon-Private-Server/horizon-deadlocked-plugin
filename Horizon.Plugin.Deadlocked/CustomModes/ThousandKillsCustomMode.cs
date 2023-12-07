@@ -14,7 +14,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public override CustomModeId Id => CustomModeId.CMODE_ID_THOUSAND_KILLS;
         public override string Name => "Deathmatch";
 
-        public override Task<int?> GetRank(ClientObject client)
+        public override Task<int?> GetRank(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
         {
             return Task.FromResult((int?)null);
         }

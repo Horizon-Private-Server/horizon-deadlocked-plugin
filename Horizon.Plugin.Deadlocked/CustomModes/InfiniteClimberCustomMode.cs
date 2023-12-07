@@ -15,7 +15,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public override CustomModeId Id => CustomModeId.CMODE_ID_INFINITE_CLIMBER;
         public override string Name => "Infinite Climber";
 
-        public override Task<int?> GetRank(ClientObject client)
+        public override Task<int?> GetRank(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
         {
             return Task.FromResult((int?)client.CustomWideStats[(int)CustomPlayerStatIds.CUSTOM_STAT_CLIMBER_RANK]);
         }
