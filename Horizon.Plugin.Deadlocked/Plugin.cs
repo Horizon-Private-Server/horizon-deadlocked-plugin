@@ -503,7 +503,12 @@ namespace Horizon.Plugin.Deadlocked
                                     var request = new PlayerPickedUpHorizonBoltMessage();
                                     request.Deserialize(reader);
 
-                                    await Player.OnPickedUpHorizonBolt(msg.Player);
+                                    // make sure the scavenger hunt is live
+                                    var appSettings = GetAppSettingsOrDefault(msg.Player.ApplicationId);
+                                    if (DateTime.UtcNow >= appSettings.ScavengerHuntBeginDate && DateTime.UtcNow < appSettings.ScavengerHuntEndDate)
+                                    {
+                                        await Player.OnPickedUpHorizonBolt(msg.Player);
+                                    }
                                     break;
                                 }
                             case 43: // request scavenger hunt settings

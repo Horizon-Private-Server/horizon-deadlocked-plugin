@@ -691,7 +691,7 @@ namespace Horizon.Plugin.Deadlocked
                             DisableInvHitTimer = true,
                             FusionShotsAlwaysHit = true,
                             Vampire = 3,
-                            DisableHealthBoxes = true,
+                            DisableHealthBoxes = 2,
                             V2s = 2
                         };
                     }
