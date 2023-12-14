@@ -999,7 +999,7 @@ namespace Horizon.Plugin.Deadlocked
         public bool DisableWeaponPacks { get; set; }
         public byte V2s { get; set; }
         public bool MirrorWorld { get; set; }
-        public bool DisableHealthBoxes { get; set; }
+        public byte DisableHealthBoxes { get; set; }
         public byte Vampire { get; set; }
         public bool HalfTime { get; set; }
         public bool Overtime { get; set; }
@@ -1094,7 +1094,7 @@ namespace Horizon.Plugin.Deadlocked
             DisableWeaponPacks = reader.ReadBoolean();
             V2s = reader.ReadByte();
             MirrorWorld = reader.ReadBoolean();
-            DisableHealthBoxes = reader.ReadBoolean();
+            DisableHealthBoxes = reader.ReadByte();
             Vampire = reader.ReadByte();
             HalfTime = reader.ReadBoolean();
             Overtime = reader.ReadBoolean();
