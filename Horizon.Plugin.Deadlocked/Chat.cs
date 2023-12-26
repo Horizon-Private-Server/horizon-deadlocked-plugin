@@ -15,7 +15,8 @@ namespace Horizon.Plugin.Deadlocked
         {
             new RollChatCommand(),
             new TeamChatCommand(),
-            new CaptainChatCommand()
+            new CaptainChatCommand(),
+            new PrestigeChatCommand()
         };
 
         public static Task OnChatMessage(ClientObject client, IMediusChatMessage message)

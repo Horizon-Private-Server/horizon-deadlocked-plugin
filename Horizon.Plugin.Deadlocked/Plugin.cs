@@ -524,6 +524,11 @@ namespace Horizon.Plugin.Deadlocked
                                     msg.Player.Queue(response);
                                     break;
                                 }
+                            case 46: // request server datetime
+                                {
+                                    msg.Player.Queue(new GetServerDateTimeResponseMessage());
+                                    break;
+                                }
                             default:
                                 {
                                     Host.Log(InternalLogLevel.WARN, $"Unhandled custom msg id {customMsgId}: {msg}");

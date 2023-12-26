@@ -38,6 +38,11 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         public abstract Task<int?> GetRank(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client);
 
+        public virtual Task<string> GetNameOverride(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
+        {
+            return Task.FromResult(client.AccountName);
+        }
+
         public abstract Task<Payload> GetPayload(Server.Medius.Models.Game game, GameMetadata metadata);
 
 

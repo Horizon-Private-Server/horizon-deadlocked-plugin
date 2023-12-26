@@ -26,6 +26,7 @@ namespace Horizon.Plugin.Deadlocked
 
             // send custom ranks
             _ = BroadcastCustomModeRanks(game);
+            _ = BroadcastNameOverrides(game);
 
             // send 
             var tasks = game.Clients.Select(async (gameClient) =>
@@ -53,6 +54,29 @@ namespace Horizon.Plugin.Deadlocked
             });
 
             await Task.WhenAll(tasks);
+        }
+
+        public static async Task BroadcastNameOverrides(Server.Medius.Models.Game game)
+        {
+            var metadata = await GetGameMetadata(game);
+            if (metadata == null)
+                return;
+
+            // send custom ranks
+            var msg = new SetNameOverridesMessage();
+            var customMode = Modes.FindCustomModeById(metadata.GameConfig.GetRealCustomModeId());
+            if (customMode != null)
+            {
+                for (int i = 0; i < game.Clients.Count; ++i)
+                {
+                    var nameOverride = await customMode.GetNameOverride(game, metadata, game.Clients[i].Client);
+                    msg.Names[i] = String.IsNullOrEmpty(nameOverride) ? game.Clients[i].Client.AccountName : nameOverride;
+                    msg.AccountIds[i] = game.Clients[i].Client.AccountId;
+                }
+            };
+
+            foreach (var gameClient in game.Clients)
+                gameClient?.Client?.Queue(msg);
         }
 
         public static async Task BroadcastCustomModeRanks(Server.Medius.Models.Game game)
@@ -127,13 +151,19 @@ namespace Horizon.Plugin.Deadlocked
             // send game config if not host
             if (game.Host != client)
             {
-                client.Queue(new SetGameConfigResponseMessage()
+                _ = Task.Run(async () =>
                 {
-                    Config = metadata.GameConfig
-                });
+                    await Task.Delay(1000);
 
-                // resend custom mode stats
-                BroadcastCustomModeRanks(game);
+                    client.Queue(new SetGameConfigResponseMessage()
+                    {
+                        Config = metadata.GameConfig
+                    });
+
+                    // resend custom mode stats
+                    await BroadcastCustomModeRanks(game);
+                    await BroadcastNameOverrides(game);
+                });
             }
 
             // broadcast player's patch config

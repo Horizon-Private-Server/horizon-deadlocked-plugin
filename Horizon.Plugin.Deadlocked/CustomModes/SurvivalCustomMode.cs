@@ -1,4 +1,5 @@
-﻿using Server.Common.Stream;
+﻿using Horizon.Plugin.Deadlocked.Messages;
+using Server.Common.Stream;
 using Server.Medius.Models;
 using Server.Medius.PluginArgs;
 using System;
@@ -27,23 +28,46 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             Reaper = 10
         }
 
-        private static readonly Dictionary<CustomMapId, CustomPlayerStatIds> _survivalMapToHighScoreStatIndex = new Dictionary<CustomMapId, CustomPlayerStatIds>()
+        public static readonly int SurvivalMaxPrestige = 5;
+        private static readonly Dictionary<int, string> _survivalPrestigeToNamePrefix = new Dictionary<int, string>()
         {
-            { CustomMapId.CMAP_ID_SURVIVAL_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_HIGH_SCORE },
-            { CustomMapId.CMAP_ID_SURVIVAL_MOUNTAIN_PASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_HIGH_SCORE },
+            { 0, "" },
+            { 1, "\x09" },
+            { 2, "\x0A" },
+            { 3, "\x0B" },
+            { 4, "\x0E" },
+            { 5, "\x0D" },
         };
 
         private static readonly Dictionary<CustomMapId, CustomPlayerStatIds> _survivalMapToXpStatIndex = new Dictionary<CustomMapId, CustomPlayerStatIds>()
         {
-            { CustomMapId.CMAP_ID_SURVIVAL_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_ORXON_XP },
-            { CustomMapId.CMAP_ID_SURVIVAL_MOUNTAIN_PASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MPASS_XP },
+            { CustomMapId.CMAP_ID_SURVIVAL_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_XP },
+            { CustomMapId.CMAP_ID_SURVIVAL_MOUNTAIN_PASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_XP },
+        };
+
+        private static readonly Dictionary<CustomMapId, CustomPlayerStatIds> _survivalMapToPrestigeStatIndex = new Dictionary<CustomMapId, CustomPlayerStatIds>()
+        {
+            { CustomMapId.CMAP_ID_SURVIVAL_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_PRESTIGE },
+            { CustomMapId.CMAP_ID_SURVIVAL_MOUNTAIN_PASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_PRESTIGE },
+        };
+
+        private static readonly Dictionary<CustomMapId, CustomPlayerStatIds> _survivalMapToSoloHighScoreStatIndex = new Dictionary<CustomMapId, CustomPlayerStatIds>()
+        {
+            { CustomMapId.CMAP_ID_SURVIVAL_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_SOLO_HIGH_SCORE },
+            { CustomMapId.CMAP_ID_SURVIVAL_MOUNTAIN_PASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_SOLO_HIGH_SCORE },
+        };
+
+        private static readonly Dictionary<CustomMapId, CustomPlayerStatIds> _survivalMapToCoopHighScoreStatIndex = new Dictionary<CustomMapId, CustomPlayerStatIds>()
+        {
+            { CustomMapId.CMAP_ID_SURVIVAL_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_COOP_HIGH_SCORE },
+            { CustomMapId.CMAP_ID_SURVIVAL_MOUNTAIN_PASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_COOP_HIGH_SCORE },
         };
 
         private static readonly SurvivalConfig[] _configs = new SurvivalConfig[]
         {
             new SurvivalConfig(CustomMapId.CMAP_ID_SURVIVAL_ORXON)
             {
-                Difficulty = 1.5f,
+                Difficulty = 1.0f,
                 BakedSpawnpoints = new List<SurvivalConfig.BakedSpawnpoint>()
                 {
                     new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.PlayerStart, 0, 328.6f, 544.8498f, 433.9998f, 0f, 0f, 0f),
@@ -74,7 +98,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             },
             new SurvivalConfig(CustomMapId.CMAP_ID_SURVIVAL_MOUNTAIN_PASS)
             {
-                Difficulty = 1.5f,
+                Difficulty = 1.0f,
                 BakedSpawnpoints = new List<SurvivalConfig.BakedSpawnpoint>()
                 {
                     new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.PlayerStart, 0, 658.3901f, 828.0401f, 499.7961f, 0f, 0f, -3.141593f),
@@ -87,6 +111,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 587.583f, 819.116f, 502.458f, -0.2670273f, -2.3173E-08f, -5.328631f),
                     new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 504.936f, 821.258f, 501.923f, -6.177232f, 0f, -2.660405f),
                     new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 562.021f, 892.229f, 508.457f, -6.218049f, 8.900659E-16f, -3.141593f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 448.302f, 876.378f, 507.799f, 0f, 0f, -5.496722f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 380.211f, 826.473f, 514.736f, -0.3037879f, -0.07311971f, -2.909856f),
                     new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 585.6502f, 905.4998f, 506.599f, 0f, 0f, 1.260871f),
                     new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 683.7198f, 807.9098f, 501.27f, 0f, 0f, -3.427705f),
                     new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 634f, 742.02f, 507.35f, 0f, 0f, -2.904106f),
@@ -110,20 +136,81 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         private int GetRatingFromXp(long xp)
         {
-            return (int)Math.Max(100, Math.Min(10000, 100 + Math.Sqrt(xp)));
+            //return (int)Math.Max(100, Math.Min(10000, 100 + Math.Sqrt(xp * 4)));
+            return (int)Math.Max(100, Math.Min(10000, 100 + (xp / 2500f)));
         }
 
-        public override Task<int?> GetRank(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
+        public override async Task<int?> GetRank(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
+        {
+            // invalid
+            if (metadata == null || metadata.GameConfig.MapOverride == 0)
+                return 0;
+
+            // try to get stat id for map
+            if (!_survivalMapToXpStatIndex.TryGetValue((CustomMapId)metadata.GameConfig.MapOverride, out var stat))
+                return 0;
+
+            var rank = GetRatingFromXp(client.CustomWideStats[(int)stat]);
+            var prestige = await GetPrestige(game, metadata, client) ?? 0;
+            if (prestige >= SurvivalMaxPrestige && rank >= 10000)
+                rank = 9999; // cap
+
+            return rank;
+        }
+
+        public Task<int?> GetPrestige(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
         {
             // invalid
             if (metadata == null || metadata.GameConfig.MapOverride == 0)
                 return Task.FromResult((int?)0);
 
-            // no mapping
-            if (!_survivalMapToXpStatIndex.TryGetValue((CustomMapId)metadata.GameConfig.MapOverride, out var statId))
-                return Task.FromResult((int?)0);
+            if (_survivalMapToPrestigeStatIndex.TryGetValue((CustomMapId)metadata.GameConfig.MapOverride, out var stat))
+                return Task.FromResult((int?)client.CustomWideStats[(int)stat]);
 
-            return Task.FromResult((int?)GetRatingFromXp(client.CustomWideStats[(int)statId]));
+            return Task.FromResult((int?)0);
+        }
+
+        public async Task<bool> Prestige(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
+        {
+            // invalid
+            if (metadata == null || metadata.GameConfig.MapOverride == 0)
+                return false;
+
+            if (!_survivalMapToXpStatIndex.TryGetValue((CustomMapId)metadata.GameConfig.MapOverride, out var xpStat))
+                return false;
+            if (!_survivalMapToPrestigeStatIndex.TryGetValue((CustomMapId)metadata.GameConfig.MapOverride, out var prestigeStat))
+                return false;
+
+            var rank = GetRatingFromXp(client.CustomWideStats[(int)xpStat]);
+            var prestige = client.CustomWideStats[(int)prestigeStat];
+            if (rank < 10000) return false;
+            if (prestige >= SurvivalMaxPrestige) return false;
+
+            // increment prestige
+            prestige += 1;
+            client.CustomWideStats[(int)prestigeStat] = prestige;
+
+            // if we've reached the max prestige then leave the xp at rank 10
+            if (prestige < SurvivalMaxPrestige)
+                client.CustomWideStats[(int)xpStat] = 0;
+
+            // send to db
+            return await Server.Medius.Program.Database.PostAccountLadderCustomStats(new Server.Database.Models.StatPostDTO()
+            {
+                AccountId = client.AccountId,
+                Stats = client.CustomWideStats
+            });
+        }
+
+        public override async Task<string> GetNameOverride(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
+        {
+            // invalid
+            if (metadata == null || metadata.GameConfig.MapOverride == 0)
+                return await base.GetNameOverride(game, metadata, client);
+
+            var prestige = await GetPrestige(game, metadata, client) ?? 0;
+            var prefix = _survivalPrestigeToNamePrefix.GetValueOrDefault(prestige) ?? "";
+            return prefix + client.AccountName;
         }
 
         public override Task OnClientPostWideStats(OnPlayerWideStatsArgs args)
@@ -187,11 +274,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             return true;
         }
 
-        protected override Task UpdateCustomStats(CustomModeUpdateStatsArgs args)
+        protected override async Task UpdateCustomStats(CustomModeUpdateStatsArgs args)
         {
             var customGameData = args.GameData.CustomGameData as SurvivalCustomData;
             var gameData = args.GameData;
             var game = args.Game;
+            if (customGameData.Points == null) return;
 
             // apply stats
             foreach (var accountId in args.PlayerCustomStats.Keys)
@@ -202,8 +290,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 var points = customGameData.Points[gameIdx];
 
                 int? xpStatIndex = null;
-                if (_survivalMapToXpStatIndex.TryGetValue((CustomMapId)args.Metadata.GameConfig.MapOverride, out var customXpStatId))
-                    xpStatIndex = (int)customXpStatId;
+                if (_survivalMapToXpStatIndex.TryGetValue((CustomMapId)args.Metadata.GameConfig.MapOverride, out var xpStat))
+                    xpStatIndex = (int?)xpStat;
 
                 if (xpStatIndex.HasValue)
                 {
@@ -212,11 +300,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     // xp
                     args.PlayerCustomStats[accountId][xpStatIndex.Value] = xp;
 
-                    // update overall rank
-                    var totalXp = 0;
-                    foreach (var xpStatMapping in _survivalMapToXpStatIndex)
-                        totalXp += args.PlayerCustomStats[accountId][(int)xpStatMapping.Value];
-                    args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_OVERALL_RANK] = GetRatingFromXp(totalXp);
+                    float avgXp = 0;
+                    foreach (var kvp in _survivalMapToXpStatIndex)
+                        avgXp += args.PlayerCustomStats[accountId][(int)kvp.Value] / (float)SurvivalMaxPrestige;
+
+                    avgXp /= _survivalMapToXpStatIndex.Count;
+                    args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_OVERALL_RANK] = GetRatingFromXp((int)avgXp);
                 }
 
                 if (!player.Left)
@@ -249,16 +338,23 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
                 // high scores
                 int? statIndex = null;
-                if (_survivalMapToHighScoreStatIndex.TryGetValue((CustomMapId)args.Metadata.GameConfig.MapOverride, out var customStatId))
-                    statIndex = (int)customStatId;
+                var coop = game.AccountIdsAtStart.Contains(',');
+                if (coop)
+                {
+                    if (_survivalMapToCoopHighScoreStatIndex.TryGetValue((CustomMapId)args.Metadata.GameConfig.MapOverride, out var customStatId))
+                        statIndex = (int)customStatId;
+                }
+                else
+                {
+                    if (_survivalMapToSoloHighScoreStatIndex.TryGetValue((CustomMapId)args.Metadata.GameConfig.MapOverride, out var customStatId))
+                        statIndex = (int)customStatId;
+                }
 
                 if (statIndex.HasValue)
                 {
                     args.PlayerCustomStats[accountId][statIndex.Value] = Math.Max(args.PlayerCustomStats[accountId][statIndex.Value], customGameData.BestRound[gameIdx]);
                 }
             }
-
-            return Task.CompletedTask;
         }
     }
 
@@ -438,7 +534,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
     public class SurvivalConfig
     {
-        public const uint Offset = 0x18;
+        public const uint Offset = 0x48;
 
         public class BakedSpawnpoint
         {
@@ -490,8 +586,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
             writer.Write(Difficulty);
 
-            // write 24 baked spawnpoints
-            for (int i = 0; i < 24; ++i)
+            // write 32 baked spawnpoints
+            for (int i = 0; i < 32; ++i)
             {
                 var bakedSp = BakedSpawnpoints?.ElementAtOrDefault(i);
                 if (bakedSp != null)

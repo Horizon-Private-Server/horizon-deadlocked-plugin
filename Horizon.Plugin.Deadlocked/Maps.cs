@@ -21,6 +21,7 @@ namespace Horizon.Plugin.Deadlocked
         static readonly CustomMap[] CustomMaps = new CustomMap[]
         {
             new CustomMap(CustomMapId.CMAP_ID_ACE_HARDLIGHT_SUITE, "Ace Hardlight's Suite", "ace suite", 51),
+            new CustomMap(CustomMapId.CMAP_ID_ALPINE_JUNCTION, "Alpine Junction", "alpine junction", 46),
             new CustomMap(CustomMapId.CMAP_ID_ANNIHILATION_NATION, "Annihilation Nation", "annihilation nation", 48),
             new CustomMap(CustomMapId.CMAP_ID_BAKISI_ISLES, "Bakisi Isles", "bakisi isles", 44),
             new CustomMap(CustomMapId.CMAP_ID_BDOME_SP, "Battledome SP", "battledome sp", 51),
@@ -42,6 +43,7 @@ namespace Horizon.Plugin.Deadlocked
             new CustomMap(CustomMapId.CMAP_ID_METROPOLIS_MP, "Metropolis MP", "metropolis mp", 51),
             new CustomMap(CustomMapId.CMAP_ID_MF_SP, "Mining Facility SP", "mining facility sp", 48),
             new CustomMap(CustomMapId.CMAP_ID_MOUNTAIN_PASS, "Mountain Pass", "mountain pass", 50),
+            //new CustomMap(CustomMapId.CMAP_ID_RUST, "Rust", "rust", 53),
             //new CustomMap(CustomMapId.CMAP_ID_SARATHOS_SP, "Sarathos SP", "sarathos sp", 44),
             new CustomMap(CustomMapId.CMAP_ID_SHAAR_SP, "Shaar SP", "shaar sp", 46),
             //new CustomMap(CustomMapId.CMAP_ID_SHIPMENT, "Shipment", "shipment", 42),
@@ -123,7 +125,8 @@ namespace Horizon.Plugin.Deadlocked
     {
         // custom map ids
         CMAP_ID_ACE_HARDLIGHT_SUITE = 1,
-        CMAP_ID_ANNIHILATION_NATION = CMAP_ID_ACE_HARDLIGHT_SUITE + 1,
+        CMAP_ID_ALPINE_JUNCTION = CMAP_ID_ACE_HARDLIGHT_SUITE + 1,
+        CMAP_ID_ANNIHILATION_NATION = CMAP_ID_ALPINE_JUNCTION + 1,
         CMAP_ID_BAKISI_ISLES = CMAP_ID_ANNIHILATION_NATION + 1,
         CMAP_ID_BDOME_SP = CMAP_ID_BAKISI_ISLES + 1,
         CMAP_ID_BLACKWATER_CITY = CMAP_ID_BDOME_SP + 1,
@@ -141,6 +144,7 @@ namespace Horizon.Plugin.Deadlocked
         CMAP_ID_METROPOLIS_MP = CMAP_ID_MARCADIA_PALACE + 1,
         CMAP_ID_MF_SP = CMAP_ID_METROPOLIS_MP + 1,
         CMAP_ID_MOUNTAIN_PASS = CMAP_ID_MF_SP + 1,
+        //CMAP_ID_RUST = CMAP_ID_MOUNTAIN_PASS + 1,
         CMAP_ID_SHAAR_SP = CMAP_ID_MOUNTAIN_PASS + 1,
         CMAP_ID_SNIVELAK = CMAP_ID_SHAAR_SP + 1,
         CMAP_ID_SPLEEF = CMAP_ID_SNIVELAK + 1,
