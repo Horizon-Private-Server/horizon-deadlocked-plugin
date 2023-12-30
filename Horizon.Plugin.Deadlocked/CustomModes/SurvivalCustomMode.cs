@@ -137,7 +137,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         private int GetRatingFromXp(long xp)
         {
             //return (int)Math.Max(100, Math.Min(10000, 100 + Math.Sqrt(xp * 4)));
-            return (int)Math.Max(100, Math.Min(10000, 100 + (xp / 2500f)));
+            return (int)Math.Max(100, Math.Min(10000, 100 + (xp / 3500f)));
         }
 
         public override async Task<int?> GetRank(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
