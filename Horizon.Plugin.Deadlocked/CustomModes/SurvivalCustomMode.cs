@@ -189,10 +189,17 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             // increment prestige
             prestige += 1;
             client.CustomWideStats[(int)prestigeStat] = prestige;
+            client.CustomWideStats[(int)xpStat] = 0;
 
-            // if we've reached the max prestige then leave the xp at rank 10
-            if (prestige < SurvivalMaxPrestige)
-                client.CustomWideStats[(int)xpStat] = 0;
+            // recompute overall rank
+            int overallRank = 0;
+            foreach (var kvp in _survivalMapToXpStatIndex)
+            {
+                var mapXp = client.CustomWideStats[(int)kvp.Value];
+                var mapPrestige = client.CustomWideStats[(int)_survivalMapToPrestigeStatIndex[kvp.Key]];
+                overallRank += GetRatingFromXp(mapXp) + (10000 * mapPrestige);
+            }
+            client.CustomWideStats[(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_OVERALL_RANK] = overallRank / _survivalMapToXpStatIndex.Count;
 
             // send to db
             return await Server.Medius.Program.Database.PostAccountLadderCustomStats(new Server.Database.Models.StatPostDTO()
@@ -300,12 +307,15 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     // xp
                     args.PlayerCustomStats[accountId][xpStatIndex.Value] = xp;
 
-                    float avgXp = 0;
+                    int overallRank = 0;
                     foreach (var kvp in _survivalMapToXpStatIndex)
-                        avgXp += args.PlayerCustomStats[accountId][(int)kvp.Value] / (float)SurvivalMaxPrestige;
+                    {
+                        var mapXp = args.PlayerCustomStats[accountId][(int)kvp.Value];
+                        var mapPrestige = args.PlayerCustomStats[accountId][(int)_survivalMapToPrestigeStatIndex[kvp.Key]];
+                        overallRank += GetRatingFromXp(mapXp) + (10000 * mapPrestige);
+                    }
 
-                    avgXp /= _survivalMapToXpStatIndex.Count;
-                    args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_OVERALL_RANK] = GetRatingFromXp((int)avgXp);
+                    args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_OVERALL_RANK] = overallRank / _survivalMapToXpStatIndex.Count;
                 }
 
                 if (!player.Left)
