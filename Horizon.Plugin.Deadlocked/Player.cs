@@ -15,16 +15,17 @@ namespace Horizon.Plugin.Deadlocked
     {
         private static Dictionary<int, PlayerExtraInfo> _playerExtraInfos = new Dictionary<int, PlayerExtraInfo>();
 
-        public static async Task SetPlayerMapVersion(ClientObject client, int mapVersion)
+        public static async Task SetPlayerMapVersion(ClientObject client, int mapId, int mapVersion)
         {
             var game = client.CurrentGame;
             if (game == null)
                 return;
 
             var gameMetadata = await Game.GetGameMetadata(game);
+            if (gameMetadata.GameConfig.MapOverride != mapId) return;
+
             var extraInfo = GetPlayerExtraInfo(client.AccountId);
             extraInfo.CurrentMapVersion = mapVersion;
-
 
             var map = Maps.FindCustomMapById((CustomMapId)gameMetadata.GameConfig.MapOverride);
             if (map != null)
@@ -218,7 +219,7 @@ namespace Horizon.Plugin.Deadlocked
         public bool EnableSingleplayerMusic { get; set; }
         public byte LevelOfDetail { get; set; } = 2; // normal
         public bool EnablePlayerStateSync { get; set; }
-        public bool EnableAutoMaps { get; set; } = true;
+        public bool DisableAimAssist { get; set; }
         public bool EnableFpsCounter { get; set; }
         public bool DisableCircleHackerRay { get; set; }
         public bool DisableScavengerHunt { get; set; }
@@ -252,7 +253,7 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(EnableSingleplayerMusic);
                     writer.Write(LevelOfDetail);
                     writer.Write(EnablePlayerStateSync);
-                    writer.Write(EnableAutoMaps);
+                    writer.Write(DisableAimAssist);
                     writer.Write(EnableFpsCounter);
                     writer.Write(DisableCircleHackerRay);
                     writer.Write(DisableScavengerHunt);
@@ -282,7 +283,7 @@ namespace Horizon.Plugin.Deadlocked
             EnableSingleplayerMusic = reader.ReadBoolean();
             LevelOfDetail = reader.ReadByte();
             EnablePlayerStateSync = reader.ReadBoolean();
-            EnableAutoMaps = reader.ReadBoolean();
+            DisableAimAssist = reader.ReadBoolean();
             EnableFpsCounter = reader.ReadBoolean();
             DisableCircleHackerRay = reader.ReadBoolean();
             DisableScavengerHunt = reader.ReadBoolean();
@@ -308,7 +309,7 @@ namespace Horizon.Plugin.Deadlocked
                 && EnableSingleplayerMusic == other.EnableSingleplayerMusic
                 && LevelOfDetail == other.LevelOfDetail
                 && EnablePlayerStateSync == other.EnablePlayerStateSync
-                && EnableAutoMaps == other.EnableAutoMaps
+                && DisableAimAssist == other.DisableAimAssist
                 && EnableFpsCounter == other.EnableFpsCounter
                 && DisableCircleHackerRay == other.DisableCircleHackerRay
                 && DisableScavengerHunt == other.DisableScavengerHunt

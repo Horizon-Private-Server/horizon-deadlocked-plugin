@@ -12,12 +12,14 @@ namespace Horizon.Plugin.Deadlocked.Messages
         public override byte CustomMsgId => 4;
         public override bool SkipEncryption { get => true; set { } }
 
+        public int MapId { get; set; }
         public int ClientMapVersion { get; set; }
 
         public override void Deserialize(MessageReader reader)
         {
             base.Deserialize(reader);
 
+            MapId = reader.ReadInt32();
             ClientMapVersion = reader.ReadInt32();
         }
 
@@ -25,6 +27,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
         {
             base.Serialize(writer);
 
+            writer.Write(MapId);
             writer.Write(ClientMapVersion);
         }
     }

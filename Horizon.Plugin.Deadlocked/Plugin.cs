@@ -333,7 +333,7 @@ namespace Horizon.Plugin.Deadlocked
                                     var request = new SetMapOverrideResponseMessage();
                                     request.Deserialize(reader);
 
-                                    await Player.SetPlayerMapVersion(msg.Player, request.ClientMapVersion);
+                                    await Player.SetPlayerMapVersion(msg.Player, request.MapId, request.ClientMapVersion);
                                     break;
                                 }
                             case 5: // game started

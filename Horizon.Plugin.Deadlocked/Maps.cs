@@ -54,6 +54,7 @@ namespace Horizon.Plugin.Deadlocked
             new CustomMap(CustomMapId.CMAP_ID_TYHRRANOSIS, "Tyhrranosis", "tyhrranosis", 53),
             new CustomMap(CustomMapId.CMAP_ID_SURVIVAL_ORXON, "Orxon", "survival v2 mf", 48),
             new CustomMap(CustomMapId.CMAP_ID_SURVIVAL_MOUNTAIN_PASS, "Mountain Pass", "survival mpass", 50),
+            new CustomMap(CustomMapId.CMAP_ID_SURVIVAL_VELDIN, "Veldin", "survival veldin", 48),
         };
 
         public static CustomMap FindCustomMapById(CustomMapId id)
@@ -96,7 +97,8 @@ namespace Horizon.Plugin.Deadlocked
         {
             client.Queue(new SetMapOverrideRequestMessage()
             {
-                MapId = (byte)(map?.LoadingMapId ?? 0),
+                MapId = (byte)(map?.MapId ?? 0),
+                LoadingMapId = (byte)(map?.LoadingMapId ?? 0),
                 MapFilename = map?.MapFilename ?? "",
                 MapName = map?.MapName ?? ""
             });
@@ -155,6 +157,7 @@ namespace Horizon.Plugin.Deadlocked
         // survival custom map ids
         CMAP_ID_SURVIVAL_ORXON = CMAP_ID_TYHRRANOSIS + 1,
         CMAP_ID_SURVIVAL_MOUNTAIN_PASS = CMAP_ID_SURVIVAL_ORXON + 1,
+        CMAP_ID_SURVIVAL_VELDIN = CMAP_ID_SURVIVAL_MOUNTAIN_PASS + 1,
     }
 
     public class CustomMap

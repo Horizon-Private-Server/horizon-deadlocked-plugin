@@ -43,24 +43,28 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         {
             { CustomMapId.CMAP_ID_SURVIVAL_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_XP },
             { CustomMapId.CMAP_ID_SURVIVAL_MOUNTAIN_PASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_XP },
+            { CustomMapId.CMAP_ID_SURVIVAL_VELDIN, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP3_XP },
         };
 
         private static readonly Dictionary<CustomMapId, CustomPlayerStatIds> _survivalMapToPrestigeStatIndex = new Dictionary<CustomMapId, CustomPlayerStatIds>()
         {
             { CustomMapId.CMAP_ID_SURVIVAL_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_PRESTIGE },
             { CustomMapId.CMAP_ID_SURVIVAL_MOUNTAIN_PASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_PRESTIGE },
+            { CustomMapId.CMAP_ID_SURVIVAL_VELDIN, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP3_PRESTIGE },
         };
 
         private static readonly Dictionary<CustomMapId, CustomPlayerStatIds> _survivalMapToSoloHighScoreStatIndex = new Dictionary<CustomMapId, CustomPlayerStatIds>()
         {
             { CustomMapId.CMAP_ID_SURVIVAL_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_SOLO_HIGH_SCORE },
             { CustomMapId.CMAP_ID_SURVIVAL_MOUNTAIN_PASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_SOLO_HIGH_SCORE },
+            { CustomMapId.CMAP_ID_SURVIVAL_VELDIN, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP3_SOLO_HIGH_SCORE },
         };
 
         private static readonly Dictionary<CustomMapId, CustomPlayerStatIds> _survivalMapToCoopHighScoreStatIndex = new Dictionary<CustomMapId, CustomPlayerStatIds>()
         {
             { CustomMapId.CMAP_ID_SURVIVAL_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_COOP_HIGH_SCORE },
             { CustomMapId.CMAP_ID_SURVIVAL_MOUNTAIN_PASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_COOP_HIGH_SCORE },
+            { CustomMapId.CMAP_ID_SURVIVAL_VELDIN, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP3_COOP_HIGH_SCORE },
         };
 
         private static readonly SurvivalConfig[] _configs = new SurvivalConfig[]
@@ -129,6 +133,27 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.DemonBell, 0, 666.2f, 793.97f, 507.61f, 0f, 0f, -1.570796f),
                 }
             },
+            new SurvivalConfig(CustomMapId.CMAP_ID_SURVIVAL_VELDIN)
+            {
+                Difficulty = 1.5f,
+                BakedSpawnpoints = new List<SurvivalConfig.BakedSpawnpoint>()
+                {
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.PlayerStart, 0, 188.15f, 450.96f, 85.93756f, 0f, 0f, -1.570796f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 192.334f, 374.214f, 83.09f, 0f, 0f, -3.025695f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 193.86f, 359.946f, 83.09f, 0f, 0f, -6.143251f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 166.62f, 455.08f, 88.27f, 0f, 0f, -2.430318f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 174.508f, 443.266f, 88.27f, 0f, 0f, -5.878619f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 214.57f, 416.072f, 81.993f, -6.155164f, 0f, -3.141593f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 186.34f, 398.56f, 81.36f, -5.629477f, -6.281482f, -1.320548f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 186.522f, 438.843f, 82.383f, -5.942438f, -5.533558E-08f, -2.430318f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 207.508f, 388.318f, 81.686f, -5.7795f, -6.23334f, -4.782942f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 184.1991f, 439.6303f, 86.28809f, 0f, 0f, -4.262914f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 169.8801f, 367.5203f, 80.50705f, 0f, 0f, -0.07412183f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.DemonBell, 0, 220.27f, 410.4701f, 86.02f, 0f, 0f, -3.141592f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.DemonBell, 0, 220.27f, 407.47f, 86.02f, 0f, 0f, -3.141592f),
+                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.DemonBell, 0, 220.27f, 404.4699f, 86.02f, 0f, 0f, -3.141592f),
+                }
+            },
         };
 
         public override CustomModeId Id => CustomModeId.CMODE_ID_SURVIVAL;
@@ -137,7 +162,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         private int GetRatingFromXp(long xp)
         {
             //return (int)Math.Max(100, Math.Min(10000, 100 + Math.Sqrt(xp * 4)));
-            return (int)Math.Max(100, Math.Min(10000, 100 + (xp / 3500f)));
+            return (int)Math.Max(100, Math.Min(10000, 100 + (xp / 5000f)));
         }
 
         public override async Task<int?> GetRank(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
@@ -199,7 +224,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 var mapPrestige = client.CustomWideStats[(int)_survivalMapToPrestigeStatIndex[kvp.Key]];
                 overallRank += GetRatingFromXp(mapXp) + (10000 * mapPrestige);
             }
-            client.CustomWideStats[(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_OVERALL_RANK] = overallRank / _survivalMapToXpStatIndex.Count;
+            client.CustomWideStats[(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_OVERALL_RANK] = overallRank;
 
             // send to db
             return await Server.Medius.Program.Database.PostAccountLadderCustomStats(new Server.Database.Models.StatPostDTO()
@@ -315,7 +340,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                         overallRank += GetRatingFromXp(mapXp) + (10000 * mapPrestige);
                     }
 
-                    args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_OVERALL_RANK] = overallRank / _survivalMapToXpStatIndex.Count;
+                    args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_OVERALL_RANK] = overallRank;
                 }
 
                 if (!player.Left)

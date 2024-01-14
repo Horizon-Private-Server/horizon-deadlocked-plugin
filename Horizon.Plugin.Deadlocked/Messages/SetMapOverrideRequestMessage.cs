@@ -14,6 +14,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
         public override bool SkipEncryption { get => true; set { } }
 
         public byte MapId { get; set; }
+        public byte LoadingMapId { get; set; }
         public string MapName { get; set; }
         public string MapFilename { get; set; }
 
@@ -22,6 +23,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
             base.Deserialize(reader);
 
             MapId = reader.ReadByte();
+            LoadingMapId = reader.ReadByte();
             MapName = reader.ReadString(32);
             MapFilename = reader.ReadString(128);
         }
@@ -31,6 +33,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
             base.Serialize(writer);
 
             writer.Write(MapId);
+            writer.Write(LoadingMapId);
             writer.Write(MapName, 32);
             writer.Write(MapFilename, 128);
         }
