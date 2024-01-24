@@ -409,6 +409,7 @@ namespace Horizon.Plugin.Deadlocked
                                     {
                                         await game.SetWorldStatus(MediusWorldStatus.WorldClosed);
                                         await Game.OnGameComplete(game);
+                                        await Program.Database.UpdateGame(game.ToGameDTO());
                                     }
                                     break;
                                 }
