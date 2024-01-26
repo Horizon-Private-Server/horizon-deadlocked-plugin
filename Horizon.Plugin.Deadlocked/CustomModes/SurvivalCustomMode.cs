@@ -350,7 +350,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
                 // general
                 args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_KILLS] += customGameData.Kills[gameIdx];
-                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_DEATHS] += gameData.Data.Deaths[gameIdx];
+                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_DEATHS] += (ushort)gameData.Data.Deaths[gameIdx];
                 args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_GAMES_PLAYED] += 1;
                 args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_REVIVES] += customGameData.Revives[gameIdx];
                 args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TIMES_REVIVED] += customGameData.TimesRevived[gameIdx];
@@ -362,14 +362,14 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TOKENS_USED_ON_GATES] += customGameData.TokensUsedOnGates[gameIdx];
 
                 // weapon stats
-                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_WRENCH_KILLS] += gameData.Data.WeaponKills[gameIdx][0];
-                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_DUAL_VIPER_KILLS] += gameData.Data.WeaponKills[gameIdx][1];
-                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAGMA_CANNON_KILLS] += gameData.Data.WeaponKills[gameIdx][2];
-                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_ARBITER_KILLS] += gameData.Data.WeaponKills[gameIdx][3];
-                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_FUSION_RIFLE_KILLS] += gameData.Data.WeaponKills[gameIdx][4];
-                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MINE_LAUNCHER_KILLS] += gameData.Data.WeaponKills[gameIdx][5];
-                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_B6_OBLITERATOR_KILLS] += gameData.Data.WeaponKills[gameIdx][6];
-                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_SCORPION_FLAIL_KILLS] += gameData.Data.WeaponKills[gameIdx][7];
+                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_WRENCH_KILLS] += (ushort)gameData.Data.WeaponKills[gameIdx][0];
+                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_DUAL_VIPER_KILLS] += (ushort)gameData.Data.WeaponKills[gameIdx][1];
+                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAGMA_CANNON_KILLS] += (ushort)gameData.Data.WeaponKills[gameIdx][2];
+                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_ARBITER_KILLS] += (ushort)gameData.Data.WeaponKills[gameIdx][3];
+                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_FUSION_RIFLE_KILLS] += (ushort)gameData.Data.WeaponKills[gameIdx][4];
+                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MINE_LAUNCHER_KILLS] += (ushort)gameData.Data.WeaponKills[gameIdx][5];
+                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_B6_OBLITERATOR_KILLS] += (ushort)gameData.Data.WeaponKills[gameIdx][6];
+                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_SCORPION_FLAIL_KILLS] += (ushort)gameData.Data.WeaponKills[gameIdx][7];
 
                 // high scores
                 int? statIndex = null;
@@ -556,6 +556,48 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
                         for (int i = 0; i < 10; ++i)
                             BestWeaponLevels[i] = reader.ReadArray<byte>(8);
+                        break;
+                    }
+                case 5:
+                    {
+                        const int MAX_MOB_SPAWN_PARAMS = 10;
+                        const int PLAYER_UPGRADE_COUNT = 7;
+
+                        AlphaModsReceived = new byte[10][];
+                        BestWeaponLevels = new byte[10][];
+                        KillsPerMob = new int[10][];
+                        DeathsByMob = new short[10][];
+                        PlayerUpgrades = new short[10][];
+
+                        Rounds = reader.ReadInt32();
+                        Points = reader.ReadArray<ulong>(10);
+                        Kills = reader.ReadArray<int>(10);
+                        Revives = reader.ReadArray<int>(10);
+                        TimesRevived = reader.ReadArray<int>(10);
+
+                        for (int i = 0; i < 10; ++i)
+                            KillsPerMob[i] = reader.ReadArray<int>(MAX_MOB_SPAWN_PARAMS);
+
+                        for (int i = 0; i < 10; ++i)
+                            DeathsByMob[i] = reader.ReadArray<short>(MAX_MOB_SPAWN_PARAMS);
+
+                        var mobIds = reader.ReadArray<short>(10);
+                        MobIds = mobIds.Select(x => (SurvivalMobStatIds)x).ToArray();
+                        BestRound = reader.ReadArray<short>(10);
+
+                        for (int i = 0; i < 10; ++i)
+                            PlayerUpgrades[i] = reader.ReadArray<short>(PLAYER_UPGRADE_COUNT);
+
+                        TimesRolledMysteryBox = reader.ReadArray<short>(10);
+                        TimesActivatedDemonBell = reader.ReadArray<short>(10);
+                        TimesActivatedPower = reader.ReadArray<short>(10);
+                        TokensUsedOnGates = reader.ReadArray<short>(10);
+
+                        for (int i = 0; i < 10; ++i)
+                            AlphaModsReceived[i] = reader.ReadArray<byte>(8);
+
+                        for (int i = 0; i < 10; ++i)
+                            BestWeaponLevels[i] = reader.ReadArray<byte>(9);
                         break;
                     }
                 default:
