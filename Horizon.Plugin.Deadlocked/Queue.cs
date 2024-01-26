@@ -615,7 +615,7 @@ namespace Horizon.Plugin.Deadlocked
             {
                 MaxNumTeams = 2,
                 IdealNumTeams = 2,
-                MinNumPlayers = 1,
+                MinNumPlayers = 6,
                 MaxNumPlayers = 10,
                 IdealNumPlayers = 6,
                 MapIds = new MapId[]
