@@ -26,7 +26,8 @@ namespace Horizon.Plugin.Deadlocked
         protected Queue.QueueMatch _match = null;
         public DateTime? ForceStartAt { get; private set; } = null;
         protected DateTime LastStartAt { get; set; }
-        protected List<MapId> SkippedMaps { get; } = new List<MapId>();
+        protected List<int> SkippedMaps { get; } = new List<int>();
+        public int CurrentMapUid { get; set; }
 
         public CompGame(Channel chatChannel) : base(null, null, chatChannel, null)
         {
@@ -188,9 +189,22 @@ namespace Horizon.Plugin.Deadlocked
             });
         }
 
-        public void SetMap(MapId map)
+        public async Task SetMap(int uid)
         {
-            GameLevel = (int)map;
+            CurrentMapUid = uid;
+
+            // custom map
+            if (uid >= 100)
+            {
+                var customMap = Maps.FindCustomMapById((CustomMapId)(uid - 100));
+                if (customMap == null) throw new Exception($"Invalid map uid {uid}");
+
+                GameLevel = customMap.LoadingMapId;
+            }
+            else
+            {
+                GameLevel = uid;
+            }
 
             // send map to clients
             foreach (var client in _queueClients)
@@ -202,6 +216,7 @@ namespace Horizon.Plugin.Deadlocked
             }
 
             RebuildTeams();
+            await UpdateGameConfig();
         }
 
         public int GetFreeTeam()
@@ -222,7 +237,7 @@ namespace Horizon.Plugin.Deadlocked
             }
         }
 
-        public Task Vote(ClientObject client, VoteRequestMessage request)
+        public async Task Vote(ClientObject client, VoteRequestMessage request)
         {
             switch (request.Context)
             {
@@ -230,7 +245,7 @@ namespace Horizon.Plugin.Deadlocked
                     {
                         // only accept if game hasn't started yet
                         if (this.WorldStatus != MediusWorldStatus.WorldStaging)
-                            return Task.CompletedTask;
+                            return;
 
                         // set vote
                         var queueClient = _queueClients.FirstOrDefault(x => x.Client == client);
@@ -253,16 +268,24 @@ namespace Horizon.Plugin.Deadlocked
                             foreach (var qClient in _queueClients)
                                 qClient.VotedSkipMap = false;
 
-                            SkippedMaps.Add((MapId)GameLevel);
-                            if (SkippedMaps.Count >= 10)
+                            // add current map
+                            SkippedMaps.Add(CurrentMapUid);
+                            if (SkippedMaps.Count >= (_queue.MapIds.Length + _queue.CustomMapIds.Length))
                                 SkippedMaps.Clear();
 
                             // determine new map
-                            var map = _queue.MapIds.Where(x => !SkippedMaps.Contains(x) && (int)x != GameLevel).OrderBy(x => Guid.NewGuid()).FirstOrDefault();
-                            if (map > 0)
+                            (var baseMap, var customMap) = _queue.GetRandomMap();
+                            var uid = customMap?.ToUniqueId() ?? baseMap.ToUniqueId();
+                            while (SkippedMaps.Contains(uid))
+                            {
+                                (baseMap, customMap) = _queue.GetRandomMap();
+                                uid = customMap?.ToUniqueId() ?? baseMap.ToUniqueId();
+                            }
+
+                            if (baseMap > 0)
                             {
                                 // set map
-                                SetMap(map);
+                                await SetMap(customMap?.ToUniqueId() ?? baseMap.ToUniqueId());
 
                                 // broadcast to channel
                                 ChatChannel.BroadcastSystemMessage(ChatChannel.Clients, $"AVote passed. Map skipped.");
@@ -278,7 +301,7 @@ namespace Horizon.Plugin.Deadlocked
                     {
                         // only accept if game hasn't started yet
                         if (this.WorldStatus != MediusWorldStatus.WorldStaging)
-                            return Task.CompletedTask;
+                            return;
 
                         // set vote
                         var queueClient = _queueClients.FirstOrDefault(x => x.Client == client);
@@ -316,8 +339,6 @@ namespace Horizon.Plugin.Deadlocked
                         break;
                     }
             }
-
-            return Task.CompletedTask;
         }
 
         public override async Task GameCreated()
@@ -583,6 +604,19 @@ namespace Horizon.Plugin.Deadlocked
             // update game config
             var metadata = await Game.GetGameMetadata(this);
             metadata.GameConfig = _queue.GetConfig(_match) ?? new GameConfig();
+
+            // custom map
+            if (CurrentMapUid >= 100)
+            {
+                var customMap = Maps.FindCustomMapById((CustomMapId)(CurrentMapUid - 100));
+                if (customMap == null) throw new Exception($"Invalid map uid {CurrentMapUid}");
+
+                metadata.GameConfig.MapOverride = (byte)customMap.MapId;
+            }
+            else
+            {
+                metadata.GameConfig.MapOverride = 0;
+            }
 
             // send game config to joining clients
             await Game.BroadcastGameConfig(this, true);

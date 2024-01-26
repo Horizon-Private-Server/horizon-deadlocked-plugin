@@ -105,6 +105,9 @@ namespace Horizon.Plugin.Deadlocked
 
             return Task.CompletedTask;
         }
+
+        public static int ToUniqueId(this MapId id) => (int)id;
+        public static int ToUniqueId(this CustomMapId id) => (int)id + 100;
     }
 
 

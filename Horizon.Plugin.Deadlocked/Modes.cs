@@ -22,6 +22,7 @@ namespace Horizon.Plugin.Deadlocked
             new SurvivalCustomMode(),
             new TeamDefenderCustomMode(),
             new ThousandKillsCustomMode(),
+            new BenchmarkCustomMode(),
             new AnimExtractorCustomMode(),
             new TrainingCustomMode()
         };
@@ -45,7 +46,8 @@ namespace Horizon.Plugin.Deadlocked
         CMODE_ID_SURVIVAL = CMODE_ID_SEARCH_AND_DESTROY + 1,
         CMODE_ID_TEAM_DEFENDER = CMODE_ID_SURVIVAL + 1,
         CMODE_ID_TRAINING = CMODE_ID_TEAM_DEFENDER + 1,
-        CMODE_ID_GRIDIRON = CMODE_ID_TRAINING + 1,
+        CMODE_ID_BENCHMARK = CMODE_ID_TRAINING + 1,
+        CMODE_ID_GRIDIRON = CMODE_ID_BENCHMARK + 1,
         CMODE_ID_ANIM_EXTRACTOR = CMODE_ID_GRIDIRON + 1,
 
         // reserved for custom maps

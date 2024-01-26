@@ -226,6 +226,7 @@ namespace Horizon.Plugin.Deadlocked
             public int GenericField8 { get; set; }
             public int RulesSet { get; set; }
             public MapId[] MapIds { get; set; }
+            public CustomMapId[] CustomMapIds { get; set; }
             public uint WeaponFlags { get; set; }
             public Func<QueueMatch, byte[]> GetGameFlags { get; set; }
             public Func<QueueMatch, GameConfig> GetConfig { get; set; }
@@ -493,12 +494,29 @@ namespace Horizon.Plugin.Deadlocked
                 return IdealNumPlayers == match.Clients.Count(x => x.Client.IsConnected);
             }
 
+            public (MapId baseMap, CustomMapId? customMap) GetRandomMap()
+            {
+                var mapCount = MapIds.Length + CustomMapIds.Length;
+                var idx = _rng.Next(mapCount);
+                if (idx >= MapIds.Length)
+                {
+                    var customMap = Maps.FindCustomMapById(CustomMapIds[idx - MapIds.Length]);
+                    return ((MapId)customMap.LoadingMapId, customMap.MapId);
+                }
+                else
+                {
+                    return (MapIds[idx], null);
+                }
+            }
+
             private async Task Create(QueueMatch match)
             {
+                (var baseMap, var customMap) = GetRandomMap();
+
                 var channel = new CompChannel(ApplicationId);
                 var game = new CompGame(channel)
                 {
-                    GameLevel = (int)MapIds[_rng.Next(MapIds.Length)],
+                    GameLevel = (int)baseMap,
                     RulesSet = RulesSet,
                     GenericField1 = GenericField1,
                     GenericField3 = GenericField3,
@@ -512,6 +530,7 @@ namespace Horizon.Plugin.Deadlocked
                 // create metadata
                 var metadata = await Game.GetGameMetadata(game);
                 metadata.GameConfig = GetConfig(match) ?? new GameConfig();
+                metadata.GameConfig.MapOverride = (byte?)customMap ?? 0;
 
                 // create game
                 if (game.Create(this, match))
@@ -547,14 +566,16 @@ namespace Horizon.Plugin.Deadlocked
                 {
                     MapId.CATACROM,
                     MapId.SARATHOS,
-                    MapId.DARK_CATHEDRAL,
                     MapId.SHAAR,
                     MapId.VALIX,
-                    MapId.MINING_FACILITY,
                     MapId.TORVAL,
-                    MapId.TEMPUS,
                     MapId.MARAXUS,
-                    MapId.GHOST_STATION
+                },
+                CustomMapIds = new CustomMapId[]
+                {
+                    CustomMapId.CMAP_ID_ALPINE_JUNCTION,
+                    CustomMapId.CMAP_ID_BAKISI_ISLES,
+                    CustomMapId.CMAP_ID_GHOST_HANGAR,
                 },
                 RulesSet = 3,
                 GenericField1 = 0,
@@ -569,6 +590,9 @@ namespace Horizon.Plugin.Deadlocked
                 GetConfig = (match) => new GameConfig()
                 {
                     BetterHills = true,
+                    NewPlayerSync = true,
+                    BetterFlags = true,
+                    DisableHealthBoxes = 1,
                     DisableWeaponPacks = true,
                     DisableInvHitTimer = true,
                     FusionShotsAlwaysHit = true,
@@ -591,21 +615,26 @@ namespace Horizon.Plugin.Deadlocked
             {
                 MaxNumTeams = 2,
                 IdealNumTeams = 2,
-                MinNumPlayers = 4,
+                MinNumPlayers = 1,
                 MaxNumPlayers = 10,
-                IdealNumPlayers = 8,
+                IdealNumPlayers = 6,
                 MapIds = new MapId[]
                 {
                     MapId.CATACROM,
                     MapId.SARATHOS,
-                    MapId.DARK_CATHEDRAL,
                     MapId.SHAAR,
                     MapId.VALIX,
-                    MapId.MINING_FACILITY,
                     MapId.TORVAL,
-                    MapId.TEMPUS,
                     MapId.MARAXUS,
-                    MapId.GHOST_STATION
+                },
+                CustomMapIds = new CustomMapId[]
+                {
+                    CustomMapId.CMAP_ID_ALPINE_JUNCTION,
+                    CustomMapId.CMAP_ID_BAKISI_ISLES,
+                    CustomMapId.CMAP_ID_GHOST_HANGAR,
+                    CustomMapId.CMAP_ID_MARCADIA_PALACE,
+                    CustomMapId.CMAP_ID_BLACKWATER_CITY,
+                    CustomMapId.CMAP_ID_BLACKWATER_DOCKS
                 },
                 RulesSet = 1,
                 GenericField1 = 0,
@@ -616,10 +645,16 @@ namespace Horizon.Plugin.Deadlocked
                 GenericField7 = 0x012046F18,
                 GenericField8 = 5609,
                 WeaponFlags = 0x000660AA,
-                GetGameFlags = (match) =>  Server.Common.Utils.FromString("0000000000000101000000010000010000010100FFFF00010A000000000000010101010005021E00010F010A1E0100000001000300000100000100"),
+                GetGameFlags = (match) =>  Server.Common.Utils.FromString("0000000000000101000000010000010000010100FFFF00010A000000000000010101010004021E00010F010A1E0100000001000300000100000100"),
                 GetConfig = (match) => new GameConfig()
                 {
                     HalfTime = true,
+                    Overtime = true,
+                    BetterFlags = true,
+                    BetterHills = true,
+                    NewPlayerSync = true,
+                    DisableHealthBoxes = 1,
+                    HideWeaponPickups = true,
                     DisableWeaponPacks = true,
                     DisableInvHitTimer = true,
                     FusionShotsAlwaysHit = true,
@@ -629,7 +664,6 @@ namespace Horizon.Plugin.Deadlocked
                     switch ((MapId)game.GameLevel)
                     {
                         case MapId.SARATHOS:
-                        case MapId.TORVAL: return new int[] { 2, 3 }; // green/orange
                         case MapId.TEMPUS: return new int[] { 1, 2 }; // red/green
                         default: return new int[] { 0, 1 }; // red/blue
                     }
@@ -664,6 +698,11 @@ namespace Horizon.Plugin.Deadlocked
                     MapId.MARAXUS,
                     MapId.GHOST_STATION
                 },
+                CustomMapIds = new CustomMapId[]
+                {
+                    CustomMapId.CMAP_ID_BAKISI_ISLES,
+                    CustomMapId.CMAP_ID_GHOST_HANGAR,
+                },
                 RulesSet = 2,
                 GenericField1 = 0,
                 GenericField3 = 0,
@@ -690,6 +729,7 @@ namespace Horizon.Plugin.Deadlocked
                             HideWeaponPickups = true,
                             DisableInvHitTimer = true,
                             FusionShotsAlwaysHit = true,
+                            NewPlayerSync = true,
                             Vampire = 3,
                             DisableHealthBoxes = 2,
                             V2s = 2
@@ -702,6 +742,8 @@ namespace Horizon.Plugin.Deadlocked
                         HideWeaponPickups = true,
                         DisableInvHitTimer = true,
                         FusionShotsAlwaysHit = true,
+                        NewPlayerSync = true,
+                        DisableHealthBoxes = 1,
                     };
                 },
                 GetTeamIds = (game, match) =>
