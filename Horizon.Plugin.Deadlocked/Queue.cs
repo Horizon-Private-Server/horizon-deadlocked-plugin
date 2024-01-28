@@ -632,7 +632,7 @@ namespace Horizon.Plugin.Deadlocked
                 {
                     return client.WideStats[(int)PlayerStatIds.STAT_DEATHMATCH_RANK];
                 }
-            }
+            },
             new QueueInstance(11184, QueueIds.KOTH)
             {
                 MaxNumTeams = 2,
