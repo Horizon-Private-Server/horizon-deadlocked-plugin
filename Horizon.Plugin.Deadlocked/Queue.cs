@@ -13,7 +13,7 @@ namespace Horizon.Plugin.Deadlocked
         None,
         KOTH,
         CTF,
-        FFA_DM
+        DM
     }
 
     public static class Queue
@@ -555,148 +555,22 @@ namespace Horizon.Plugin.Deadlocked
 
         static readonly QueueInstance[] _queues = new QueueInstance[]
         {
-            new QueueInstance(11184, QueueIds.KOTH)
-            {
-                MaxNumTeams = 5,
-                IdealNumTeams = 2,
-                MinNumPlayers = 3,
-                MaxNumPlayers = 10,
-                IdealNumPlayers = 6,
-                MapIds = new MapId[]
-                {
-                    MapId.CATACROM,
-                    MapId.SARATHOS,
-                    MapId.SHAAR,
-                    MapId.VALIX,
-                    MapId.TORVAL,
-                    MapId.MARAXUS,
-                },
-                CustomMapIds = new CustomMapId[]
-                {
-                    CustomMapId.CMAP_ID_ALPINE_JUNCTION,
-                    CustomMapId.CMAP_ID_BAKISI_ISLES,
-                    CustomMapId.CMAP_ID_GHOST_HANGAR,
-                },
-                RulesSet = 3,
-                GenericField1 = 0,
-                GenericField3 = 0,
-                GenericField4 = 60,
-                GenericField5 = 0,
-                GenericField6 = 0x006631540,
-                GenericField7 = 0x0120C6F28,
-                GenericField8 = 5609,
-                WeaponFlags = 0x000660AA,
-                GetGameFlags = (match) => Server.Common.Utils.FromString("0000000000000101000000000000010000010001FFFF00010A000000000000010101010005031E00010F010A3C0100000001000300000100000101"),
-                GetConfig = (match) => new GameConfig()
-                {
-                    BetterHills = true,
-                    NewPlayerSync = true,
-                    BetterFlags = true,
-                    DisableHealthBoxes = 1,
-                    DisableWeaponPacks = true,
-                    DisableInvHitTimer = true,
-                    FusionShotsAlwaysHit = true,
-                    HideWeaponPickups = true,
-                },
-                GetTeamIds = (game, match) =>
-                {
-                    return Enumerable.Range(0, 10).OrderBy(x=> Guid.NewGuid()).ToArray();
-                },
-                GetBaseRank = (client) =>
-                {
-                    return client.WideStats[(int)PlayerStatIds.STAT_KOTH_RANK];
-                },
-                GetRank = (client) =>
-                {
-                    return client.WideStats[(int)PlayerStatIds.STAT_KOTH_RANK];
-                }
-            },
-            new QueueInstance(11184, QueueIds.CTF)
-            {
-                MaxNumTeams = 2,
-                IdealNumTeams = 2,
-                MinNumPlayers = 6,
-                MaxNumPlayers = 10,
-                IdealNumPlayers = 6,
-                MapIds = new MapId[]
-                {
-                    MapId.CATACROM,
-                    MapId.SARATHOS,
-                    MapId.SHAAR,
-                    MapId.VALIX,
-                    MapId.TORVAL,
-                    MapId.MARAXUS,
-                },
-                CustomMapIds = new CustomMapId[]
-                {
-                    CustomMapId.CMAP_ID_ALPINE_JUNCTION,
-                    CustomMapId.CMAP_ID_BAKISI_ISLES,
-                    CustomMapId.CMAP_ID_GHOST_HANGAR,
-                    CustomMapId.CMAP_ID_MARCADIA_PALACE,
-                    CustomMapId.CMAP_ID_BLACKWATER_CITY,
-                    CustomMapId.CMAP_ID_BLACKWATER_DOCKS
-                },
-                RulesSet = 1,
-                GenericField1 = 0,
-                GenericField3 = 0,
-                GenericField4 = 0,
-                GenericField5 = 1,
-                GenericField6 = 0x026631540,
-                GenericField7 = 0x012046F18,
-                GenericField8 = 5609,
-                WeaponFlags = 0x000660AA,
-                GetGameFlags = (match) =>  Server.Common.Utils.FromString("0000000000000101000000010000010000010100FFFF00010A000000000000010101010004021E00010F010A1E0100000001000300000100000100"),
-                GetConfig = (match) => new GameConfig()
-                {
-                    HalfTime = true,
-                    Overtime = true,
-                    BetterFlags = true,
-                    BetterHills = true,
-                    NewPlayerSync = true,
-                    DisableHealthBoxes = 1,
-                    HideWeaponPickups = true,
-                    DisableWeaponPacks = true,
-                    DisableInvHitTimer = true,
-                    FusionShotsAlwaysHit = true,
-                },
-                GetTeamIds = (game, match) =>
-                {
-                    switch ((MapId)game.GameLevel)
-                    {
-                        case MapId.SARATHOS:
-                        case MapId.TEMPUS: return new int[] { 1, 2 }; // red/green
-                        default: return new int[] { 0, 1 }; // red/blue
-                    }
-                },
-                GetBaseRank = (client) =>
-                {
-                    return client.WideStats[(int)PlayerStatIds.STAT_CTF_RANK];
-                },
-                GetRank = (client) =>
-                {
-                    return client.WideStats[(int)PlayerStatIds.STAT_CTF_RANK];
-                }
-            },
-            new QueueInstance(11184, QueueIds.FFA_DM)
+            new QueueInstance(11184, QueueIds.DM)
             {
                 IsFreeForAll = true,
-                MaxNumTeams = 10,
-                IdealNumTeams = 10,
+                MaxNumTeams = 2,
+                IdealNumTeams = 2,
                 MinNumPlayers = 2,
-                MaxNumPlayers = 10,
-                IdealNumPlayers = 4,
+                MaxNumPlayers = 2,
+                IdealNumPlayers = 2,
                 MapIds = new MapId[]
                 {
                     MapId.CATACROM,
                     MapId.SARATHOS,
-                    MapId.DARK_CATHEDRAL,
                     MapId.SHAAR,
                     MapId.VALIX,
-                    MapId.MINING_FACILITY,
                     MapId.TORVAL,
-                    MapId.TEMPUS,
                     MapId.MARAXUS,
-                    MapId.GHOST_STATION
                 },
                 CustomMapIds = new CustomMapId[]
                 {
@@ -759,6 +633,128 @@ namespace Horizon.Plugin.Deadlocked
                     return client.WideStats[(int)PlayerStatIds.STAT_DEATHMATCH_RANK];
                 }
             }
+            new QueueInstance(11184, QueueIds.KOTH)
+            {
+                MaxNumTeams = 2,
+                IdealNumTeams = 2,
+                MinNumPlayers = 4,
+                MaxNumPlayers = 4,
+                IdealNumPlayers = 4,
+                MapIds = new MapId[]
+                {
+                    MapId.CATACROM,
+                    MapId.SARATHOS,
+                    MapId.SHAAR,
+                    MapId.VALIX,
+                    MapId.TORVAL,
+                    MapId.MARAXUS,
+                },
+                CustomMapIds = new CustomMapId[]
+                {
+                    CustomMapId.CMAP_ID_ALPINE_JUNCTION,
+                    CustomMapId.CMAP_ID_BAKISI_ISLES,
+                    CustomMapId.CMAP_ID_GHOST_HANGAR,
+                },
+                RulesSet = 3,
+                GenericField1 = 0,
+                GenericField3 = 0,
+                GenericField4 = 60,
+                GenericField5 = 0,
+                GenericField6 = 0x006631540,
+                GenericField7 = 0x0120C6F28,
+                GenericField8 = 5609,
+                WeaponFlags = 0x000660AA,
+                GetGameFlags = (match) => Server.Common.Utils.FromString("0000000000000101000000000000010000010001FFFF00010A000000000000010101010005031E00010F010A3C0100000001000300000100000101"),
+                GetConfig = (match) => new GameConfig()
+                {
+                    BetterHills = true,
+                    NewPlayerSync = true,
+                    BetterFlags = true,
+                    DisableHealthBoxes = 1,
+                    DisableWeaponPacks = true,
+                    DisableInvHitTimer = true,
+                    FusionShotsAlwaysHit = true,
+                    HideWeaponPickups = true,
+                },
+                GetTeamIds = (game, match) =>
+                {
+                    return Enumerable.Range(0, 10).OrderBy(x=> Guid.NewGuid()).ToArray();
+                },
+                GetBaseRank = (client) =>
+                {
+                    return client.WideStats[(int)PlayerStatIds.STAT_KOTH_RANK];
+                },
+                GetRank = (client) =>
+                {
+                    return client.WideStats[(int)PlayerStatIds.STAT_KOTH_RANK];
+                }
+            },
+            new QueueInstance(11184, QueueIds.CTF)
+            {
+                MaxNumTeams = 2,
+                IdealNumTeams = 2,
+                MinNumPlayers = 6,
+                MaxNumPlayers = 6,
+                IdealNumPlayers = 6,
+                MapIds = new MapId[]
+                {
+                    MapId.CATACROM,
+                    MapId.SARATHOS,
+                    MapId.SHAAR,
+                    MapId.VALIX,
+                    MapId.TORVAL,
+                    MapId.MARAXUS,
+                },
+                CustomMapIds = new CustomMapId[]
+                {
+                    CustomMapId.CMAP_ID_ALPINE_JUNCTION,
+                    CustomMapId.CMAP_ID_BAKISI_ISLES,
+                    CustomMapId.CMAP_ID_GHOST_HANGAR,
+                    CustomMapId.CMAP_ID_MARCADIA_PALACE,
+                    CustomMapId.CMAP_ID_BLACKWATER_CITY,
+                    CustomMapId.CMAP_ID_BLACKWATER_DOCKS
+                },
+                RulesSet = 1,
+                GenericField1 = 0,
+                GenericField3 = 0,
+                GenericField4 = 0,
+                GenericField5 = 1,
+                GenericField6 = 0x026631540,
+                GenericField7 = 0x012046F18,
+                GenericField8 = 5609,
+                WeaponFlags = 0x000660AA,
+                GetGameFlags = (match) =>  Server.Common.Utils.FromString("0000000000000101000000010000010000010100FFFF00010A000000000000010101010004021E00010F010A1E0100000001000300000100000100"),
+                GetConfig = (match) => new GameConfig()
+                {
+                    HalfTime = true,
+                    Overtime = true,
+                    BetterFlags = true,
+                    BetterHills = true,
+                    NewPlayerSync = true,
+                    DisableHealthBoxes = 1,
+                    HideWeaponPickups = true,
+                    DisableWeaponPacks = true,
+                    DisableInvHitTimer = true,
+                    FusionShotsAlwaysHit = true,
+                },
+                GetTeamIds = (game, match) =>
+                {
+                    switch ((MapId)game.GameLevel)
+                    {
+                        case MapId.SARATHOS:
+                        case MapId.TEMPUS: return new int[] { 1, 2 }; // red/green
+                        default: return new int[] { 0, 1 }; // red/blue
+                    }
+                },
+                GetBaseRank = (client) =>
+                {
+                    return client.WideStats[(int)PlayerStatIds.STAT_CTF_RANK];
+                },
+                GetRank = (client) =>
+                {
+                    return client.WideStats[(int)PlayerStatIds.STAT_CTF_RANK];
+                }
+            },
         };
 
         public static Task Tick()
