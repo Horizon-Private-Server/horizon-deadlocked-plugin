@@ -11,9 +11,9 @@ namespace Horizon.Plugin.Deadlocked
     public enum QueueIds
     {
         None,
+        DM,
         KOTH,
         CTF,
-        DM
     }
 
     public static class Queue
