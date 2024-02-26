@@ -232,13 +232,14 @@ namespace Horizon.Plugin.Deadlocked
         public byte PreferredGameServer { get; set; }
         public byte FixedCycleOrder { get; set; }
         public bool EnableSingleTapChargeboot { get; set; }
+        public bool EnableInGameScoreboard { get; set; }
 #if TWEAKERS
         public byte[] CharacterTweakers { get; set; } = new byte[1 + 7*2];
 #endif
 
         public byte[] Serialize()
         {
-            int bufSize = 19;
+            int bufSize = 20;
 #if TWEAKERS
             bufSize += 1 + 7*2;
 #endif
@@ -266,6 +267,7 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(PreferredGameServer);
                     writer.Write(FixedCycleOrder);
                     writer.Write(EnableSingleTapChargeboot);
+                    writer.Write(EnableInGameScoreboard);
 #if TWEAKERS
                     writer.Write(CharacterTweakers ?? new byte[1 + 7*2]);
 #endif
@@ -296,6 +298,7 @@ namespace Horizon.Plugin.Deadlocked
             PreferredGameServer = reader.ReadByte();
             FixedCycleOrder = reader.ReadByte();
             EnableSingleTapChargeboot = reader.ReadBoolean();
+            EnableInGameScoreboard = reader.ReadBoolean();
 #if TWEAKERS
             CharacterTweakers = reader.ReadBytes(1 + 7*2);
 #endif
@@ -322,6 +325,7 @@ namespace Horizon.Plugin.Deadlocked
                 && PreferredGameServer == other.PreferredGameServer
                 && FixedCycleOrder == other.FixedCycleOrder
                 && EnableSingleTapChargeboot == other.EnableSingleTapChargeboot
+                && EnableInGameScoreboard == other.EnableInGameScoreboard
 #if TWEAKERS
                 && (CharacterTweakers?.SequenceEqual(other.CharacterTweakers) ?? false)
 #endif
