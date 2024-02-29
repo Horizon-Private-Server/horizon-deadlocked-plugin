@@ -162,7 +162,22 @@ namespace Horizon.Plugin.Deadlocked
             await Program.Database.Log(client.AccountId, "OnPickedUpHorizonBolt", "Horizon Bolt Picked Up", $"Total {total}, current {current}", null, null);
         }
 
-        private static PlayerMetadata GetPlayerMetadata(ClientObject client)
+        public static string GetPlayerAccountName(ClientObject client)
+        {
+            var metadata = Player.GetPlayerMetadata(client);
+            if (metadata?.CompConfig != null && !String.IsNullOrEmpty(metadata.CompConfig.CompServerName))
+            {
+                var name = metadata.CompConfig.CompServerName;
+                if (name.Length > 15)
+                    name = name.Substring(0, 15);
+
+                return name;
+            }
+
+            return client.AccountName;
+        }
+
+        public static PlayerMetadata GetPlayerMetadata(ClientObject client)
         {
             PlayerMetadata metadata = null;
             try { metadata = JsonConvert.DeserializeObject<PlayerMetadata>(client.Metadata); } catch (Exception) { }
@@ -201,6 +216,7 @@ namespace Horizon.Plugin.Deadlocked
         public PlayerConfig Config { get; set; } = new PlayerConfig();
         public PlayerClientType? LastLoginClientType { get; set; } = null;
         public Dictionary<PlayerClientType, DateTimeOffset?> LastLoginPerClientType { get; set; } = new Dictionary<PlayerClientType, DateTimeOffset?>();
+        public PlayerCompConfig CompConfig { get; set; } = new PlayerCompConfig();
     }
 
     public class PlayerExtraInfo
@@ -209,6 +225,15 @@ namespace Horizon.Plugin.Deadlocked
         public byte[] PatchHash { get; set; }
         public bool PatchHandled { get; set; }
         public string LastChatCommand { get;set; }
+    }
+
+    public class PlayerCompConfig
+    {
+        public string OriginalCompServerName { get; set; } = null;
+        public string DiscordId { get; set; } = null;
+        public string CompServerName { get; set; } = null;
+        public List<string> CompServerNames { get; set; } = new List<string>();
+        public DateTime? TimeLastNameChange { get; set; } = null;
     }
 
     public class PlayerConfig

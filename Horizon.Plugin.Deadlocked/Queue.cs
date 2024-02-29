@@ -1,4 +1,7 @@
 ﻿using Horizon.Plugin.Deadlocked.Messages;
+using Newtonsoft.Json;
+using RT.Models;
+using Server.Medius;
 using Server.Medius.Models;
 using System;
 using System.Collections.Generic;
@@ -806,6 +809,11 @@ namespace Horizon.Plugin.Deadlocked
                 Server.Medius.Program.Manager.AddChannel(new Channel() { Name = "Default", Type = ChannelType.Lobby, ApplicationId = client.ApplicationId });
             }
 
+            // update client name
+            var accountName = Player.GetPlayerAccountName(client);
+            client.AccountName = accountName;
+            client.Queue(RT_MSG_SERVER_MEMORY_POKE.FromPayload(0x0017225E, Encoding.UTF8.GetBytes(accountName + '\0')));
+
             return Task.CompletedTask;
         }
 
@@ -817,6 +825,29 @@ namespace Horizon.Plugin.Deadlocked
                 currentQueue.Leave(client);
 
             return Task.CompletedTask;
+        }
+
+        public static async Task<bool> ChangePlayerName(ClientObject client, string name)
+        {
+            var metadata = Player.GetPlayerMetadata(client);
+            if (metadata == null) return false;
+            if (String.IsNullOrEmpty(name)) return false;
+            if (name.Length > 15) return false;
+            if (metadata.CompConfig.CompServerName == name) return true;
+            if ((DateTime.UtcNow - metadata.CompConfig.TimeLastNameChange)?.TotalMinutes < 5) return false;
+
+            var localAccount = Program.Manager.GetClientByAccountName(name, client.ApplicationId);
+            if (localAccount != null && localAccount.AccountId != client.AccountId) return false;
+            var account = await Program.Database.GetAccountByName(name, client.ApplicationId);
+            if (account != null && account.AccountId != client.AccountId) return false;
+
+            client.AccountName = name;
+            client.Queue(RT_MSG_SERVER_MEMORY_POKE.FromPayload(0x0017225E, Encoding.UTF8.GetBytes(name + '\0')));
+            metadata.CompConfig.CompServerName = name;
+            metadata.CompConfig.CompServerNames.Add(name);
+            metadata.CompConfig.TimeLastNameChange = DateTime.UtcNow;
+            client.Metadata = JsonConvert.SerializeObject(metadata);
+            return await Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
         }
 
         private static QueueIds AddToQueue(ClientObject client, QueueIds id)

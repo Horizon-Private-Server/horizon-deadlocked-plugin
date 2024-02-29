@@ -530,6 +530,14 @@ namespace Horizon.Plugin.Deadlocked
                                     msg.Player.Queue(new GetServerDateTimeResponseMessage());
                                     break;
                                 }
+                            case 48: // request name change
+                                {
+                                    var request = new NameChangeRequestMessage();
+                                    request.Deserialize(reader);
+                                    var success = await Queue.ChangePlayerName(msg.Player, request.Name);
+                                    msg.Player.Queue(new NameChangeResponseMessage() { Success = success });
+                                    break;
+                                }
                             default:
                                 {
                                     Host.Log(InternalLogLevel.WARN, $"Unhandled custom msg id {customMsgId}: {msg}");
