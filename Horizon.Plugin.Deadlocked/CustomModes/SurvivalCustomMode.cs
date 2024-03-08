@@ -67,6 +67,20 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             { CustomMapId.CMAP_ID_SURVIVAL_VELDIN, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP3_COOP_HIGH_SCORE },
         };
 
+        private static readonly Dictionary<CustomMapId, CustomPlayerStatIds> _survivalMapToSolo50BestTimeStatIndex = new Dictionary<CustomMapId, CustomPlayerStatIds>()
+        {
+            { CustomMapId.CMAP_ID_SURVIVAL_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_SOLO_50_BEST_TIME },
+            { CustomMapId.CMAP_ID_SURVIVAL_MOUNTAIN_PASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_SOLO_50_BEST_TIME },
+            { CustomMapId.CMAP_ID_SURVIVAL_VELDIN, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP3_SOLO_50_BEST_TIME },
+        };
+
+        private static readonly Dictionary<CustomMapId, CustomPlayerStatIds> _survivalMapToCoop50BestTimeStatIndex = new Dictionary<CustomMapId, CustomPlayerStatIds>()
+        {
+            { CustomMapId.CMAP_ID_SURVIVAL_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_COOP_50_BEST_TIME },
+            { CustomMapId.CMAP_ID_SURVIVAL_MOUNTAIN_PASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_COOP_50_BEST_TIME },
+            { CustomMapId.CMAP_ID_SURVIVAL_VELDIN, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP3_COOP_50_BEST_TIME },
+        };
+
         private static readonly SurvivalConfig[] _configs = new SurvivalConfig[]
         {
             new SurvivalConfig(CustomMapId.CMAP_ID_SURVIVAL_ORXON)
@@ -373,21 +387,35 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
                 // high scores
                 int? statIndex = null;
+                int? b50StatIndex = null;
                 var coop = game.AccountIdsAtStart.Contains(',');
                 if (coop)
                 {
                     if (_survivalMapToCoopHighScoreStatIndex.TryGetValue((CustomMapId)args.Metadata.GameConfig.MapOverride, out var customStatId))
                         statIndex = (int)customStatId;
+                    if (_survivalMapToCoop50BestTimeStatIndex.TryGetValue((CustomMapId)args.Metadata.GameConfig.MapOverride, out var b50CustomStatId))
+                        b50StatIndex = (int)b50CustomStatId;
                 }
                 else
                 {
                     if (_survivalMapToSoloHighScoreStatIndex.TryGetValue((CustomMapId)args.Metadata.GameConfig.MapOverride, out var customStatId))
                         statIndex = (int)customStatId;
+                    if (_survivalMapToSolo50BestTimeStatIndex.TryGetValue((CustomMapId)args.Metadata.GameConfig.MapOverride, out var b50CustomStatId))
+                        b50StatIndex = (int)b50CustomStatId;
                 }
 
                 if (statIndex.HasValue)
                 {
                     args.PlayerCustomStats[accountId][statIndex.Value] = Math.Max(args.PlayerCustomStats[accountId][statIndex.Value], customGameData.BestRound[gameIdx]);
+                }
+
+                // min round 50 best time unless 0
+                if (b50StatIndex.HasValue && customGameData.BestRound[gameIdx] >= 50 && customGameData.Round50TimeMs > 0)
+                {
+                    if (args.PlayerCustomStats[accountId][b50StatIndex.Value] == 0 || customGameData.Round50TimeMs < args.PlayerCustomStats[accountId][b50StatIndex.Value])
+                    {
+                        args.PlayerCustomStats[accountId][b50StatIndex.Value] = customGameData.Round50TimeMs;
+                    }
                 }
             }
         }
@@ -397,6 +425,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
     {
         public int Version { get; set; }
         public int Rounds { get; set; }
+        public int Round50TimeMs { get; set; }
         public ulong[] Points { get; set; }
         public int[] Kills { get; set; }
         public int[] Revives { get; set; }
@@ -570,6 +599,50 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                         PlayerUpgrades = new short[10][];
 
                         Rounds = reader.ReadInt32();
+                        Points = reader.ReadArray<ulong>(10);
+                        Kills = reader.ReadArray<int>(10);
+                        Revives = reader.ReadArray<int>(10);
+                        TimesRevived = reader.ReadArray<int>(10);
+
+                        for (int i = 0; i < 10; ++i)
+                            KillsPerMob[i] = reader.ReadArray<int>(MAX_MOB_SPAWN_PARAMS);
+
+                        for (int i = 0; i < 10; ++i)
+                            DeathsByMob[i] = reader.ReadArray<short>(MAX_MOB_SPAWN_PARAMS);
+
+                        var mobIds = reader.ReadArray<short>(10);
+                        MobIds = mobIds.Select(x => (SurvivalMobStatIds)x).ToArray();
+                        BestRound = reader.ReadArray<short>(10);
+
+                        for (int i = 0; i < 10; ++i)
+                            PlayerUpgrades[i] = reader.ReadArray<short>(PLAYER_UPGRADE_COUNT);
+
+                        TimesRolledMysteryBox = reader.ReadArray<short>(10);
+                        TimesActivatedDemonBell = reader.ReadArray<short>(10);
+                        TimesActivatedPower = reader.ReadArray<short>(10);
+                        TokensUsedOnGates = reader.ReadArray<short>(10);
+
+                        for (int i = 0; i < 10; ++i)
+                            AlphaModsReceived[i] = reader.ReadArray<byte>(8);
+
+                        for (int i = 0; i < 10; ++i)
+                            BestWeaponLevels[i] = reader.ReadArray<byte>(9);
+                        break;
+                    }
+                case 6:
+                    {
+                        const int MAX_MOB_SPAWN_PARAMS = 10;
+                        const int PLAYER_UPGRADE_COUNT = 7;
+
+                        AlphaModsReceived = new byte[10][];
+                        BestWeaponLevels = new byte[10][];
+                        KillsPerMob = new int[10][];
+                        DeathsByMob = new short[10][];
+                        PlayerUpgrades = new short[10][];
+
+                        Rounds = reader.ReadInt32();
+                        Round50TimeMs = reader.ReadInt32();
+                        reader.ReadInt32();
                         Points = reader.ReadArray<ulong>(10);
                         Kills = reader.ReadArray<int>(10);
                         Revives = reader.ReadArray<int>(10);

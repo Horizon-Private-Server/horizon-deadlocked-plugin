@@ -801,6 +801,8 @@ namespace Horizon.Plugin.Deadlocked
 
         public static Task OnPlayerLoggedIn(ClientObject client)
         {
+            if (!IsEnabled()) return Task.CompletedTask;
+
             // check if client has channel it can connect to
             // if not, make one
             var channel = Server.Medius.Program.Manager.GetChannelByChannelName("Default", client.ApplicationId);
@@ -887,6 +889,11 @@ namespace Horizon.Plugin.Deadlocked
         private static QueueInstance GetQueue(ClientObject client)
         {
             return _queues.FirstOrDefault(x => x.Has(client));
+        }
+
+        public static bool IsEnabled()
+        {
+            return Program.Database.GetUsername() == "SYSTEMQ";
         }
     }
 }
