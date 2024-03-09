@@ -1,5 +1,6 @@
 ﻿using Horizon.Plugin.Deadlocked.Messages;
 using Server.Common.Stream;
+using Server.Medius;
 using Server.Medius.Models;
 using Server.Medius.PluginArgs;
 using System;
@@ -418,6 +419,19 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     }
                 }
             }
+        }
+
+
+        public override Task OnGameStart(Server.Medius.Models.Game game, GameMetadata metadata)
+        {
+            // set increased timeout times for survival
+            foreach (var client in game.Clients)
+            {
+                client.Client.TimeoutSeconds = Program.GetAppSettingsOrDefault(client.Client.ApplicationId).ClientTimeoutSeconds * 10;
+                client.Client.LongTimeoutSeconds = Program.GetAppSettingsOrDefault(client.Client.ApplicationId).ClientLongTimeoutSeconds * 10;
+            }
+
+            return Task.CompletedTask;
         }
     }
 

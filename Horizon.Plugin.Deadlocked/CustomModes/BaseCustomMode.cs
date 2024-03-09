@@ -1,4 +1,5 @@
 ﻿using Server.Common.Stream;
+using Server.Medius;
 using Server.Medius.Models;
 using Server.Medius.PluginArgs;
 using System;
@@ -51,6 +52,18 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         protected abstract ICustomGameData CreateCustomGameData();
 
         protected abstract Task UpdateCustomStats(CustomModeUpdateStatsArgs args);
+
+        public virtual Task OnGameStart(Server.Medius.Models.Game game, GameMetadata metadata)
+        {
+            // set timeout times to default
+            foreach (var client in game.Clients)
+            {
+                client.Client.TimeoutSeconds = Program.GetAppSettingsOrDefault(client.Client.ApplicationId).ClientTimeoutSeconds;
+                client.Client.LongTimeoutSeconds = Program.GetAppSettingsOrDefault(client.Client.ApplicationId).ClientLongTimeoutSeconds;
+            }
+
+            return Task.CompletedTask;
+        }
 
         public async Task<Dictionary<int, int[]>> OnGameEnd(Server.Medius.Models.Game game, GameMetadata metadata)
         {

@@ -387,6 +387,10 @@ namespace Horizon.Plugin.Deadlocked
         {
             var metadata = await GetGameMetadata(game);
 
+            var mode = Modes.FindCustomModeById(metadata.GameConfig.GetRealCustomModeId());
+            if (mode != null)
+                await mode.OnGameStart(game, metadata);
+
             // send map override to all clients
             await BroadcastGameConfig(game, true);
 
