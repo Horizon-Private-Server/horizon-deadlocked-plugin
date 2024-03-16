@@ -52,6 +52,7 @@ namespace Horizon.Plugin.Deadlocked
             host.RegisterAction(PluginEvent.MEDIUS_GAME_ON_HOST_LEFT, OnHostLeftGame);
             host.RegisterAction(PluginEvent.MEDIUS_GAME_ON_PLAYER_JOIN_RESPONSE, OnGamePlayerJoinResponse);
             host.RegisterAction(PluginEvent.MEDIUS_PLAYER_ON_JOINED_GAME, OnPlayerJoinedGame);
+            host.RegisterAction(PluginEvent.MEDIUS_PLAYER_ON_LEFT_GAME, OnPlayerLeftGame);
             host.RegisterAction(PluginEvent.MEDIUS_PLAYER_ON_CHAT_MESSAGE, OnPlayerChatMessage);
             host.RegisterAction(PluginEvent.MEDIUS_PLAYER_POST_WIDE_STATS, OnPlayerPostWideStats);
             host.RegisterMediusMessageAction(NetMessageTypes.MessageClassDME, 7, OnRecvCustomMessage);
@@ -224,7 +225,7 @@ namespace Horizon.Plugin.Deadlocked
             //return Task.Delay(500);
             return Task.CompletedTask;
         }
-
+        
         Task OnPlayerJoinedGame(PluginEvent eventId, object data)
         {
             var msg = (Server.Medius.PluginArgs.OnPlayerGameArgs)data;
@@ -242,6 +243,26 @@ namespace Horizon.Plugin.Deadlocked
 
             // pass to game
             _ = Game.PlayerJoined(client, game);
+            return Task.CompletedTask;
+        }
+
+        Task OnPlayerLeftGame(PluginEvent eventId, object data)
+        {
+            var msg = (Server.Medius.PluginArgs.OnPlayerGameArgs)data;
+            if (msg.Player == null || msg.Game == null)
+                return Task.CompletedTask;
+            if (!SupportedAppIds.Contains(msg.Player.ApplicationId))
+                return Task.CompletedTask;
+
+            var client = msg.Player;
+            var game = msg.Game;
+            var playerExtraInfo = Player.GetPlayerExtraInfo(client.AccountId);
+
+            // reset map version
+            playerExtraInfo.CurrentMapVersion = 0;
+
+            // pass to game
+            _ = Game.PlayerLeft(client, game);
             return Task.CompletedTask;
         }
 

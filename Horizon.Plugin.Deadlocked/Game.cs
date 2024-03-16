@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using RT.Common;
 using Server.Common;
 using Server.Common.Stream;
+using Server.Medius;
 using Server.Medius.Models;
 using Server.Medius.PluginArgs;
 using System;
@@ -168,6 +169,13 @@ namespace Horizon.Plugin.Deadlocked
 
             // broadcast player's patch config
             await Player.BroadcastPatchConfigToGameLobby(client);
+        }
+
+        public static async Task PlayerLeft(ClientObject client, Server.Medius.Models.Game game)
+        {
+            // reset timeouts
+            client.TimeoutSeconds = Program.GetAppSettingsOrDefault(client.ApplicationId).ClientTimeoutSeconds;
+            client.LongTimeoutSeconds = Program.GetAppSettingsOrDefault(client.ApplicationId).ClientLongTimeoutSeconds;
         }
 
         public static async Task OnPlayerPostWideStats(OnPlayerWideStatsArgs args)
