@@ -1070,6 +1070,7 @@ namespace Horizon.Plugin.Deadlocked
         public byte Training_Variation { get; set; }
         public byte Training_Aggression { get; set; }
         public byte Training_Opt3 { get; set; }
+        public byte Hns_HideTime { get; set; }
 
         public bool HasDevRule() => Freecam;
 
@@ -1084,7 +1085,7 @@ namespace Horizon.Plugin.Deadlocked
 
         public byte[] Serialize()
         {
-            byte[] output = new byte[34];
+            byte[] output = new byte[35];
             using (var ms = new MemoryStream(output, true))
             {
                 using (var writer = new BinaryWriter(ms))
@@ -1124,6 +1125,7 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(Training_Variation);
                     writer.Write(Training_Aggression);
                     writer.Write(Training_Opt3);
+                    writer.Write(Hns_HideTime);
                 }
             }
 
@@ -1167,6 +1169,7 @@ namespace Horizon.Plugin.Deadlocked
             Training_Variation = reader.ReadByte();
             Training_Aggression = reader.ReadByte();
             Training_Opt3 = reader.ReadByte();
+            Hns_HideTime = reader.ReadByte();
         }
 
         public bool SameAs(GameConfig other)
@@ -1206,6 +1209,7 @@ namespace Horizon.Plugin.Deadlocked
                 && Training_Variation == other.Training_Variation
                 && Training_Aggression == other.Training_Aggression
                 && Training_Opt3 == other.Training_Opt3
+                && Hns_HideTime == other.Hns_HideTime
                 ;
         }
     }

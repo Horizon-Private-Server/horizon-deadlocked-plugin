@@ -24,7 +24,8 @@ namespace Horizon.Plugin.Deadlocked
             new ThousandKillsCustomMode(),
             new BenchmarkCustomMode(),
             new AnimExtractorCustomMode(),
-            new TrainingCustomMode()
+            new TrainingCustomMode(),
+            new HNSCustomMode()
         };
 
         public static BaseCustomMode FindCustomModeById(CustomModeId id)
@@ -39,16 +40,17 @@ namespace Horizon.Plugin.Deadlocked
     {
         // custom map ids
         CMODE_ID_THOUSAND_KILLS = 1,
-        CMODE_ID_GUN_GAME = CMODE_ID_THOUSAND_KILLS + 1,
-        CMODE_ID_INFECTED = CMODE_ID_GUN_GAME + 1,
-        CMODE_ID_PAYLOAD = CMODE_ID_INFECTED + 1,
-        CMODE_ID_SEARCH_AND_DESTROY = CMODE_ID_PAYLOAD + 1,
-        CMODE_ID_SURVIVAL = CMODE_ID_SEARCH_AND_DESTROY + 1,
-        CMODE_ID_TEAM_DEFENDER = CMODE_ID_SURVIVAL + 1,
-        CMODE_ID_TRAINING = CMODE_ID_TEAM_DEFENDER + 1,
-        CMODE_ID_BENCHMARK = CMODE_ID_TRAINING + 1,
-        CMODE_ID_GRIDIRON = CMODE_ID_BENCHMARK + 1,
-        CMODE_ID_ANIM_EXTRACTOR = CMODE_ID_GRIDIRON + 1,
+        CMODE_ID_GUN_GAME,
+        CMODE_ID_INFECTED,
+        CMODE_ID_PAYLOAD,
+        CMODE_ID_SEARCH_AND_DESTROY,
+        CMODE_ID_SURVIVAL,
+        CMODE_ID_TEAM_DEFENDER,
+        CMODE_ID_TRAINING,
+        CMODE_ID_BENCHMARK,
+        CMODE_ID_HNS,
+        CMODE_ID_GRIDIRON,
+        CMODE_ID_ANIM_EXTRACTOR,
 
         // reserved for custom maps
         CMODE_ID_DUCK_HUNT = -1,
