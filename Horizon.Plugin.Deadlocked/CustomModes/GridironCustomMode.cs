@@ -12,7 +12,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
     public class GridironCustomMode : BaseCustomMode
     {
         public override CustomModeId Id => CustomModeId.CMODE_ID_GRIDIRON;
-        public override string Name => "Gridiron";
+        public override string Name => "DreadBall";
 
         public override Task<int?> GetRank(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
         {
