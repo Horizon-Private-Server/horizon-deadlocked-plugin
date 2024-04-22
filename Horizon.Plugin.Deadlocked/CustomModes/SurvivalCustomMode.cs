@@ -14,6 +14,10 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 {
     public class SurvivalCustomMode : BaseCustomMode
     {
+        private static readonly string SURVIVAL_CMAP_FILENAME_ORXON = "survival v2 mf";
+        private static readonly string SURVIVAL_CMAP_FILENAME_MPASS = "survival mpass";
+        private static readonly string SURVIVAL_CMAP_FILENAME_VELDIN = "survival veldin";
+
         public enum SurvivalMobStatIds : int
         {
             None = 0,
@@ -40,135 +44,46 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             { 5, "\x0D" },
         };
 
-        private static readonly Dictionary<CustomMapId, CustomPlayerStatIds> _survivalMapToXpStatIndex = new Dictionary<CustomMapId, CustomPlayerStatIds>()
+        private static readonly Dictionary<string, CustomPlayerStatIds> _survivalMapToXpStatIndex = new Dictionary<string, CustomPlayerStatIds>()
         {
-            { CustomMapId.CMAP_ID_SURVIVAL_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_XP },
-            { CustomMapId.CMAP_ID_SURVIVAL_MOUNTAIN_PASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_XP },
-            { CustomMapId.CMAP_ID_SURVIVAL_VELDIN, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP3_XP },
+            { SURVIVAL_CMAP_FILENAME_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_XP },
+            { SURVIVAL_CMAP_FILENAME_MPASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_XP },
+            { SURVIVAL_CMAP_FILENAME_VELDIN, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP3_XP },
         };
 
-        private static readonly Dictionary<CustomMapId, CustomPlayerStatIds> _survivalMapToPrestigeStatIndex = new Dictionary<CustomMapId, CustomPlayerStatIds>()
+        private static readonly Dictionary<string, CustomPlayerStatIds> _survivalMapToPrestigeStatIndex = new Dictionary<string, CustomPlayerStatIds>()
         {
-            { CustomMapId.CMAP_ID_SURVIVAL_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_PRESTIGE },
-            { CustomMapId.CMAP_ID_SURVIVAL_MOUNTAIN_PASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_PRESTIGE },
-            { CustomMapId.CMAP_ID_SURVIVAL_VELDIN, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP3_PRESTIGE },
+            { SURVIVAL_CMAP_FILENAME_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_PRESTIGE },
+            { SURVIVAL_CMAP_FILENAME_MPASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_PRESTIGE },
+            { SURVIVAL_CMAP_FILENAME_VELDIN, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP3_PRESTIGE },
         };
 
-        private static readonly Dictionary<CustomMapId, CustomPlayerStatIds> _survivalMapToSoloHighScoreStatIndex = new Dictionary<CustomMapId, CustomPlayerStatIds>()
+        private static readonly Dictionary<string, CustomPlayerStatIds> _survivalMapToSoloHighScoreStatIndex = new Dictionary<string, CustomPlayerStatIds>()
         {
-            { CustomMapId.CMAP_ID_SURVIVAL_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_SOLO_HIGH_SCORE },
-            { CustomMapId.CMAP_ID_SURVIVAL_MOUNTAIN_PASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_SOLO_HIGH_SCORE },
-            { CustomMapId.CMAP_ID_SURVIVAL_VELDIN, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP3_SOLO_HIGH_SCORE },
+            { SURVIVAL_CMAP_FILENAME_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_SOLO_HIGH_SCORE },
+            { SURVIVAL_CMAP_FILENAME_MPASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_SOLO_HIGH_SCORE },
+            { SURVIVAL_CMAP_FILENAME_VELDIN, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP3_SOLO_HIGH_SCORE },
         };
 
-        private static readonly Dictionary<CustomMapId, CustomPlayerStatIds> _survivalMapToCoopHighScoreStatIndex = new Dictionary<CustomMapId, CustomPlayerStatIds>()
+        private static readonly Dictionary<string, CustomPlayerStatIds> _survivalMapToCoopHighScoreStatIndex = new Dictionary<string, CustomPlayerStatIds>()
         {
-            { CustomMapId.CMAP_ID_SURVIVAL_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_COOP_HIGH_SCORE },
-            { CustomMapId.CMAP_ID_SURVIVAL_MOUNTAIN_PASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_COOP_HIGH_SCORE },
-            { CustomMapId.CMAP_ID_SURVIVAL_VELDIN, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP3_COOP_HIGH_SCORE },
+            { SURVIVAL_CMAP_FILENAME_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_COOP_HIGH_SCORE },
+            { SURVIVAL_CMAP_FILENAME_MPASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_COOP_HIGH_SCORE },
+            { SURVIVAL_CMAP_FILENAME_VELDIN, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP3_COOP_HIGH_SCORE },
         };
 
-        private static readonly Dictionary<CustomMapId, CustomPlayerStatIds> _survivalMapToSolo50BestTimeStatIndex = new Dictionary<CustomMapId, CustomPlayerStatIds>()
+        private static readonly Dictionary<string, CustomPlayerStatIds> _survivalMapToSolo50BestTimeStatIndex = new Dictionary<string, CustomPlayerStatIds>()
         {
-            { CustomMapId.CMAP_ID_SURVIVAL_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_SOLO_50_BEST_TIME },
-            { CustomMapId.CMAP_ID_SURVIVAL_MOUNTAIN_PASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_SOLO_50_BEST_TIME },
-            { CustomMapId.CMAP_ID_SURVIVAL_VELDIN, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP3_SOLO_50_BEST_TIME },
+            { SURVIVAL_CMAP_FILENAME_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_SOLO_50_BEST_TIME },
+            { SURVIVAL_CMAP_FILENAME_MPASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_SOLO_50_BEST_TIME },
+            { SURVIVAL_CMAP_FILENAME_VELDIN, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP3_SOLO_50_BEST_TIME },
         };
 
-        private static readonly Dictionary<CustomMapId, CustomPlayerStatIds> _survivalMapToCoop50BestTimeStatIndex = new Dictionary<CustomMapId, CustomPlayerStatIds>()
+        private static readonly Dictionary<string, CustomPlayerStatIds> _survivalMapToCoop50BestTimeStatIndex = new Dictionary<string, CustomPlayerStatIds>()
         {
-            { CustomMapId.CMAP_ID_SURVIVAL_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_COOP_50_BEST_TIME },
-            { CustomMapId.CMAP_ID_SURVIVAL_MOUNTAIN_PASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_COOP_50_BEST_TIME },
-            { CustomMapId.CMAP_ID_SURVIVAL_VELDIN, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP3_COOP_50_BEST_TIME },
-        };
-
-        private static readonly SurvivalConfig[] _configs = new SurvivalConfig[]
-        {
-            new SurvivalConfig(CustomMapId.CMAP_ID_SURVIVAL_ORXON)
-            {
-                Difficulty = 1.0f,
-                BakedSpawnpoints = new List<SurvivalConfig.BakedSpawnpoint>()
-                {
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.PlayerStart, 0, 328.6f, 544.8498f, 433.9998f, 0f, 0f, 0f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 525.73f, 537.75f, 429.64f, 0f, 0f, -1.570796f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 478.72f, 691.459f, 430.73f, 0f, 0f, -3.141592f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 478.9f, 508.54f, 430.73f, 0f, 0f, 0f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 339.205f, 562.895f, 431.67f, -0.0006243868f, 1.079918E-05f, -1.660341f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 525.73f, 661.89f, 429.64f, 0f, 0f, -1.570797f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 335.47f, 650.277f, 430.623f, -6.167562f, -7.500661E-09f, -1.570796f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 516.416f, 600.07f, 437.062f, 0f, 0f, -4.712389f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 384.73f, 536.032f, 437.591f, -6.135677f, 0f, 0f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 426.446f, 670.574f, 438.23f, -0.1282649f, 9.390364E-10f, -2.937677f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 545.2199f, 513.7399f, 427.4603f, 0f, 0f, -3.951303f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 584.0499f, 537.26f, 427.5132f, 0f, 0f, -3.951303f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 569.03f, 578.3799f, 427.3436f, 0f, 0f, -2.904106f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 526.77f, 629.11f, 427.3436f, 0f, 0f, 0f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 531.7f, 599.54f, 427.3436f, 0f, 0f, -0.0726434f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 569.3099f, 617.9299f, 427.3436f, 0f, 0f, -4.359524f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 634.1599f, 660.43f, 427.3904f, 0f, 0f, -2.795064f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 633.17f, 592.33f, 427.3436f, 0f, 0f, -4.633354f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 579.17f, 598f, 427.3436f, 0f, 0f, -0.5679857f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 633.56f, 579.13f, 427.3435f, 0f, 0f, -2.09181f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 622.39f, 615.9099f, 427.4686f, 0f, 0f, -3.729555f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.DemonBell, 0, 324f, 566.83f, 440.94f, 0f, 0f, -1.570796f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.DemonBell, 0, 327f, 566.83f, 440.94f, 0f, 0f, -1.570796f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.DemonBell, 0, 330f, 566.83f, 440.94f, 0f, 0f, -1.570796f),
-                }
-            },
-            new SurvivalConfig(CustomMapId.CMAP_ID_SURVIVAL_MOUNTAIN_PASS)
-            {
-                Difficulty = 1.0f,
-                BakedSpawnpoints = new List<SurvivalConfig.BakedSpawnpoint>()
-                {
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.PlayerStart, 0, 658.3901f, 828.0401f, 499.7961f, 0f, 0f, -3.141593f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 594.99f, 704.85f, 507.63f, 0f, 0f, 1.788139E-07f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 503.96f, 704.98f, 506.32f, 0f, 0f, -7.450579E-07f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 624.6f, 801.53f, 504.07f, 0f, 0f, -2.283245f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 688.592f, 858.57f, 514.264f, 0f, 0f, -4.712388f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 504.301f, 945.488f, 507.915f, -5.984646f, -7.795392E-09f, -2.412499f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 456.14f, 791.772f, 509.28f, 0f, 0f, -3.979972f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 587.583f, 819.116f, 502.458f, -0.2670273f, -2.3173E-08f, -5.328631f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 504.936f, 821.258f, 501.923f, -6.177232f, 0f, -2.660405f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 562.021f, 892.229f, 508.457f, -6.218049f, 8.900659E-16f, -3.141593f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 448.302f, 876.378f, 507.799f, 0f, 0f, -5.496722f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 380.211f, 826.473f, 514.736f, -0.3037879f, -0.07311971f, -2.909856f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 585.6502f, 905.4998f, 506.599f, 0f, 0f, 1.260871f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 683.7198f, 807.9098f, 501.27f, 0f, 0f, -3.427705f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 634f, 742.02f, 507.35f, 0f, 0f, -2.904106f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 513.0701f, 738.4099f, 504.54f, 0f, 0f, -0.7853986f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 397.75f, 793.05f, 520.38f, 0f, 0f, -0.27788f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 469.15f, 802.01f, 504.22f, 0f, 0f, 1.400064f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 541.81f, 778.23f, 505.95f, 0f, 0f, -1.747867f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 547.39f, 858.92f, 505.86f, 0f, 0f, -4.371555f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 575.52f, 809.11f, 500.15f, 0f, 0f, -4.23276f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 512.43f, 951.69f, 507.16f, 0f, 0f, -1.327776f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 370.8f, 813.12f, 514.0535f, 0f, 0f, -0.06436086f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.DemonBell, 0, 660.2f, 793.97f, 507.61f, 0f, 0f, -1.570796f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.DemonBell, 0, 663.2f, 793.97f, 507.61f, 0f, 0f, -1.570796f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.DemonBell, 0, 666.2f, 793.97f, 507.61f, 0f, 0f, -1.570796f),
-                }
-            },
-            new SurvivalConfig(CustomMapId.CMAP_ID_SURVIVAL_VELDIN)
-            {
-                Difficulty = 1.5f,
-                BakedSpawnpoints = new List<SurvivalConfig.BakedSpawnpoint>()
-                {
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.PlayerStart, 0, 188.15f, 450.96f, 85.93756f, 0f, 0f, -1.570796f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 192.334f, 374.214f, 83.09f, 0f, 0f, -3.025695f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 193.86f, 359.946f, 83.09f, 0f, 0f, -6.143251f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 166.62f, 455.08f, 88.27f, 0f, 0f, -2.430318f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 174.508f, 443.266f, 88.27f, 0f, 0f, -5.878619f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 214.57f, 416.072f, 81.993f, -6.155164f, 0f, -3.141593f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 186.34f, 398.56f, 81.36f, -5.629477f, -6.281482f, -1.320548f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 186.522f, 438.843f, 82.383f, -5.942438f, -5.533558E-08f, -2.430318f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.Upgrade, 0, 207.508f, 388.318f, 81.686f, -5.7795f, -6.23334f, -4.782942f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 184.1991f, 439.6303f, 86.28809f, 0f, 0f, -4.262914f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.MysteryBox, 0, 169.8801f, 367.5203f, 80.50705f, 0f, 0f, -0.07412183f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.DemonBell, 0, 220.27f, 410.4701f, 86.02f, 0f, 0f, -3.141592f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.DemonBell, 0, 220.27f, 407.47f, 86.02f, 0f, 0f, -3.141592f),
-                    new SurvivalConfig.BakedSpawnpoint(SurvivalConfig.BakedSpawnpoint.TypeId.DemonBell, 0, 220.27f, 404.4699f, 86.02f, 0f, 0f, -3.141592f),
-                }
-            },
+            { SURVIVAL_CMAP_FILENAME_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_COOP_50_BEST_TIME },
+            { SURVIVAL_CMAP_FILENAME_MPASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_COOP_50_BEST_TIME },
+            { SURVIVAL_CMAP_FILENAME_VELDIN, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP3_COOP_50_BEST_TIME },
         };
 
         public override CustomModeId Id => CustomModeId.CMODE_ID_SURVIVAL;
@@ -183,11 +98,11 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public override async Task<int?> GetRank(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
         {
             // invalid
-            if (metadata == null || metadata.GameConfig.MapOverride == 0)
+            if (metadata == null || !metadata.CustomMapConfig.HasMap())
                 return 0;
 
             // try to get stat id for map
-            if (!_survivalMapToXpStatIndex.TryGetValue((CustomMapId)metadata.GameConfig.MapOverride, out var stat))
+            if (!_survivalMapToXpStatIndex.TryGetValue(metadata.CustomMapConfig.Filename, out var stat))
                 return 0;
 
             var rank = GetRatingFromXp(client.CustomWideStats[(int)stat]);
@@ -201,10 +116,10 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public Task<int?> GetPrestige(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
         {
             // invalid
-            if (metadata == null || metadata.GameConfig.MapOverride == 0)
+            if (metadata == null || !metadata.CustomMapConfig.HasMap())
                 return Task.FromResult((int?)0);
 
-            if (_survivalMapToPrestigeStatIndex.TryGetValue((CustomMapId)metadata.GameConfig.MapOverride, out var stat))
+            if (_survivalMapToPrestigeStatIndex.TryGetValue(metadata.CustomMapConfig.Filename, out var stat))
                 return Task.FromResult((int?)client.CustomWideStats[(int)stat]);
 
             return Task.FromResult((int?)0);
@@ -213,12 +128,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public async Task<bool> Prestige(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
         {
             // invalid
-            if (metadata == null || metadata.GameConfig.MapOverride == 0)
+            if (metadata == null || !metadata.CustomMapConfig.HasMap())
                 return false;
 
-            if (!_survivalMapToXpStatIndex.TryGetValue((CustomMapId)metadata.GameConfig.MapOverride, out var xpStat))
+            if (!_survivalMapToXpStatIndex.TryGetValue(metadata.CustomMapConfig.Filename, out var xpStat))
                 return false;
-            if (!_survivalMapToPrestigeStatIndex.TryGetValue((CustomMapId)metadata.GameConfig.MapOverride, out var prestigeStat))
+            if (!_survivalMapToPrestigeStatIndex.TryGetValue(metadata.CustomMapConfig.Filename, out var prestigeStat))
                 return false;
 
             var rank = GetRatingFromXp(client.CustomWideStats[(int)xpStat]);
@@ -252,7 +167,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public override async Task<string> GetNameOverride(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
         {
             // invalid
-            if (metadata == null || metadata.GameConfig.MapOverride == 0)
+            if (metadata == null || !metadata.CustomMapConfig.HasMap())
                 return await base.GetNameOverride(game, metadata, client);
 
             var prestige = await GetPrestige(game, metadata, client) ?? 0;
@@ -280,27 +195,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public override Task<Payload> GetPayload(Server.Medius.Models.Game game, GameMetadata metadata)
         {
             var payload = new Payload(0x000F0000, File.ReadAllBytes(Path.Combine(Plugin.WorkingDirectory, "bin/patch/survival-11184.bin")));
-
-            // find config by custom map then by regular map
-            var config = _configs.FirstOrDefault(x => x.CustomMapId == (CustomMapId)metadata.GameConfig.MapOverride);
-            if (config == null)
-            {
-                // default to first
-                config = _configs[0];
-            }
-
-            // insert config into payload
-            if (config != null)
-            {
-                using (var ms = new MemoryStream(payload.Data, true))
-                {
-                    using (var writer = new BinaryWriter(ms))
-                    {
-                        config.Serialize(writer);
-                    }
-                }
-            }
-
             return Task.FromResult(payload);
         }
 
@@ -326,7 +220,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             var customGameData = args.GameData.CustomGameData as SurvivalCustomData;
             var gameData = args.GameData;
             var game = args.Game;
-            if (customGameData.Points == null) return;
+            var mapFilename = args.Metadata.CustomMapConfig.Filename;
+            if (customGameData.Points == null || String.IsNullOrEmpty(mapFilename)) return;
 
             // apply stats
             foreach (var accountId in args.PlayerCustomStats.Keys)
@@ -337,7 +232,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 var points = customGameData.Points[gameIdx];
 
                 int? xpStatIndex = null;
-                if (_survivalMapToXpStatIndex.TryGetValue((CustomMapId)args.Metadata.GameConfig.MapOverride, out var xpStat))
+                if (_survivalMapToXpStatIndex.TryGetValue(mapFilename, out var xpStat))
                     xpStatIndex = (int?)xpStat;
 
                 if (xpStatIndex.HasValue)
@@ -392,16 +287,16 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 var coop = game.AccountIdsAtStart.Contains(',');
                 if (coop)
                 {
-                    if (_survivalMapToCoopHighScoreStatIndex.TryGetValue((CustomMapId)args.Metadata.GameConfig.MapOverride, out var customStatId))
+                    if (_survivalMapToCoopHighScoreStatIndex.TryGetValue(mapFilename, out var customStatId))
                         statIndex = (int)customStatId;
-                    if (_survivalMapToCoop50BestTimeStatIndex.TryGetValue((CustomMapId)args.Metadata.GameConfig.MapOverride, out var b50CustomStatId))
+                    if (_survivalMapToCoop50BestTimeStatIndex.TryGetValue(mapFilename, out var b50CustomStatId))
                         b50StatIndex = (int)b50CustomStatId;
                 }
                 else
                 {
-                    if (_survivalMapToSoloHighScoreStatIndex.TryGetValue((CustomMapId)args.Metadata.GameConfig.MapOverride, out var customStatId))
+                    if (_survivalMapToSoloHighScoreStatIndex.TryGetValue(mapFilename, out var customStatId))
                         statIndex = (int)customStatId;
-                    if (_survivalMapToSolo50BestTimeStatIndex.TryGetValue((CustomMapId)args.Metadata.GameConfig.MapOverride, out var b50CustomStatId))
+                    if (_survivalMapToSolo50BestTimeStatIndex.TryGetValue(mapFilename, out var b50CustomStatId))
                         b50StatIndex = (int)b50CustomStatId;
                 }
 
@@ -692,90 +587,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                         Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, $"Unsupported survival data version {Version}");
                         break;
                     }
-            }
-        }
-    }
-
-    public class SurvivalConfig
-    {
-        public const uint Offset = 0x48;
-
-        public class BakedSpawnpoint
-        {
-            public enum TypeId
-            {
-                None = 0,
-                Upgrade = 1,
-                PlayerStart = 2,
-                MysteryBox = 3,
-                DemonBell = 4,
-            };
-
-            public TypeId Type { get; set; }
-            public int Params { get; set; }
-            public float PositionX { get; set; }
-            public float PositionY { get; set; }
-            public float PositionZ { get; set; }
-            public float RotationX { get; set; }
-            public float RotationY { get; set; }
-            public float RotationZ { get; set; }
-
-            public BakedSpawnpoint() { }
-
-            public BakedSpawnpoint(TypeId type, int @params, float positionX, float positionY, float positionZ, float rotationX, float rotationY, float rotationZ)
-            {
-                Type = type;
-                Params = @params;
-                PositionX = positionX;
-                PositionY = positionY;
-                PositionZ = positionZ;
-                RotationX = rotationX;
-                RotationY = rotationY;
-                RotationZ = rotationZ;
-            }
-        }
-
-        public CustomMapId CustomMapId { get; }
-        public float Difficulty { get; set; }
-        public List<BakedSpawnpoint> BakedSpawnpoints { get; set; }
-
-        public SurvivalConfig(CustomMapId mapId)
-        {
-            CustomMapId = mapId;
-        }
-
-        public void Serialize(BinaryWriter writer)
-        {
-            writer.BaseStream.Seek(Offset, SeekOrigin.Begin);
-
-            writer.Write(Difficulty);
-
-            // write 32 baked spawnpoints
-            for (int i = 0; i < 32; ++i)
-            {
-                var bakedSp = BakedSpawnpoints?.ElementAtOrDefault(i);
-                if (bakedSp != null)
-                {
-                    writer.Write((int)bakedSp.Type);
-                    writer.Write((int)bakedSp.Params);
-                    writer.Write(bakedSp.PositionX);
-                    writer.Write(bakedSp.PositionY);
-                    writer.Write(bakedSp.PositionZ);
-                    writer.Write(bakedSp.RotationX);
-                    writer.Write(bakedSp.RotationY);
-                    writer.Write(bakedSp.RotationZ);
-                }
-                else
-                {
-                    writer.Write((int)BakedSpawnpoint.TypeId.None);
-                    writer.Write(0);
-                    writer.Write(0);
-                    writer.Write(0);
-                    writer.Write(0);
-                    writer.Write(0);
-                    writer.Write(0);
-                    writer.Write(0);
-                }
             }
         }
     }

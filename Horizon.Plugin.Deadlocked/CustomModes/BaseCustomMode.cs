@@ -163,6 +163,11 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             return Task.CompletedTask;
         }
 
+        public virtual sbyte GetModuleArg2(Server.Medius.Models.Game game, GameMetadata metadata)
+        {
+            return 0;
+        }
+
         public virtual sbyte GetModuleArg3(Server.Medius.Models.Game game, GameMetadata metadata)
         {
             return 0;

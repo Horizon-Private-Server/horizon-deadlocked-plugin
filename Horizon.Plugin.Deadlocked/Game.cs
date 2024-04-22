@@ -50,8 +50,7 @@ namespace Horizon.Plugin.Deadlocked
                 }
 
                 // send custom map override
-                var map = Maps.FindCustomMapById((CustomMapId)metadata.GameConfig.MapOverride);
-                await Maps.SendMapOverride(gameClient.Client, map);
+                await Maps.SendMapOverride(gameClient.Client, metadata.CustomMapConfig);
             });
 
             await Task.WhenAll(tasks);
@@ -65,7 +64,7 @@ namespace Horizon.Plugin.Deadlocked
 
             // send custom ranks
             var msg = new SetNameOverridesMessage();
-            var customMode = Modes.FindCustomModeById(metadata.GameConfig.GetRealCustomModeId());
+            var customMode = Modes.FindCustomModeById(metadata.GetRealCustomModeId());
             if (customMode != null)
             {
                 for (int i = 0; i < game.Clients.Count; ++i)
@@ -88,7 +87,7 @@ namespace Horizon.Plugin.Deadlocked
 
             // send custom ranks
             var setRanksMessage = new SetPlayerRanksMessage();
-            var customMode = Modes.FindCustomModeById(metadata.GameConfig.GetRealCustomModeId());
+            var customMode = Modes.FindCustomModeById(metadata.GetRealCustomModeId());
             if (customMode != null)
             {
                 for (int i = 0; i < game.Clients.Count; ++i)
@@ -118,10 +117,9 @@ namespace Horizon.Plugin.Deadlocked
             var metadata = await GetGameMetadata(game);
 
             // send custom map override
-            var map = Maps.FindCustomMapById((CustomMapId)metadata.GameConfig.MapOverride);
             foreach (var gameClient in game.Clients)
             {
-                await Maps.SendMapOverride(gameClient.Client, map);
+                await Maps.SendMapOverride(gameClient.Client, metadata.CustomMapConfig);
             }
         }
 
@@ -134,8 +132,7 @@ namespace Horizon.Plugin.Deadlocked
             var metadata = await GetGameMetadata(game);
 
             // send custom map override
-            var map = Maps.FindCustomMapById((CustomMapId)metadata.GameConfig.MapOverride);
-            await Maps.SendMapOverride(client, map);
+            await Maps.SendMapOverride(client, metadata.CustomMapConfig);
         }
 
         public static async Task PlayerJoined(ClientObject client, Server.Medius.Models.Game game)
@@ -143,8 +140,7 @@ namespace Horizon.Plugin.Deadlocked
             var metadata = await GetGameMetadata(game);
 
             // send map override on join
-            var map = Maps.FindCustomMapById((CustomMapId)metadata.GameConfig.MapOverride);
-            await Maps.SendMapOverride(client, map);
+            await Maps.SendMapOverride(client, metadata.CustomMapConfig);
 
             // send global maps version
             await Maps.SendMapVersion(client);
@@ -202,7 +198,7 @@ namespace Horizon.Plugin.Deadlocked
             }
 
             // pass to gamemode
-            var mode = Modes.FindCustomModeById(metadata.GameConfig.GetRealCustomModeId());
+            var mode = Modes.FindCustomModeById(metadata.GetRealCustomModeId());
             if (mode != null)
             {
                 await mode.OnClientPostWideStats(args);
@@ -261,30 +257,28 @@ namespace Horizon.Plugin.Deadlocked
             return await SetGameMetadata(game, metadata);
         }
 
-        public static async Task<bool> SetGameConfig(Server.Medius.Models.Game game, GameConfig config)
+        public static async Task<bool> SetGameConfig(Server.Medius.Models.Game game, GameConfig config, GameCustomMapConfig mapConfig)
         {
             var metadata = await GetGameMetadata(game);
 
             // if no change, return false
-            if (metadata.GameConfig.SameAs(config))
+            if (metadata.GameConfig.SameAs(config) && metadata.CustomMapConfig.SameAs(mapConfig))
                 return false;
-
-            var modeChanged = config.GamemodeOverride != metadata.GameConfig.GamemodeOverride;
 
             // update
             metadata.GameConfig = config;
+            metadata.CustomMapConfig = mapConfig ?? new GameCustomMapConfig();
 
             // force mode to maps custom mode
             // or 0 if map mode is selected on unsupported map
-            var map = Maps.FindCustomMapById((CustomMapId)config.MapOverride);
-            if (map != null && map.ModeId.HasValue)
-                config.GamemodeOverride = (sbyte)map.ModeId.Value;
+            if (mapConfig != null && mapConfig.ForcedModeId != 0)
+                config.GamemodeOverride = (sbyte)mapConfig.ForcedModeId;
             else if (config.GamemodeOverride < 0)
                 config.GamemodeOverride = 0;
 
             // update other metadata
-            metadata.CustomMap = Maps.FindCustomMapById((CustomMapId)metadata.GameConfig.MapOverride)?.MapName;
-            metadata.CustomGameMode = Modes.FindCustomModeById(metadata.GameConfig.GetRealCustomModeId())?.Name;
+            metadata.CustomMap = String.IsNullOrEmpty(metadata.CustomMapConfig.Name) ? null : metadata.CustomMapConfig.Name;
+            metadata.CustomGameMode = Modes.FindCustomModeById(metadata.GetRealCustomModeId())?.Name;
             metadata.Weather = metadata.GameConfig.WeatherOverride.ToString();
             metadata.GameInfo = await GetGameInfo(game, metadata);
 
@@ -354,13 +348,12 @@ namespace Horizon.Plugin.Deadlocked
             {
                 Type = PatchModuleEntryType.DISABLED,
                 ModeId = 0,
-                MapId = 0,
+                Arg2 = 0,
                 Arg3 = 0,
             }.Serialize()));
 
             // parse gamemode
-            var mode = Modes.FindCustomModeById(metadata.GameConfig.GetRealCustomModeId());
-            var map = Maps.FindCustomMapById((CustomMapId)metadata.GameConfig.MapOverride);
+            var mode = Modes.FindCustomModeById(metadata.GetRealCustomModeId());
 
             if (mode != null)
             {
@@ -375,7 +368,7 @@ namespace Horizon.Plugin.Deadlocked
                     {
                         Type = PatchModuleEntryType.RUN_ONCE_GAME,
                         ModeId = (sbyte)mode.Id,
-                        MapId = (sbyte)metadata.GameConfig.MapOverride,
+                        Arg2 = mode.GetModuleArg2(game, metadata),
                         Arg3 = mode.GetModuleArg3(game, metadata),
                         GameEntrypoint = modePayload.Address,
                         LobbyEntrypoint = modePayload.Address + 8,
@@ -395,7 +388,7 @@ namespace Horizon.Plugin.Deadlocked
         {
             var metadata = await GetGameMetadata(game);
 
-            var mode = Modes.FindCustomModeById(metadata.GameConfig.GetRealCustomModeId());
+            var mode = Modes.FindCustomModeById(metadata.GetRealCustomModeId());
             if (mode != null)
                 await mode.OnGameStart(game, metadata);
 
@@ -441,7 +434,7 @@ namespace Horizon.Plugin.Deadlocked
                 try
                 {
                     // pass to gamemode
-                    var mode = Modes.FindCustomModeById(metadata.GameConfig.GetRealCustomModeId());
+                    var mode = Modes.FindCustomModeById(metadata.GetRealCustomModeId());
                     if (mode != null)
                         playerCustomStats = await mode.OnGameEnd(game, metadata);
 
@@ -490,7 +483,7 @@ namespace Horizon.Plugin.Deadlocked
             string gameInfo = null;
 
             // let custom game mode override the gameinfo string
-            var mode = Modes.FindCustomModeById(metadata.GameConfig.GetRealCustomModeId());
+            var mode = Modes.FindCustomModeById(metadata.GetRealCustomModeId());
             if (mode != null)
             {
                 gameInfo = await mode.GetGameInfo(game, metadata);
@@ -590,6 +583,7 @@ namespace Horizon.Plugin.Deadlocked
         public string GameInfo { get; set; }
         public int Location { get; set; }
         public GameConfig GameConfig { get; set; } = new GameConfig();
+        public GameCustomMapConfig CustomMapConfig { get; set; } = new GameCustomMapConfig();
         public GameState GameState { get; set; } = new GameState();
         public byte[] GameData { get; set; }
         public bool ReceivedGameData { get; set; }
@@ -602,6 +596,14 @@ namespace Horizon.Plugin.Deadlocked
 
         [NotMapped, JsonIgnore]
         public byte[] TempGameData { get; set; }
+
+        public CustomModeId GetRealCustomModeId()
+        {
+            if (CustomMapConfig.HasMap() && CustomMapConfig.ForcedModeId != 0)
+                return (CustomModeId)CustomMapConfig.ForcedModeId;
+
+            return (CustomModeId)GameConfig.GamemodeOverride;
+        }
     }
 
     public class GameStats
@@ -1033,9 +1035,60 @@ namespace Horizon.Plugin.Deadlocked
         }
     }
 
+    public class GameCustomMapConfig
+    {
+        public string Filename { get; set; }
+        public string Name { get; set; }
+        public int Version { get; set; }
+        public int BaseMapId { get; set; }
+        public int ForcedModeId { get; set; }
+        public int CustomModeExtraDataMask { get; set; }
+
+        public bool HasMap() => Filename != null && Filename.Any();
+
+        public byte[] Serialize()
+        {
+            byte[] output = new byte[64 + 32 + 4 + 4 + 4 + 4];
+            using (var ms = new MemoryStream(output, true))
+            {
+                using (var writer = new MessageWriter(ms))
+                {
+                    writer.Write(Version);
+                    writer.Write(BaseMapId);
+                    writer.Write(ForcedModeId);
+                    writer.Write(CustomModeExtraDataMask);
+                    writer.Write(Name, 32);
+                    writer.Write(Filename, 64);
+                }
+            }
+
+            return output;
+        }
+
+        public void Deserialize(MessageReader reader)
+        {
+            Version = reader.ReadInt32();
+            BaseMapId = reader.ReadInt32();
+            ForcedModeId = reader.ReadInt32();
+            CustomModeExtraDataMask = reader.ReadInt32();
+            Name = reader.ReadString(32);
+            Filename = reader.ReadString(64);
+        }
+
+        public bool SameAs(GameCustomMapConfig other)
+        {
+            return Filename == other.Filename
+                && Name == other.Name
+                && Version == other.Version
+                && BaseMapId == other.BaseMapId
+                && ForcedModeId == other.ForcedModeId
+                && CustomModeExtraDataMask == other.CustomModeExtraDataMask
+                ;
+        }
+    }
+
     public class GameConfig
     {
-        public byte MapOverride { get; set; }
         public sbyte GamemodeOverride { get; set; }
         public byte WeatherOverride { get; set; }
         public bool DisableWeaponPacks { get; set; }
@@ -1074,23 +1127,13 @@ namespace Horizon.Plugin.Deadlocked
 
         public bool HasDevRule() => Freecam;
 
-        public CustomModeId GetRealCustomModeId()
-        {
-            var map = Maps.FindCustomMapById((CustomMapId)MapOverride);
-            if (map != null && map.ModeId.HasValue)
-                return map.ModeId.Value;
-
-            return (CustomModeId)GamemodeOverride;
-        }
-
         public byte[] Serialize()
         {
-            byte[] output = new byte[35];
+            byte[] output = new byte[34];
             using (var ms = new MemoryStream(output, true))
             {
                 using (var writer = new BinaryWriter(ms))
                 {
-                    writer.Write(MapOverride);
                     writer.Write(GamemodeOverride);
                     writer.Write(WeatherOverride);
                     writer.Write(DisableWeaponPacks);
@@ -1134,7 +1177,6 @@ namespace Horizon.Plugin.Deadlocked
 
         public void Deserialize(BinaryReader reader)
         {
-            MapOverride = reader.ReadByte();
             GamemodeOverride = reader.ReadSByte();
             WeatherOverride = reader.ReadByte();
             DisableWeaponPacks = reader.ReadBoolean();
@@ -1174,8 +1216,7 @@ namespace Horizon.Plugin.Deadlocked
 
         public bool SameAs(GameConfig other)
         {
-            return MapOverride == other.MapOverride
-                && GamemodeOverride == other.GamemodeOverride
+            return GamemodeOverride == other.GamemodeOverride
                 && WeatherOverride == other.WeatherOverride
                 && DisableWeaponPacks == other.DisableWeaponPacks
                 && V2s == other.V2s

@@ -13,29 +13,21 @@ namespace Horizon.Plugin.Deadlocked.Messages
         public override byte CustomMsgId => 1;
         public override bool SkipEncryption { get => true; set { } }
 
-        public byte MapId { get; set; }
-        public byte LoadingMapId { get; set; }
-        public string MapName { get; set; }
-        public string MapFilename { get; set; }
+        public GameCustomMapConfig CustomMapConfig { get; set; } = new GameCustomMapConfig();
 
         public override void Deserialize(MessageReader reader)
         {
             base.Deserialize(reader);
 
-            MapId = reader.ReadByte();
-            LoadingMapId = reader.ReadByte();
-            MapName = reader.ReadString(32);
-            MapFilename = reader.ReadString(128);
+            CustomMapConfig = new GameCustomMapConfig();
+            CustomMapConfig.Deserialize(reader);
         }
 
         public override void Serialize(MessageWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write(MapId);
-            writer.Write(LoadingMapId);
-            writer.Write(MapName, 32);
-            writer.Write(MapFilename, 128);
+            writer.Write(CustomMapConfig.Serialize());
         }
     }
 }

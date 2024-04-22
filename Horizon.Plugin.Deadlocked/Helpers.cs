@@ -10,7 +10,7 @@ namespace Horizon.Plugin.Deadlocked
     public static class Helpers
     {
 
-        #region BinaryReader
+        #region MessageReader
 
         public static T[] ReadArray<T>(this MessageReader reader, int count)
         {
@@ -18,6 +18,24 @@ namespace Horizon.Plugin.Deadlocked
             for (int i = 0; i < count; ++i)
                 results[i] = reader.Read<T>();
             return results;
+        }
+
+        public static void Align(this MessageReader reader, int alignment)
+        {
+            long mod = reader.BaseStream.Position % alignment;
+            if (mod == 0) return;
+
+            // move forward to reach alignment
+            reader.ReadBytes(alignment - (int)mod);
+        }
+
+        public static void Align(this MessageWriter writer, int alignment)
+        {
+            long mod = writer.BaseStream.Position % alignment;
+            if (mod == 0) return;
+
+            // move forward to reach alignment
+            writer.Write(new byte[alignment - (int)mod]);
         }
 
         #endregion

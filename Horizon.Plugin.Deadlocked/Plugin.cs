@@ -98,7 +98,7 @@ namespace Horizon.Plugin.Deadlocked
                 }
             }
 
-            await Queue.Tick();
+            //await Queue.Tick();
         }
 
         Task OnPlayerLoggedIn(PluginEvent eventId, object data)
@@ -113,7 +113,7 @@ namespace Horizon.Plugin.Deadlocked
             {
                 await Downloader.OnPlayerLoggedIn(msg.Player);
                 await Patch.QueryForPatch(msg.Player);
-                await Queue.OnPlayerLoggedIn(msg.Player);
+                //await Queue.OnPlayerLoggedIn(msg.Player);
             });
 
             return Task.CompletedTask;
@@ -131,7 +131,7 @@ namespace Horizon.Plugin.Deadlocked
             {
                 await Downloader.OnPlayerLoggedOut(msg.Player);
                 await Player.OnPlayerLoggedOut(msg.Player);
-                await Queue.OnPlayerLoggedOut(msg.Player);
+                //await Queue.OnPlayerLoggedOut(msg.Player);
             });
 
             return Task.CompletedTask;
@@ -332,7 +332,7 @@ namespace Horizon.Plugin.Deadlocked
                             var metadata = await Game.GetGameMetadata(game);
                             if (metadata != null)
                             {
-                                var mode = Modes.FindCustomModeById(metadata.GameConfig.GetRealCustomModeId());
+                                var mode = Modes.FindCustomModeById(metadata.GetRealCustomModeId());
                                 if (mode != null)
                                     await mode.OnRecvCustomMessage(msg.Player, customMsgId, reader);
                             }
@@ -354,7 +354,7 @@ namespace Horizon.Plugin.Deadlocked
                                     var request = new SetMapOverrideResponseMessage();
                                     request.Deserialize(reader);
 
-                                    await Player.SetPlayerMapVersion(msg.Player, request.MapId, request.ClientMapVersion);
+                                    await Player.SetPlayerMapVersion(msg.Player, request.MapFilename, request.ClientMapVersion);
                                     break;
                                 }
                             case 5: // game started
@@ -384,7 +384,7 @@ namespace Horizon.Plugin.Deadlocked
                                         request.Deserialize(reader);
 
                                         // try to update game config
-                                        if (await Game.SetGameConfig(msg.Player.CurrentGame, request.Config))
+                                        if (await Game.SetGameConfig(msg.Player.CurrentGame, request.Config, request.CustomMapConfig))
                                         {
                                             // send new game config to other players in lobby
                                             await Game.BroadcastGameConfig(msg.Player.CurrentGame);
@@ -436,14 +436,14 @@ namespace Horizon.Plugin.Deadlocked
                                 }
                             case 22: // player request enter queue
                                 {
-                                    var request = new QueueBeginRequestMessage();
-                                    request.Deserialize(reader);
-                                    await Queue.OnQueueRequest(msg.Player, request.QueueId);
+                                    //var request = new QueueBeginRequestMessage();
+                                    //request.Deserialize(reader);
+                                    //await Queue.OnQueueRequest(msg.Player, request.QueueId);
                                     break;
                                 }
                             case 24: // player request queue information
                                 {
-                                    await Queue.OnGetMyQueue(msg.Player);
+                                    //await Queue.OnGetMyQueue(msg.Player);
                                     break;
                                 }
                             case 29: // player cast vote
@@ -451,8 +451,8 @@ namespace Horizon.Plugin.Deadlocked
                                     var request = new VoteRequestMessage();
                                     request.Deserialize(reader);
                                     var game = msg.Player.CurrentGame;
-                                    if (game is CompGame compGame)
-                                        await compGame.Vote(msg.Player, request);
+                                    //if (game is CompGame compGame)
+                                    //    await compGame.Vote(msg.Player, request);
                                     break;
                                 }
                             case 36: // client wants custom mode payload
@@ -555,7 +555,8 @@ namespace Horizon.Plugin.Deadlocked
                                 {
                                     var request = new NameChangeRequestMessage();
                                     request.Deserialize(reader);
-                                    var success = await Queue.ChangePlayerName(msg.Player, request.Name);
+                                    //var success = await Queue.ChangePlayerName(msg.Player, request.Name);
+                                    var success = false;
                                     msg.Player.Queue(new NameChangeResponseMessage() { Success = success });
                                     break;
                                 }

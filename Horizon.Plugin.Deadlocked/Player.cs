@@ -15,30 +15,29 @@ namespace Horizon.Plugin.Deadlocked
     {
         private static Dictionary<int, PlayerExtraInfo> _playerExtraInfos = new Dictionary<int, PlayerExtraInfo>();
 
-        public static async Task SetPlayerMapVersion(ClientObject client, int mapId, int mapVersion)
+        public static async Task SetPlayerMapVersion(ClientObject client, string mapFilename, int mapVersion)
         {
             var game = client.CurrentGame;
             if (game == null)
                 return;
 
             var gameMetadata = await Game.GetGameMetadata(game);
-            if (gameMetadata.GameConfig.MapOverride != mapId) return;
+            if (gameMetadata.CustomMapConfig?.Filename != mapFilename) return;
 
             var extraInfo = GetPlayerExtraInfo(client.AccountId);
             extraInfo.CurrentMapVersion = mapVersion;
 
-            var map = Maps.FindCustomMapById((CustomMapId)gameMetadata.GameConfig.MapOverride);
-            if (map != null)
+            if (gameMetadata.CustomMapConfig.HasMap())
             {
                 if (mapVersion == -1)
                 {
                     // maps no enabled
                     client.CurrentChannel.BroadcastSystemMessage(client.CurrentChannel.Clients, $"A{client.AccountName} does not have custom maps enabled");
                 }
-                else if (mapVersion == -2 && map != null)
+                else if (mapVersion == -2)
                 {
                     // player doesn't have map
-                    client.CurrentChannel.BroadcastSystemMessage(client.CurrentChannel.Clients, $"A{client.AccountName} does not have {map.MapName}");
+                    client.CurrentChannel.BroadcastSystemMessage(client.CurrentChannel.Clients, $"A{client.AccountName} does not have {gameMetadata.CustomMapConfig.Name}");
                 }
                 else if (mapVersion > 0)
                 {
@@ -64,7 +63,7 @@ namespace Horizon.Plugin.Deadlocked
                             var playerMapVersion = GetPlayerExtraInfo(gameClient.Client.AccountId)?.CurrentMapVersion ?? 0;
                             if (playerMapVersion > 0 && playerMapVersion < highestVersion)
                             {
-                                gameClient.Client.CurrentChannel.BroadcastSystemMessage(gameClient.Client.CurrentChannel.Clients, $"A{gameClient.Client.AccountName} has an old version of {map.MapName} (v{playerMapVersion} of v{highestVersion})");
+                                gameClient.Client.CurrentChannel.BroadcastSystemMessage(gameClient.Client.CurrentChannel.Clients, $"A{gameClient.Client.AccountName} has an old version of {gameMetadata.CustomMapConfig.Name} (v{playerMapVersion} of v{highestVersion})");
                             }
                         }
                     }

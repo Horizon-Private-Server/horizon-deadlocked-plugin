@@ -47,7 +47,6 @@ namespace Horizon.Plugin.Deadlocked
         CMODE_ID_SURVIVAL,
         CMODE_ID_TEAM_DEFENDER,
         CMODE_ID_TRAINING,
-        CMODE_ID_BENCHMARK,
         CMODE_ID_HNS,
         CMODE_ID_GRIDIRON,
         CMODE_ID_ANIM_EXTRACTOR,
@@ -57,7 +56,7 @@ namespace Horizon.Plugin.Deadlocked
         CMODE_ID_SPLEEF = -2,
         CMODE_ID_HOVERBIKE_RACE = -3,
         CMODE_ID_INFINITE_CLIMBER = -4,
-
+        CMODE_ID_BENCHMARK = -5,
     }
 
 }

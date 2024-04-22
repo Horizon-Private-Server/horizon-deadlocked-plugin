@@ -103,198 +103,198 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 Node2SpawnPoint   = new float[] { 729.700f, 564.980f, 101.580f, 0.000f },
                 PackSpawnPoint    = new float[] { 637.640f, 358.010f, 102.650f, 0.000f },
             },
-            new SNDConfig(CustomMapId.CMAP_ID_ANNIHILATION_NATION) // Annihilation nation
-            {
-                DefendSpawnPoint  = new float[] { 472.008f, 489.567f, 432.281f, -0.573f },
-                AttackSpawnPoint  = new float[] { 462.049f, 244.455f, 426.050f, 1.595f },
-                Node1SpawnPoint   = new float[] { 501.018f, 391.978f, 429.453f, 0.000f },
-                Node2SpawnPoint   = new float[] { 436.030f, 424.331f, 432.344f, 0.000f },
-                PackSpawnPoint    = new float[] { 461.757f, 278.486f, 425.778f, 0.000f },
-            },
-            new SNDConfig(CustomMapId.CMAP_ID_BAKISI_ISLES) // Bakisi
-            {
-                DefendSpawnPoint  = new float[] { 163.26f, 374.4901f, 200.4458f, -0.7855f },
-                AttackSpawnPoint  = new float[] { 341.9801f, 287.8101f, 200.0726f, 2.2823f },
-                Node1SpawnPoint   = new float[] { 219.21f, 254.28f, 200.6407f, 0.000f },
-                Node2SpawnPoint   = new float[] { 262.5701f, 408.7101f, 200.6939f, 0.000f },
-                PackSpawnPoint    = new float[] { 338.69f, 291.63f, 200.0726f, 0.000f },
-            },
-            new SNDConfig(CustomMapId.CMAP_ID_BDOME_SP) // Battledome SP
-            {
-                DefendSpawnPoint  = new float[] { 748.610f, 655.027f, 519.344f, 2.327f },
-                AttackSpawnPoint  = new float[] { 880.352f, 524.907f, 500.361f, 2.372f },
-                Node1SpawnPoint   = new float[] { 716.010f, 557.730f, 500.500f, 0.000f },
-                Node2SpawnPoint   = new float[] { 684.981f, 780.414f, 500.361f, 0.000f },
-                PackSpawnPoint    = new float[] { 869.790f, 531.416f, 500.400f, 0.000f },
-            },
-            new SNDConfig(CustomMapId.CMAP_ID_BLACKWATER_CITY) // Blackwater city
-            {
-                DefendSpawnPoint  = new float[] { 219.389f, 385.107f, 82.594f, -1.571f },
-                AttackSpawnPoint  = new float[] { 219.389f, 148.362f, 82.641f, 1.571f },
-                Node1SpawnPoint   = new float[] { 177.960f, 348.583f, 97.291f, 0.000f },
-                Node2SpawnPoint   = new float[] { 261.390f, 348.583f, 97.291f, 0.000f },
-                PackSpawnPoint    = new float[] { 219.930f, 171.276f, 80.600f, 0.000f },
-            },
-            new SNDConfig(CustomMapId.CMAP_ID_BLACKWATER_DOCKS) // Blackwater docks
-            {
-                DefendSpawnPoint  = new float[] { 195.440f, 272.071f, 105.250f, -0.633f },
-                AttackSpawnPoint  = new float[] { 268.655f, 185.356f, 99.672f, 2.421f },
-                Node1SpawnPoint   = new float[] { 212.022f, 191.593f, 99.281f, 0.000f },
-                Node2SpawnPoint   = new float[] { 271.568f, 264.302f, 97.250f, 0.000f },
-                PackSpawnPoint    = new float[] { 263.924f, 189.667f, 99.729f, 0.000f },
-            },
-            new SNDConfig(CustomMapId.CMAP_ID_CANAL_CITY) // Canal City
-            {
-                DefendSpawnPoint  = new float[] { 341.57f, 324.27f, 50.00006f, -2.3561925f },
-                AttackSpawnPoint  = new float[] { 212.1801f, 116.3f, 50.12504f, 1.571f },
-                Node1SpawnPoint   = new float[] { 311.3901f, 224.7501f, 50.03131f, 0.000f },
-                Node2SpawnPoint   = new float[] { 264.44f, 342.22f, 62.00009f, 0.000f },
-                PackSpawnPoint    = new float[] { 212.1802f, 134.48f, 51.08156f, 0.000f },
-            },
-            new SNDConfig(CustomMapId.CMAP_ID_CONTAINMENT_SUITE) // Containment suite
-            {
-                DefendSpawnPoint  = new float[] { 202.610f, 480.593f, 125.844f, -0.976f },
-                AttackSpawnPoint  = new float[] { 331.222f, 424.861f, 125.156f, 3.141f },
-                Node1SpawnPoint   = new float[] { 246.262f, 426.687f, 125.969f, 0.000f },
-                Node2SpawnPoint   = new float[] { 219.610f, 378.513f, 125.969f, 0.000f },
-                PackSpawnPoint    = new float[] { 315.092f, 424.973f, 125.200f, 0.000f },
-            },
-            new SNDConfig(CustomMapId.CMAP_ID_DC_INTERIOR) // Containment suite
-            {
-                DefendSpawnPoint  = new float[] { 202.610f, 480.593f, 125.844f, -0.976f },
-                AttackSpawnPoint  = new float[] { 331.222f, 424.861f, 125.156f, 3.141f },
-                Node1SpawnPoint   = new float[] { 246.262f, 426.687f, 125.969f, 0.000f },
-                Node2SpawnPoint   = new float[] { 219.610f, 378.513f, 125.969f, 0.000f },
-                PackSpawnPoint    = new float[] { 315.092f, 424.973f, 125.200f, 0.000f },
-            },
-            //new SNDConfig(CustomMapId.CMAP_ID_DESERT_PRISON) // Desert prison
+            //new SNDConfig(CustomMapId.CMAP_ID_ANNIHILATION_NATION) // Annihilation nation
             //{
-            //    DefendSpawnPoint  = new float[] { 606.760f, 654.048f, 102.450f, -2.821f },
-            //    AttackSpawnPoint  = new float[] { 453.420f, 596.346f, 102.153f, 0.530f },
-            //    Node1SpawnPoint   = new float[] { 486.043f, 707.050f, 108.797f, 0.000f },
-            //    Node2SpawnPoint   = new float[] { 537.053f, 499.883f, 101.109f, 0.000f },
-            //    PackSpawnPoint    = new float[] { 464.699f, 602.947f, 101.001f, 0.000f },
+            //    DefendSpawnPoint  = new float[] { 472.008f, 489.567f, 432.281f, -0.573f },
+            //    AttackSpawnPoint  = new float[] { 462.049f, 244.455f, 426.050f, 1.595f },
+            //    Node1SpawnPoint   = new float[] { 501.018f, 391.978f, 429.453f, 0.000f },
+            //    Node2SpawnPoint   = new float[] { 436.030f, 424.331f, 432.344f, 0.000f },
+            //    PackSpawnPoint    = new float[] { 461.757f, 278.486f, 425.778f, 0.000f },
             //},
-            new SNDConfig(CustomMapId.CMAP_ID_GHOST_HANGAR) // Ghost hangar
-            {
-                DefendSpawnPoint  = new float[] { 115.18f, 645.26f, 112.69f, 0.000f },
-                AttackSpawnPoint  = new float[] { 312.92f, 679.34f, 101.655f, 3.141f },
-                Node1SpawnPoint   = new float[] { 189.65f, 679.2198f, 102.5422f, 0.000f },
-                Node2SpawnPoint   = new float[] { 273.582f, 593.5201f, 107.9468f, 0.000f },
-                PackSpawnPoint    = new float[] { 303.33f, 679.34f, 101.655f, 0.000f },
-            },
-            new SNDConfig(CustomMapId.CMAP_ID_GHOST_SHIP) // Ghost ship
-            {
-                DefendSpawnPoint  = new float[] { 73.775f, 876.340f, 360.328f, 0.000f },
-                AttackSpawnPoint  = new float[] { 273.307f, 875.010f, 364.000f, 3.141f },
-                Node1SpawnPoint   = new float[] { 158.848f, 702.583f, 382.156f, 0.000f },
-                Node2SpawnPoint   = new float[] { 158.845f, 954.512f, 363.672f, 0.000f },
-                PackSpawnPoint    = new float[] { 258.772f, 874.934f, 364.191f, 0.000f },
-            },
-            new SNDConfig(CustomMapId.CMAP_ID_HOVEN_GORGE) // Hoven
-            {
-                DefendSpawnPoint  = new float[] { 357.103f, 353.035f, 67.781f, -2.279f },
-                AttackSpawnPoint  = new float[] { 164.648f, 257.566f, 66.158f, 0.000f },
-                Node1SpawnPoint   = new float[] { 312.1f, 345f, 66.86f, 0.000f },
-                Node2SpawnPoint   = new float[] { 290.515f, 207.614f, 73.390f, 0.000f },
-                PackSpawnPoint    = new float[] { 177.378f, 258.349f, 65.944f, 0.000f },
-            },
-            new SNDConfig(CustomMapId.CMAP_ID_KORGON_OUTPOST) // Korgon outpost
-            {
-                DefendSpawnPoint  = new float[] { 203.545f, 344.146f, 97.734f, -0.166f },
-                AttackSpawnPoint  = new float[] { 442.846f, 343.799f, 97.734f, -2.909f },
-                Node1SpawnPoint   = new float[] { 322.487f, 434.59f, 95.832f, 0.000f },
-                Node2SpawnPoint   = new float[] { 322.58f, 368.14f, 95.959f, 0.000f },
-                PackSpawnPoint    = new float[] { 431.093f, 338.332f, 96.020f, 0.000f },
-            },
-            new SNDConfig(CustomMapId.CMAP_ID_LAUNCH_SITE) // Launch site
-            {
-                DefendSpawnPoint  = new float[] { 147.411f, 291.763f, 202.500f, -0.218f },
-                AttackSpawnPoint  = new float[] { 385.836f, 180.145f, 201.859f, 2.386f },
-                Node1SpawnPoint   = new float[] { 191.903f, 178.414f, 201.879f, 0.000f },
-                Node2SpawnPoint   = new float[] { 306.137f, 382.373f, 201.828f, 0.000f },
-                PackSpawnPoint    = new float[] { 378.781f, 187.813f, 201.866f, 0.000f },
-            },
-            new SNDConfig(CustomMapId.CMAP_ID_MARCADIA_PALACE) // Marcadia palace
-            {
-                DefendSpawnPoint  = new float[] { 419.010f, 843.821f, 115.050f, 0.512f },
-                AttackSpawnPoint  = new float[] { 538.153f, 843.369f, 115.015f, 2.590f },
-                Node1SpawnPoint   = new float[] { 478.400f, 888.289f, 118.656f, 0.000f },
-                Node2SpawnPoint   = new float[] { 0.000f, 0.000f, 0.000f, 0.000f },
-                PackSpawnPoint    = new float[] { 531.523f, 847.596f, 115.828f, 0.000f },
-            },
-            new SNDConfig(CustomMapId.CMAP_ID_METROPOLIS_MP) // Metropolis
-            {
-                DefendSpawnPoint  = new float[] { 775.194f, 456.652f, 337.265f, -1.468f },
-                AttackSpawnPoint  = new float[] { 735.455f, 221.783f, 337.265f, 1.616f },
-                Node1SpawnPoint   = new float[] { 649.448f, 380.975f, 362.393f, 0.000f },
-                Node2SpawnPoint   = new float[] { 861.380f, 297.120f, 362.393f, 0.000f },
-                PackSpawnPoint    = new float[] { 734.887f, 234.810f, 335.359f, 0.000f },
-            },
-            new SNDConfig(CustomMapId.CMAP_ID_MF_SP) // Mining Facility SP
-            {
-                DefendSpawnPoint  = new float[] { 332.275f, 545.239f, 434.000f, -0.012f },
-                AttackSpawnPoint  = new float[] { 616.914f, 654.052f, 427.344f, 3.117f },
-                Node1SpawnPoint   = new float[] { 502.907f, 599.960f, 434.000f, 0.000f },
-                Node2SpawnPoint   = new float[] { 523.754f, 516.618f, 427.343f, 0.000f },
-                PackSpawnPoint    = new float[] { 604.955f, 654.342f, 427.344f, 0.000f },
-            },
-            //new SNDConfig(CustomMapId.CMAP_ID_SARATHOS_SP) // Sarathos SP
+            //new SNDConfig(CustomMapId.CMAP_ID_BAKISI_ISLES) // Bakisi
             //{
-            //    DefendSpawnPoint  = new float[] { 268.386f, 122.752f, 103.479f, 0.800f },
-            //    AttackSpawnPoint  = new float[] { 519.269f, 396.575f, 106.727f, -1.351f },
-            //    Node1SpawnPoint   = new float[] { 428.368f, 239.646f, 106.613f, 0.000f },
-            //    Node2SpawnPoint   = new float[] { 411.456f, 143.924f, 105.344f, 0.000f },
-            //    PackSpawnPoint    = new float[] { 526.056f, 370.259f, 107.271f, 0.000f },
+            //    DefendSpawnPoint  = new float[] { 163.26f, 374.4901f, 200.4458f, -0.7855f },
+            //    AttackSpawnPoint  = new float[] { 341.9801f, 287.8101f, 200.0726f, 2.2823f },
+            //    Node1SpawnPoint   = new float[] { 219.21f, 254.28f, 200.6407f, 0.000f },
+            //    Node2SpawnPoint   = new float[] { 262.5701f, 408.7101f, 200.6939f, 0.000f },
+            //    PackSpawnPoint    = new float[] { 338.69f, 291.63f, 200.0726f, 0.000f },
             //},
-            new SNDConfig(CustomMapId.CMAP_ID_SHAAR_SP) // Shaar SP
-            {
-                DefendSpawnPoint  = new float[] { 453.367f, 683.798f, 515.469f, -1.392f },
-                AttackSpawnPoint  = new float[] { 629.879f, 555.042f, 509.297f, 2.599f },
-                Node1SpawnPoint   = new float[] { 512.27f, 677.51f, 509.31f, 0.000f },
-                Node2SpawnPoint   = new float[] { 483.35f, 521.87f, 503.74f, 0.000f },
-                PackSpawnPoint    = new float[] { 617.215f, 562.665f, 509.297f, 0.000f },
-            },
-            new SNDConfig(CustomMapId.CMAP_ID_SNIVELAK) // Snivelak
-            {
-                DefendSpawnPoint  = new float[] { 698.72f, 569.64f, 99.99921f, 3.141f },
-                AttackSpawnPoint  = new float[] { 558.73f, 389.26f, 99.99911f, 1.571f },
-                Node1SpawnPoint   = new float[] { 559.9001f, 591.3f, 99.99915f, 0.000f },
-                Node2SpawnPoint   = new float[] { 689.94f, 431.24f, 99.99911f, 0.000f },
-                PackSpawnPoint    = new float[] { 558.73f, 397.61f, 99.99911f, 0.000f },
-            },
-            //new SNDConfig(CustomMapId.CMAP_ID_SHIPMENT) // Shipment
+            //new SNDConfig(CustomMapId.CMAP_ID_BDOME_SP) // Battledome SP
             //{
-            //    DefendSpawnPoint  = new float[] { 336.198f, 264.246f, 167.275f, 2.318f },
-            //    AttackSpawnPoint  = new float[] { 274.635f, 332.858f, 167.275f, -0.980f },
-            //    Node1SpawnPoint   = new float[] { 278.897f, 270.440f, 167.275f, 0.000f },
-            //    Node2SpawnPoint   = new float[] { 334.353f, 329.983f, 167.275f, 0.000f },
-            //    PackSpawnPoint    = new float[] { 279.740f, 324.940f, 267.275f, 0.000f },
+            //    DefendSpawnPoint  = new float[] { 748.610f, 655.027f, 519.344f, 2.327f },
+            //    AttackSpawnPoint  = new float[] { 880.352f, 524.907f, 500.361f, 2.372f },
+            //    Node1SpawnPoint   = new float[] { 716.010f, 557.730f, 500.500f, 0.000f },
+            //    Node2SpawnPoint   = new float[] { 684.981f, 780.414f, 500.361f, 0.000f },
+            //    PackSpawnPoint    = new float[] { 869.790f, 531.416f, 500.400f, 0.000f },
             //},
-            new SNDConfig(CustomMapId.CMAP_ID_TORVAL_LOST_FACTORY) // Torval Lost Factory
-            {
-                DefendSpawnPoint  = new float[] { 380.2001f, 733.1998f, 130.9217f, -1.571f },
-                AttackSpawnPoint  = new float[] { 267.2f, 375.4f, 130.8152f, 1.571f },
-                Node1SpawnPoint   = new float[] { 285.3f, 592.2f, 110.2302f, 0.000f },
-                Node2SpawnPoint   = new float[] { 382.9001f, 713.3998f, 130.4578f, 0.000f },
-                PackSpawnPoint    = new float[] { 267.1998f, 391f, 130.4634f, 0.000f },
-            },
-            new SNDConfig(CustomMapId.CMAP_ID_TORVAL_SP) // Torval SP
-            {
-                DefendSpawnPoint  = new float[] { 183.970f, 492.105f, 107.063f, -0.012f },
-                AttackSpawnPoint  = new float[] { 352.869f, 169.917f, 112.000f, 2.057f },
-                Node1SpawnPoint   = new float[] { 362.134f, 327.758f, 100.952f, 0.000f },
-                Node2SpawnPoint   = new float[] { 248.652f, 343.518f, 107.000f, 0.000f },
-                PackSpawnPoint    = new float[] { 348.572f, 175.970f, 112.005f, 0.000f },
-            },
-            new SNDConfig(CustomMapId.CMAP_ID_TYHRRANOSIS) // Tyhrranosis
-            {
-                DefendSpawnPoint  = new float[] { 878.29f, 590.92f, 100.597f, 2.6179f },
-                AttackSpawnPoint  = new float[] { 623.34f, 661.31f, 100.044f, 0.000f },
-                Node1SpawnPoint   = new float[] { 761.73f, 568.92f, 99.782f, 0.000f },
-                Node2SpawnPoint   = new float[] { 756.91f, 720.18f, 99.955f, 0.000f },
-                PackSpawnPoint    = new float[] { 633.04f, 660.28f, 100.044f, 0.000f },
-            }
+            //new SNDConfig(CustomMapId.CMAP_ID_BLACKWATER_CITY) // Blackwater city
+            //{
+            //    DefendSpawnPoint  = new float[] { 219.389f, 385.107f, 82.594f, -1.571f },
+            //    AttackSpawnPoint  = new float[] { 219.389f, 148.362f, 82.641f, 1.571f },
+            //    Node1SpawnPoint   = new float[] { 177.960f, 348.583f, 97.291f, 0.000f },
+            //    Node2SpawnPoint   = new float[] { 261.390f, 348.583f, 97.291f, 0.000f },
+            //    PackSpawnPoint    = new float[] { 219.930f, 171.276f, 80.600f, 0.000f },
+            //},
+            //new SNDConfig(CustomMapId.CMAP_ID_BLACKWATER_DOCKS) // Blackwater docks
+            //{
+            //    DefendSpawnPoint  = new float[] { 195.440f, 272.071f, 105.250f, -0.633f },
+            //    AttackSpawnPoint  = new float[] { 268.655f, 185.356f, 99.672f, 2.421f },
+            //    Node1SpawnPoint   = new float[] { 212.022f, 191.593f, 99.281f, 0.000f },
+            //    Node2SpawnPoint   = new float[] { 271.568f, 264.302f, 97.250f, 0.000f },
+            //    PackSpawnPoint    = new float[] { 263.924f, 189.667f, 99.729f, 0.000f },
+            //},
+            //new SNDConfig(CustomMapId.CMAP_ID_CANAL_CITY) // Canal City
+            //{
+            //    DefendSpawnPoint  = new float[] { 341.57f, 324.27f, 50.00006f, -2.3561925f },
+            //    AttackSpawnPoint  = new float[] { 212.1801f, 116.3f, 50.12504f, 1.571f },
+            //    Node1SpawnPoint   = new float[] { 311.3901f, 224.7501f, 50.03131f, 0.000f },
+            //    Node2SpawnPoint   = new float[] { 264.44f, 342.22f, 62.00009f, 0.000f },
+            //    PackSpawnPoint    = new float[] { 212.1802f, 134.48f, 51.08156f, 0.000f },
+            //},
+            //new SNDConfig(CustomMapId.CMAP_ID_CONTAINMENT_SUITE) // Containment suite
+            //{
+            //    DefendSpawnPoint  = new float[] { 202.610f, 480.593f, 125.844f, -0.976f },
+            //    AttackSpawnPoint  = new float[] { 331.222f, 424.861f, 125.156f, 3.141f },
+            //    Node1SpawnPoint   = new float[] { 246.262f, 426.687f, 125.969f, 0.000f },
+            //    Node2SpawnPoint   = new float[] { 219.610f, 378.513f, 125.969f, 0.000f },
+            //    PackSpawnPoint    = new float[] { 315.092f, 424.973f, 125.200f, 0.000f },
+            //},
+            //new SNDConfig(CustomMapId.CMAP_ID_DC_INTERIOR) // Containment suite
+            //{
+            //    DefendSpawnPoint  = new float[] { 202.610f, 480.593f, 125.844f, -0.976f },
+            //    AttackSpawnPoint  = new float[] { 331.222f, 424.861f, 125.156f, 3.141f },
+            //    Node1SpawnPoint   = new float[] { 246.262f, 426.687f, 125.969f, 0.000f },
+            //    Node2SpawnPoint   = new float[] { 219.610f, 378.513f, 125.969f, 0.000f },
+            //    PackSpawnPoint    = new float[] { 315.092f, 424.973f, 125.200f, 0.000f },
+            //},
+            ////new SNDConfig(CustomMapId.CMAP_ID_DESERT_PRISON) // Desert prison
+            ////{
+            ////    DefendSpawnPoint  = new float[] { 606.760f, 654.048f, 102.450f, -2.821f },
+            ////    AttackSpawnPoint  = new float[] { 453.420f, 596.346f, 102.153f, 0.530f },
+            ////    Node1SpawnPoint   = new float[] { 486.043f, 707.050f, 108.797f, 0.000f },
+            ////    Node2SpawnPoint   = new float[] { 537.053f, 499.883f, 101.109f, 0.000f },
+            ////    PackSpawnPoint    = new float[] { 464.699f, 602.947f, 101.001f, 0.000f },
+            ////},
+            //new SNDConfig(CustomMapId.CMAP_ID_GHOST_HANGAR) // Ghost hangar
+            //{
+            //    DefendSpawnPoint  = new float[] { 115.18f, 645.26f, 112.69f, 0.000f },
+            //    AttackSpawnPoint  = new float[] { 312.92f, 679.34f, 101.655f, 3.141f },
+            //    Node1SpawnPoint   = new float[] { 189.65f, 679.2198f, 102.5422f, 0.000f },
+            //    Node2SpawnPoint   = new float[] { 273.582f, 593.5201f, 107.9468f, 0.000f },
+            //    PackSpawnPoint    = new float[] { 303.33f, 679.34f, 101.655f, 0.000f },
+            //},
+            //new SNDConfig(CustomMapId.CMAP_ID_GHOST_SHIP) // Ghost ship
+            //{
+            //    DefendSpawnPoint  = new float[] { 73.775f, 876.340f, 360.328f, 0.000f },
+            //    AttackSpawnPoint  = new float[] { 273.307f, 875.010f, 364.000f, 3.141f },
+            //    Node1SpawnPoint   = new float[] { 158.848f, 702.583f, 382.156f, 0.000f },
+            //    Node2SpawnPoint   = new float[] { 158.845f, 954.512f, 363.672f, 0.000f },
+            //    PackSpawnPoint    = new float[] { 258.772f, 874.934f, 364.191f, 0.000f },
+            //},
+            //new SNDConfig(CustomMapId.CMAP_ID_HOVEN_GORGE) // Hoven
+            //{
+            //    DefendSpawnPoint  = new float[] { 357.103f, 353.035f, 67.781f, -2.279f },
+            //    AttackSpawnPoint  = new float[] { 164.648f, 257.566f, 66.158f, 0.000f },
+            //    Node1SpawnPoint   = new float[] { 312.1f, 345f, 66.86f, 0.000f },
+            //    Node2SpawnPoint   = new float[] { 290.515f, 207.614f, 73.390f, 0.000f },
+            //    PackSpawnPoint    = new float[] { 177.378f, 258.349f, 65.944f, 0.000f },
+            //},
+            //new SNDConfig(CustomMapId.CMAP_ID_KORGON_OUTPOST) // Korgon outpost
+            //{
+            //    DefendSpawnPoint  = new float[] { 203.545f, 344.146f, 97.734f, -0.166f },
+            //    AttackSpawnPoint  = new float[] { 442.846f, 343.799f, 97.734f, -2.909f },
+            //    Node1SpawnPoint   = new float[] { 322.487f, 434.59f, 95.832f, 0.000f },
+            //    Node2SpawnPoint   = new float[] { 322.58f, 368.14f, 95.959f, 0.000f },
+            //    PackSpawnPoint    = new float[] { 431.093f, 338.332f, 96.020f, 0.000f },
+            //},
+            //new SNDConfig(CustomMapId.CMAP_ID_LAUNCH_SITE) // Launch site
+            //{
+            //    DefendSpawnPoint  = new float[] { 147.411f, 291.763f, 202.500f, -0.218f },
+            //    AttackSpawnPoint  = new float[] { 385.836f, 180.145f, 201.859f, 2.386f },
+            //    Node1SpawnPoint   = new float[] { 191.903f, 178.414f, 201.879f, 0.000f },
+            //    Node2SpawnPoint   = new float[] { 306.137f, 382.373f, 201.828f, 0.000f },
+            //    PackSpawnPoint    = new float[] { 378.781f, 187.813f, 201.866f, 0.000f },
+            //},
+            //new SNDConfig(CustomMapId.CMAP_ID_MARCADIA_PALACE) // Marcadia palace
+            //{
+            //    DefendSpawnPoint  = new float[] { 419.010f, 843.821f, 115.050f, 0.512f },
+            //    AttackSpawnPoint  = new float[] { 538.153f, 843.369f, 115.015f, 2.590f },
+            //    Node1SpawnPoint   = new float[] { 478.400f, 888.289f, 118.656f, 0.000f },
+            //    Node2SpawnPoint   = new float[] { 0.000f, 0.000f, 0.000f, 0.000f },
+            //    PackSpawnPoint    = new float[] { 531.523f, 847.596f, 115.828f, 0.000f },
+            //},
+            //new SNDConfig(CustomMapId.CMAP_ID_METROPOLIS_MP) // Metropolis
+            //{
+            //    DefendSpawnPoint  = new float[] { 775.194f, 456.652f, 337.265f, -1.468f },
+            //    AttackSpawnPoint  = new float[] { 735.455f, 221.783f, 337.265f, 1.616f },
+            //    Node1SpawnPoint   = new float[] { 649.448f, 380.975f, 362.393f, 0.000f },
+            //    Node2SpawnPoint   = new float[] { 861.380f, 297.120f, 362.393f, 0.000f },
+            //    PackSpawnPoint    = new float[] { 734.887f, 234.810f, 335.359f, 0.000f },
+            //},
+            //new SNDConfig(CustomMapId.CMAP_ID_MF_SP) // Mining Facility SP
+            //{
+            //    DefendSpawnPoint  = new float[] { 332.275f, 545.239f, 434.000f, -0.012f },
+            //    AttackSpawnPoint  = new float[] { 616.914f, 654.052f, 427.344f, 3.117f },
+            //    Node1SpawnPoint   = new float[] { 502.907f, 599.960f, 434.000f, 0.000f },
+            //    Node2SpawnPoint   = new float[] { 523.754f, 516.618f, 427.343f, 0.000f },
+            //    PackSpawnPoint    = new float[] { 604.955f, 654.342f, 427.344f, 0.000f },
+            //},
+            ////new SNDConfig(CustomMapId.CMAP_ID_SARATHOS_SP) // Sarathos SP
+            ////{
+            ////    DefendSpawnPoint  = new float[] { 268.386f, 122.752f, 103.479f, 0.800f },
+            ////    AttackSpawnPoint  = new float[] { 519.269f, 396.575f, 106.727f, -1.351f },
+            ////    Node1SpawnPoint   = new float[] { 428.368f, 239.646f, 106.613f, 0.000f },
+            ////    Node2SpawnPoint   = new float[] { 411.456f, 143.924f, 105.344f, 0.000f },
+            ////    PackSpawnPoint    = new float[] { 526.056f, 370.259f, 107.271f, 0.000f },
+            ////},
+            //new SNDConfig(CustomMapId.CMAP_ID_SHAAR_SP) // Shaar SP
+            //{
+            //    DefendSpawnPoint  = new float[] { 453.367f, 683.798f, 515.469f, -1.392f },
+            //    AttackSpawnPoint  = new float[] { 629.879f, 555.042f, 509.297f, 2.599f },
+            //    Node1SpawnPoint   = new float[] { 512.27f, 677.51f, 509.31f, 0.000f },
+            //    Node2SpawnPoint   = new float[] { 483.35f, 521.87f, 503.74f, 0.000f },
+            //    PackSpawnPoint    = new float[] { 617.215f, 562.665f, 509.297f, 0.000f },
+            //},
+            //new SNDConfig(CustomMapId.CMAP_ID_SNIVELAK) // Snivelak
+            //{
+            //    DefendSpawnPoint  = new float[] { 698.72f, 569.64f, 99.99921f, 3.141f },
+            //    AttackSpawnPoint  = new float[] { 558.73f, 389.26f, 99.99911f, 1.571f },
+            //    Node1SpawnPoint   = new float[] { 559.9001f, 591.3f, 99.99915f, 0.000f },
+            //    Node2SpawnPoint   = new float[] { 689.94f, 431.24f, 99.99911f, 0.000f },
+            //    PackSpawnPoint    = new float[] { 558.73f, 397.61f, 99.99911f, 0.000f },
+            //},
+            ////new SNDConfig(CustomMapId.CMAP_ID_SHIPMENT) // Shipment
+            ////{
+            ////    DefendSpawnPoint  = new float[] { 336.198f, 264.246f, 167.275f, 2.318f },
+            ////    AttackSpawnPoint  = new float[] { 274.635f, 332.858f, 167.275f, -0.980f },
+            ////    Node1SpawnPoint   = new float[] { 278.897f, 270.440f, 167.275f, 0.000f },
+            ////    Node2SpawnPoint   = new float[] { 334.353f, 329.983f, 167.275f, 0.000f },
+            ////    PackSpawnPoint    = new float[] { 279.740f, 324.940f, 267.275f, 0.000f },
+            ////},
+            //new SNDConfig(CustomMapId.CMAP_ID_TORVAL_LOST_FACTORY) // Torval Lost Factory
+            //{
+            //    DefendSpawnPoint  = new float[] { 380.2001f, 733.1998f, 130.9217f, -1.571f },
+            //    AttackSpawnPoint  = new float[] { 267.2f, 375.4f, 130.8152f, 1.571f },
+            //    Node1SpawnPoint   = new float[] { 285.3f, 592.2f, 110.2302f, 0.000f },
+            //    Node2SpawnPoint   = new float[] { 382.9001f, 713.3998f, 130.4578f, 0.000f },
+            //    PackSpawnPoint    = new float[] { 267.1998f, 391f, 130.4634f, 0.000f },
+            //},
+            //new SNDConfig(CustomMapId.CMAP_ID_TORVAL_SP) // Torval SP
+            //{
+            //    DefendSpawnPoint  = new float[] { 183.970f, 492.105f, 107.063f, -0.012f },
+            //    AttackSpawnPoint  = new float[] { 352.869f, 169.917f, 112.000f, 2.057f },
+            //    Node1SpawnPoint   = new float[] { 362.134f, 327.758f, 100.952f, 0.000f },
+            //    Node2SpawnPoint   = new float[] { 248.652f, 343.518f, 107.000f, 0.000f },
+            //    PackSpawnPoint    = new float[] { 348.572f, 175.970f, 112.005f, 0.000f },
+            //},
+            //new SNDConfig(CustomMapId.CMAP_ID_TYHRRANOSIS) // Tyhrranosis
+            //{
+            //    DefendSpawnPoint  = new float[] { 878.29f, 590.92f, 100.597f, 2.6179f },
+            //    AttackSpawnPoint  = new float[] { 623.34f, 661.31f, 100.044f, 0.000f },
+            //    Node1SpawnPoint   = new float[] { 761.73f, 568.92f, 99.782f, 0.000f },
+            //    Node2SpawnPoint   = new float[] { 756.91f, 720.18f, 99.955f, 0.000f },
+            //    PackSpawnPoint    = new float[] { 633.04f, 660.28f, 100.044f, 0.000f },
+            //}
         };
 
         public override CustomModeId Id => CustomModeId.CMODE_ID_SEARCH_AND_DESTROY;
@@ -326,9 +326,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             var payload = new Payload(0x000F0000, File.ReadAllBytes(Path.Combine(Plugin.WorkingDirectory, "bin/patch/snd-11184.bin")));
 
             // find config by custom map then by regular map
-            var config = _configs.FirstOrDefault(x => x.CustomMapId == (CustomMapId)metadata.GameConfig.MapOverride);
-            if (config == null)
-                config = _configs.FirstOrDefault(x => x.MapId == game.GameLevel);
+            var config = _configs.FirstOrDefault(x => x.MapId == game.GameLevel);
 
             // insert config into payload
             if (config != null)
@@ -542,18 +540,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public const int RoundsToFlip = 3;
         public const int RoundTimelimit = 2 * 60;
 
-        public CustomMapId? CustomMapId { get; }
         public int? MapId { get; }
         public float[] DefendSpawnPoint { get; set; }
         public float[] AttackSpawnPoint { get; set; }
         public float[] Node1SpawnPoint { get; set; }
         public float[] Node2SpawnPoint { get; set; }
         public float[] PackSpawnPoint { get; set; }
-
-        public SNDConfig(CustomMapId mapId)
-        {
-            CustomMapId = mapId;
-        }
 
         public SNDConfig(int mapId)
         {

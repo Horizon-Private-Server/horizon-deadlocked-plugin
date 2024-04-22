@@ -360,7 +360,7 @@ namespace Horizon.Plugin.Deadlocked
     {
         public PatchModuleEntryType Type { get; set; }
         public sbyte ModeId { get; set; }
-        public sbyte MapId { get; set; }
+        public sbyte Arg2 { get; set; }
         public sbyte Arg3 { get; set; }
         public uint GameEntrypoint { get; set; }
         public uint LobbyEntrypoint { get; set; }
@@ -375,7 +375,7 @@ namespace Horizon.Plugin.Deadlocked
                 {
                     writer.Write((byte)Type);
                     writer.Write(ModeId);
-                    writer.Write(MapId);
+                    writer.Write(Arg2);
                     writer.Write(Arg3);
                     writer.Write(GameEntrypoint);
                     writer.Write(LobbyEntrypoint);
@@ -390,7 +390,7 @@ namespace Horizon.Plugin.Deadlocked
         {
             Type = reader.Read<PatchModuleEntryType>();
             ModeId = reader.ReadSByte();
-            MapId = reader.ReadSByte();
+            Arg2 = reader.ReadSByte();
             Arg3 = reader.ReadSByte();
             GameEntrypoint = reader.ReadUInt32();
             LobbyEntrypoint = reader.ReadUInt32();

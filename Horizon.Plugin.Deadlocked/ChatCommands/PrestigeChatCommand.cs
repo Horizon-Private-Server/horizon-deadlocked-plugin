@@ -19,7 +19,7 @@ namespace Horizon.Plugin.Deadlocked.ChatCommands
             var mode = new SurvivalCustomMode();
             var metadata = await Game.GetGameMetadata(source.CurrentGame);
             if (metadata == null) return;
-            if (metadata.GameConfig.GetRealCustomModeId() != CustomModeId.CMODE_ID_SURVIVAL) return;
+            if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_SURVIVAL) return;
 
             var prestiged = await mode.Prestige(source.CurrentGame, metadata, source);
 

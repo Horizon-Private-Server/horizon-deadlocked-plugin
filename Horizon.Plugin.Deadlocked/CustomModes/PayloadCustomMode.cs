@@ -33,7 +33,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             //new PayloadConfig(CustomMapId.CMAP_ID_DESERT_PRISON, "bin/payload/desert_prison_0.bin"),
             //new PayloadConfig(CustomMapId.CMAP_ID_DESERT_PRISON, "bin/payload/desert_prison_1.bin"),
             //new PayloadConfig(CustomMapId.CMAP_ID_DESERT_PRISON, "bin/payload/desert_prison_2.bin"),
-            new PayloadConfig(CustomMapId.CMAP_ID_SNIVELAK, "bin/payload/snivelak_0.bin"),
+            //new PayloadConfig(CustomMapId.CMAP_ID_SNIVELAK, "bin/payload/snivelak_0.bin"),
         };
 
         public override CustomModeId Id => CustomModeId.CMODE_ID_PAYLOAD;
@@ -70,16 +70,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             var payload = new Payload(0x000F0000, File.ReadAllBytes(Path.Combine(Plugin.WorkingDirectory, "bin/patch/payload-11184.bin")));
 
             // insert config into payload
-            List<PayloadConfig> configs = null;
-            if (metadata.GameConfig.MapOverride != 0)
-                configs = _configs.Where(x => x.CustomMapId == (CustomMapId)metadata.GameConfig.MapOverride).ToList();
-            else
-                configs = _configs.Where(x => x.MapId == (MapId)game.GameLevel).ToList();
+            List<PayloadConfig> configs = _configs.Where(x => x.MapId == (MapId)game.GameLevel).ToList();
 
             if (configs.Count > 0)
             {
                 var config = configs[_rng.Next(configs.Count)];
-                    
+
                 using (var ms = new MemoryStream(payload.Data, true))
                 {
                     using (var writer = new BinaryWriter(ms))
@@ -243,14 +239,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public const uint Offset = 0x20;
 
         public MapId? MapId { get; }
-        public CustomMapId? CustomMapId { get; }
         public string Filepath { get; }
-
-        public PayloadConfig(CustomMapId customMapId, string path)
-        {
-            CustomMapId = customMapId;
-            Filepath = path;
-        }
 
         public PayloadConfig(MapId mapId, string path)
         {
