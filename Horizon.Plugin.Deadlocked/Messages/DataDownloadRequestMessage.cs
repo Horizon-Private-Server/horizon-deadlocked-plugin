@@ -1,5 +1,6 @@
 ﻿using RT.Common;
 using RT.Models;
+using Server.Common;
 using Server.Common.Stream;
 using System;
 using System.Collections.Generic;
@@ -18,6 +19,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
         public uint TargetAddress { get; set; }
         public int TotalSize { get; set; }
         public int DataOffset { get; set; }
+        public short Chunk { get; set; }
         public byte[] Data {get;set;}
 
         public override void Deserialize(MessageReader reader)
@@ -28,6 +30,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
             TargetAddress = reader.ReadUInt32();
             TotalSize = reader.ReadInt32();
             DataOffset = reader.ReadInt32();
+            Chunk = reader.ReadInt16();
             var len = reader.ReadInt16();
             Data = reader.ReadBytes(len);
         }
@@ -45,6 +48,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
             writer.Write(TargetAddress);
             writer.Write(TotalSize);
             writer.Write(DataOffset);
+            writer.Write(Chunk);
             writer.Write((short)len);
             if (Data != null)
                 writer.Write(Data, 0, len);

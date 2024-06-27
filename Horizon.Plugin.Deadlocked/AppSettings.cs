@@ -44,6 +44,11 @@ namespace Horizon.Plugin.Deadlocked
         /// </summary>
         public float ScavengerHuntSpawnRateFactor { get; private set; } = 1f;
 
+        /// <summary>
+        /// 
+        /// </summary>
+        public string BannerImageBase64 { get; private set; } = null;
+
         public AppSettings(int appId)
         {
             AppId = appId;
@@ -76,6 +81,9 @@ namespace Horizon.Plugin.Deadlocked
             // ScavengerHuntSpawnRateFactor
             if (settings.TryGetValue($"{prefix}_ScavengerHuntSpawnRateFactor", out value) && float.TryParse(value, out var spawnRate))
                 ScavengerHuntSpawnRateFactor = spawnRate;
+            // EnablePatch
+            if (settings.TryGetValue($"{prefix}_BannerImageBase64", out value))
+                BannerImageBase64 = value;
         }
 
         public Dictionary<string, string> GetSettings()
@@ -89,6 +97,7 @@ namespace Horizon.Plugin.Deadlocked
                 { $"{prefix}_ScavengerHuntBeginDate", ScavengerHuntBeginDate?.ToString() },
                 { $"{prefix}_ScavengerHuntEndDate", ScavengerHuntEndDate?.ToString() },
                 { $"{prefix}_ScavengerHuntSpawnRateFactor", ScavengerHuntSpawnRateFactor.ToString() },
+                { $"{prefix}_BannerImageBase64", BannerImageBase64 }
             };
         }
     }

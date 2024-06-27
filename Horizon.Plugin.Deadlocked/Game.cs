@@ -1040,23 +1040,25 @@ namespace Horizon.Plugin.Deadlocked
         public string Filename { get; set; }
         public string Name { get; set; }
         public int Version { get; set; }
-        public int BaseMapId { get; set; }
-        public int ForcedModeId { get; set; }
         public int CustomModeExtraDataMask { get; set; }
+        public short ShrubMinRenderDistance { get; set; }
+        public sbyte BaseMapId { get; set; }
+        public sbyte ForcedModeId { get; set; }
 
         public bool HasMap() => Filename != null && Filename.Any();
 
         public byte[] Serialize()
         {
-            byte[] output = new byte[64 + 32 + 4 + 4 + 4 + 4];
+            byte[] output = new byte[64 + 32 + 4 + 4 + 2 + 1 + 1];
             using (var ms = new MemoryStream(output, true))
             {
                 using (var writer = new MessageWriter(ms))
                 {
                     writer.Write(Version);
+                    writer.Write(CustomModeExtraDataMask);
+                    writer.Write(ShrubMinRenderDistance);
                     writer.Write(BaseMapId);
                     writer.Write(ForcedModeId);
-                    writer.Write(CustomModeExtraDataMask);
                     writer.Write(Name, 32);
                     writer.Write(Filename, 64);
                 }
@@ -1068,9 +1070,10 @@ namespace Horizon.Plugin.Deadlocked
         public void Deserialize(MessageReader reader)
         {
             Version = reader.ReadInt32();
-            BaseMapId = reader.ReadInt32();
-            ForcedModeId = reader.ReadInt32();
             CustomModeExtraDataMask = reader.ReadInt32();
+            ShrubMinRenderDistance = reader.ReadInt16();
+            BaseMapId = reader.ReadSByte();
+            ForcedModeId = reader.ReadSByte();
             Name = reader.ReadString(32);
             Filename = reader.ReadString(64);
         }
@@ -1080,9 +1083,10 @@ namespace Horizon.Plugin.Deadlocked
             return Filename == other.Filename
                 && Name == other.Name
                 && Version == other.Version
+                && CustomModeExtraDataMask == other.CustomModeExtraDataMask
+                && ShrubMinRenderDistance == other.ShrubMinRenderDistance
                 && BaseMapId == other.BaseMapId
                 && ForcedModeId == other.ForcedModeId
-                && CustomModeExtraDataMask == other.CustomModeExtraDataMask
                 ;
         }
     }

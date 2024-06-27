@@ -84,7 +84,7 @@ namespace Horizon.Plugin.Deadlocked
                 hasQueriedAppSettings = true;
                 timeLastQueriedAppSettings = DateTime.UtcNow;
             }
-            else if (hasQueriedAppSettings && (DateTime.UtcNow - timeLastQueriedAppSettings).TotalMinutes > 5)
+            else if (hasQueriedAppSettings && (DateTime.UtcNow - timeLastQueriedAppSettings).TotalMinutes > 1)
             {
                 timeLastQueriedAppSettings = DateTime.UtcNow;
 
@@ -558,6 +558,28 @@ namespace Horizon.Plugin.Deadlocked
                                     //var success = await Queue.ChangePlayerName(msg.Player, request.Name);
                                     var success = false;
                                     msg.Player.Queue(new NameChangeResponseMessage() { Success = success });
+                                    break;
+                                }
+                            case 50:
+                                {
+                                    var request = new GetAnnouncementImageRequestMessage();
+                                    request.Deserialize(reader);
+
+                                    var settings = GetAppSettingsOrDefault(msg.Player.ApplicationId);
+                                    if (settings == null || string.IsNullOrEmpty(settings.BannerImageBase64))
+                                        break;
+
+                                    if (TextureHelper.GetPIFData(settings.BannerImageBase64, out var paletteBytes, out var pixelBytes))
+                                    {
+                                        var payloads = new Payload[]
+                                        {
+                                            new Payload(request.DestAddress, BitConverter.GetBytes(0x00060007)),
+                                            new Payload(request.DestAddress + 0x10, paletteBytes),
+                                            new Payload(request.DestAddress + 0x410, pixelBytes),
+                                        };
+
+                                        _ = Downloader.InitiateDataDownload(msg.Player, 501, payloads);
+                                    }
                                     break;
                                 }
                             default:
