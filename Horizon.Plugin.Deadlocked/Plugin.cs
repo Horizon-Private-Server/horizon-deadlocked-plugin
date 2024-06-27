@@ -573,7 +573,7 @@ namespace Horizon.Plugin.Deadlocked
                                     {
                                         var payloads = new Payload[]
                                         {
-                                            new Payload(request.DestAddress, BitConverter.GetBytes(0x00060007)),
+                                            new Payload(request.DestAddress, BitConverter.GetBytes(0x00060008)),
                                             new Payload(request.DestAddress + 0x10, paletteBytes),
                                             new Payload(request.DestAddress + 0x410, pixelBytes),
                                         };

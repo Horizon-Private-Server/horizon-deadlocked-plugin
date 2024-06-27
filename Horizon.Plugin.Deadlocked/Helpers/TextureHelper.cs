@@ -74,7 +74,7 @@ public static class TextureHelper
             using (var stream = new MemoryStream(bytes))
             {
                 var png = new Png(stream);
-                png.Resize(128, 64);
+                png.Resize(256, 64);
                 png.Quantize(256);
                 png.GetRawIndexedData(out paletteBytes, out pixelBytes);
 
