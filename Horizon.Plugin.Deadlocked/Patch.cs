@@ -362,9 +362,7 @@ namespace Horizon.Plugin.Deadlocked
         public sbyte ModeId { get; set; }
         public sbyte Arg2 { get; set; }
         public sbyte Arg3 { get; set; }
-        public uint GameEntrypoint { get; set; }
-        public uint LobbyEntrypoint { get; set; }
-        public uint LoadEntrypoint { get; set; }
+        public uint Entrypoint { get; set; }
 
         public byte[] Serialize()
         {
@@ -377,9 +375,7 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(ModeId);
                     writer.Write(Arg2);
                     writer.Write(Arg3);
-                    writer.Write(GameEntrypoint);
-                    writer.Write(LobbyEntrypoint);
-                    writer.Write(LoadEntrypoint);
+                    writer.Write(Entrypoint);
                 }
             }
 
@@ -392,9 +388,7 @@ namespace Horizon.Plugin.Deadlocked
             ModeId = reader.ReadSByte();
             Arg2 = reader.ReadSByte();
             Arg3 = reader.ReadSByte();
-            GameEntrypoint = reader.ReadUInt32();
-            LobbyEntrypoint = reader.ReadUInt32();
-            LoadEntrypoint = reader.ReadUInt32();
+            Entrypoint = reader.ReadUInt32();
         }
     }
 }

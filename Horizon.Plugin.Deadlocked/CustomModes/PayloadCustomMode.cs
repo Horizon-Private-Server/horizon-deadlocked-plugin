@@ -236,7 +236,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
     public class PayloadConfig
     {
-        public const uint Offset = 0x20;
+        public const uint Offset = 0x10;
 
         public MapId? MapId { get; }
         public string Filepath { get; }

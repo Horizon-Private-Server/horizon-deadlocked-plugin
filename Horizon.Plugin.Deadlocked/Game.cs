@@ -370,9 +370,7 @@ namespace Horizon.Plugin.Deadlocked
                         ModeId = (sbyte)mode.Id,
                         Arg2 = mode.GetModuleArg2(game, metadata),
                         Arg3 = mode.GetModuleArg3(game, metadata),
-                        GameEntrypoint = modePayload.Address,
-                        LobbyEntrypoint = modePayload.Address + 8,
-                        LoadEntrypoint = modePayload.Address + 16,
+                        Entrypoint = modePayload.Address,
                     }.Serialize()));
                 }
             }

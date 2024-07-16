@@ -534,7 +534,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
     public class SNDConfig
     {
-        public const uint Offset = 0x20;
+        public const uint Offset = 0x10;
         public const int BombDetonationTimer = 40;
         public const int RoundsToWin  = 6;
         public const int RoundsToFlip = 3;
