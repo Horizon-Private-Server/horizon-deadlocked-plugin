@@ -1113,6 +1113,7 @@ namespace Horizon.Plugin.Deadlocked
         public bool CqDisableUpgrades { get; set; }
         public bool NewPlayerSync { get; set; }
         public bool QuickChat { get; set; }
+        public bool NoFusionADS { get; set; }
         public byte PlayerSize { get; set; }
         public bool RotatingWeapons { get; set; }
         public byte Headbutt { get; set; }
@@ -1131,7 +1132,7 @@ namespace Horizon.Plugin.Deadlocked
 
         public byte[] Serialize()
         {
-            byte[] output = new byte[34];
+            byte[] output = new byte[35];
             using (var ms = new MemoryStream(output, true))
             {
                 using (var writer = new BinaryWriter(ms))
@@ -1158,6 +1159,7 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(CqDisableUpgrades);
                     writer.Write(NewPlayerSync);
                     writer.Write(QuickChat);
+                    writer.Write(NoFusionADS);
                     writer.Write(PlayerSize);
                     writer.Write(RotatingWeapons);
                     writer.Write(Headbutt);
@@ -1201,6 +1203,7 @@ namespace Horizon.Plugin.Deadlocked
             CqDisableUpgrades = reader.ReadBoolean();
             NewPlayerSync = reader.ReadBoolean();
             QuickChat = reader.ReadBoolean();
+            NoFusionADS = reader.ReadBoolean();
             PlayerSize = reader.ReadByte();
             RotatingWeapons = reader.ReadBoolean();
             Headbutt = reader.ReadByte();
@@ -1240,6 +1243,7 @@ namespace Horizon.Plugin.Deadlocked
                 && CqDisableUpgrades == other.CqDisableUpgrades
                 && NewPlayerSync == other.NewPlayerSync
                 && QuickChat == other.QuickChat
+                && NoFusionADS == other.NoFusionADS
                 && PlayerSize == other.PlayerSize
                 && RotatingWeapons == other.RotatingWeapons
                 && Headbutt == other.Headbutt
