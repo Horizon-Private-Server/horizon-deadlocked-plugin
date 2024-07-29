@@ -25,7 +25,8 @@ namespace Horizon.Plugin.Deadlocked
             new BenchmarkCustomMode(),
             new AnimExtractorCustomMode(),
             new TrainingCustomMode(),
-            new HNSCustomMode()
+            new HNSCustomMode(),
+            new TagCustomMode(),
         };
 
         public static BaseCustomMode FindCustomModeById(CustomModeId id)
@@ -49,6 +50,7 @@ namespace Horizon.Plugin.Deadlocked
         CMODE_ID_TRAINING,
         CMODE_ID_HNS,
         CMODE_ID_GRIDIRON,
+        CMODE_ID_TAG,
         CMODE_ID_ANIM_EXTRACTOR,
 
         // reserved for custom maps
