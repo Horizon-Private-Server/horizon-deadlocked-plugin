@@ -40,8 +40,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             { 1, "\x09" },
             { 2, "\x0A" },
             { 3, "\x0B" },
-            { 4, "\x0E" },
-            { 5, "\x0D" },
+            { 4, "\x0F" },
+            { 5, "\x0E" },
         };
 
         private static readonly Dictionary<string, CustomPlayerStatIds> _survivalMapToXpStatIndex = new Dictionary<string, CustomPlayerStatIds>()
