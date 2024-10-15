@@ -58,6 +58,7 @@ namespace Horizon.Plugin.Deadlocked
             host.RegisterMediusMessageAction(NetMessageTypes.MessageClassDME, 7, OnRecvCustomMessage);
             host.RegisterMediusMessageAction(NetMessageTypes.MessageClassLobby, (byte)MediusLobbyMessageIds.UpdateClanStats, OnRecvUpdateClanStats);
             host.RegisterMediusMessageAction(NetMessageTypes.MessageClassLobbyExt, (byte)MediusLobbyExtMessageIds.DnasSignaturePost, OnRecvDnasSignaturePost);
+            host.RegisterMediusMessageAction(NetMessageTypes.MessageClassLobbyExt, (byte)MediusLobbyExtMessageIds.GameList_ExtraInfo, OnRecvGameListExtraInfo);
             host.RegisterMessageAction(RT_MSG_TYPE.RT_MSG_SERVER_CHEAT_QUERY, OnRecvCheatQuery);
 
             return Task.CompletedTask;
@@ -604,7 +605,7 @@ namespace Horizon.Plugin.Deadlocked
             msg.Ignore = true;
             return Task.CompletedTask;
         }
-
+        
         Task OnRecvUpdateClanStats(NetMessageTypes msgClass, byte msgType, object data)
         {
             var msg = (Server.Medius.PluginArgs.OnMediusMessageArgs)data;
@@ -662,6 +663,93 @@ namespace Horizon.Plugin.Deadlocked
             }
 
             return Task.CompletedTask;
+        }
+
+        Task OnRecvGameListExtraInfo(NetMessageTypes msgClass, byte msgType, object data)
+        {
+            var msg = (Server.Medius.PluginArgs.OnMediusMessageArgs)data;
+            if (msg.Ignore || !msg.IsIncoming || msg.Player == null)
+                return Task.CompletedTask;
+            if (!SupportedAppIds.Contains(msg.Player.ApplicationId))
+                return Task.CompletedTask;
+
+            var clientObject = msg.Player;
+            var request = (msg.Message as MediusGameList_ExtraInfoRequest);
+            var gameList = Program.Manager.GetGameList(
+                               clientObject.ApplicationId,
+                               request.PageID,
+                               request.PageSize,
+                               clientObject.GameListFilters)
+                               .Select(x => new MediusGameList_ExtraInfoResponse()
+                               {
+                                   MessageID = request.MessageID,
+                                   StatusCode = MediusCallbackStatus.MediusSuccess,
+                                   GameHostType = x.GameHostType,
+                                   GameLevel = x.GameLevel,
+                                   GameName = ConstructGameNameWithModeAndMap(x),
+                                   GameStats = x.GameStats,
+                                   GenericField1 = x.GenericField1,
+                                   GenericField2 = x.GenericField2,
+                                   GenericField3 = x.GenericField3,
+                                   GenericField4 = x.GenericField4,
+                                   GenericField5 = x.GenericField5,
+                                   GenericField6 = x.GenericField6,
+                                   GenericField7 = x.GenericField7,
+                                   GenericField8 = x.GenericField8,
+                                   MaxPlayers = (ushort)x.MaxPlayers,
+                                   MediusWorldID = x.Id,
+                                   MinPlayers = (ushort)x.MinPlayers,
+                                   PlayerCount = (ushort)x.PlayerCount,
+                                   PlayerSkillLevel = x.PlayerSkillLevel,
+                                   RulesSet = x.RulesSet,
+                                   SecurityLevel = (String.IsNullOrEmpty(x.GamePassword) ? MediusWorldSecurityLevelType.WORLD_SECURITY_NONE : MediusWorldSecurityLevelType.WORLD_SECURITY_PLAYER_PASSWORD),
+                                   WorldStatus = x.WorldStatus,
+                                   EndOfList = false
+                               }).ToArray();
+
+            // Make last end of list
+            if (gameList.Length > 0)
+            {
+                gameList[gameList.Length - 1].EndOfList = true;
+
+                // Add to responses
+                clientObject.Queue(gameList);
+            }
+            else
+            {
+                clientObject.Queue(new MediusGameList_ExtraInfoResponse()
+                {
+                    MessageID = request.MessageID,
+                    StatusCode = MediusCallbackStatus.MediusNoResult,
+                    EndOfList = true
+                });
+            }
+
+            return Task.CompletedTask;
+        }
+
+        string ConstructGameNameWithModeAndMap(Server.Medius.Models.Game game)
+        {
+            var metadata = Game.GetGameMetadata(game).Result;
+            if (metadata == null || metadata.GameConfig == null) return game.GameName;
+
+            // add gamename
+            var name = game.GameName;
+            if (name.Length > 15)
+                name = name.Substring(0, 15);
+            name += '\0';
+
+            // add mode
+            name += (char)metadata.GameConfig.GamemodeOverride;
+
+            // add map name
+            name += metadata.CustomMap;
+
+            // clamp
+            if (name.Length > RT.Common.Constants.GAMENAME_MAXLEN)
+                name = name.Substring(0, RT.Common.Constants.GAMENAME_MAXLEN);
+
+            return name;
         }
     }
 }
