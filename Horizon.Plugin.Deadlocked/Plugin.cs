@@ -1,4 +1,5 @@
 ﻿using DotNetty.Common.Internal.Logging;
+using Horizon.Plugin.Deadlocked.CustomModes;
 using Horizon.Plugin.Deadlocked.Messages;
 using RT.Common;
 using RT.Models;
@@ -581,6 +582,81 @@ namespace Horizon.Plugin.Deadlocked
 
                                         _ = Downloader.InitiateDataDownload(msg.Player, 501, payloads);
                                     }
+                                    break;
+                                }
+                            case 51: // raids get bank inventory
+                                {
+                                    var request = new RaidsGetBankInventoryRequest();
+                                    request.Deserialize(reader);
+
+                                    if (msg.Player.CurrentGame == null) break;
+
+                                    var mode = Modes.FindCustomModeById(CustomModeId.CMODE_ID_RAIDS) as RaidsCustomMode;
+                                    var metadata = await Game.GetGameMetadata(msg.Player.CurrentGame);
+                                    if (metadata == null) break;
+                                    if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_RAIDS) break;
+
+                                    mode.OnClientRequestBankInventory(request, msg.Player);
+                                    break;
+                                }
+                            case 52: // raids update bank inventory
+                                {
+                                    var request = new RaidsUpdateBankInventoryRequest();
+                                    request.Deserialize(reader);
+
+                                    if (msg.Player.CurrentGame == null) break;
+
+                                    var mode = Modes.FindCustomModeById(CustomModeId.CMODE_ID_RAIDS) as RaidsCustomMode;
+                                    var metadata = await Game.GetGameMetadata(msg.Player.CurrentGame);
+                                    if (metadata == null) break;
+                                    if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_RAIDS) break;
+
+                                    mode.OnClientRequestBankInventoryUpdate(request, msg.Player);
+                                    break;
+                                }
+                            case 53: // raids get bank account
+                                {
+                                    var request = new RaidsGetBankAccountRequest();
+                                    request.Deserialize(reader);
+
+                                    if (msg.Player.CurrentGame == null) break;
+
+                                    var mode = Modes.FindCustomModeById(CustomModeId.CMODE_ID_RAIDS) as RaidsCustomMode;
+                                    var metadata = await Game.GetGameMetadata(msg.Player.CurrentGame);
+                                    if (metadata == null) break;
+                                    if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_RAIDS) break;
+
+                                    mode.OnClientRequestBankAccount(request, msg.Player);
+                                    break;
+                                }
+                            case 54: // raids update bank account
+                                {
+                                    var request = new RaidsUpdateBankAccountRequest();
+                                    request.Deserialize(reader);
+
+                                    if (msg.Player.CurrentGame == null) break;
+
+                                    var mode = Modes.FindCustomModeById(CustomModeId.CMODE_ID_RAIDS) as RaidsCustomMode;
+                                    var metadata = await Game.GetGameMetadata(msg.Player.CurrentGame);
+                                    if (metadata == null) break;
+                                    if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_RAIDS) break;
+
+                                    mode.OnClientRequestBankAccountUpdate(request, msg.Player);
+                                    break;
+                                }
+                            case 55: // raids generate loot drop
+                                {
+                                    var request = new RaidsGenerateLootDropRequest();
+                                    request.Deserialize(reader);
+
+                                    if (msg.Player.CurrentGame == null) break;
+
+                                    var mode = Modes.FindCustomModeById(CustomModeId.CMODE_ID_RAIDS) as RaidsCustomMode;
+                                    var metadata = await Game.GetGameMetadata(msg.Player.CurrentGame);
+                                    if (metadata == null) break;
+                                    if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_RAIDS) break;
+
+                                    mode.OnClientRequestGenerateLootDrop(request, msg.Player);
                                     break;
                                 }
                             default:

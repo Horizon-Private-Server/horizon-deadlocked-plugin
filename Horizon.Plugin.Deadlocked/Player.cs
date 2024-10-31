@@ -1,4 +1,5 @@
-﻿using Horizon.Plugin.Deadlocked.Messages;
+﻿using Horizon.Plugin.Deadlocked.CustomModes;
+using Horizon.Plugin.Deadlocked.Messages;
 using Newtonsoft.Json;
 using Server.Medius;
 using Server.Medius.Models;
@@ -216,6 +217,7 @@ namespace Horizon.Plugin.Deadlocked
         public PlayerClientType? LastLoginClientType { get; set; } = null;
         public Dictionary<PlayerClientType, DateTimeOffset?> LastLoginPerClientType { get; set; } = new Dictionary<PlayerClientType, DateTimeOffset?>();
         public PlayerCompConfig CompConfig { get; set; } = new PlayerCompConfig();
+        public RaidsBank RaidsBank { get; set; } = new RaidsBank();
     }
 
     public class PlayerExtraInfo

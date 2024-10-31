@@ -1042,12 +1042,13 @@ namespace Horizon.Plugin.Deadlocked
         public short ShrubMinRenderDistance { get; set; }
         public sbyte BaseMapId { get; set; }
         public sbyte ForcedModeId { get; set; }
+        public sbyte HideFromMapList { get; set; }
 
         public bool HasMap() => Filename != null && Filename.Any();
 
         public byte[] Serialize()
         {
-            byte[] output = new byte[64 + 32 + 4 + 4 + 2 + 1 + 1];
+            byte[] output = new byte[64 + 32 + 4 + 4 + 2 + 1 + 1 + 1];
             using (var ms = new MemoryStream(output, true))
             {
                 using (var writer = new MessageWriter(ms))
@@ -1057,6 +1058,7 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(ShrubMinRenderDistance);
                     writer.Write(BaseMapId);
                     writer.Write(ForcedModeId);
+                    writer.Write(HideFromMapList);
                     writer.Write(Name, 32);
                     writer.Write(Filename, 64);
                 }
@@ -1072,6 +1074,7 @@ namespace Horizon.Plugin.Deadlocked
             ShrubMinRenderDistance = reader.ReadInt16();
             BaseMapId = reader.ReadSByte();
             ForcedModeId = reader.ReadSByte();
+            HideFromMapList = reader.ReadSByte();
             Name = reader.ReadString(32);
             Filename = reader.ReadString(64);
         }
@@ -1085,6 +1088,7 @@ namespace Horizon.Plugin.Deadlocked
                 && ShrubMinRenderDistance == other.ShrubMinRenderDistance
                 && BaseMapId == other.BaseMapId
                 && ForcedModeId == other.ForcedModeId
+                && HideFromMapList == other.HideFromMapList
                 ;
         }
     }
