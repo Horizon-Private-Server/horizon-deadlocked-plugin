@@ -380,7 +380,7 @@ namespace Horizon.Plugin.Deadlocked
                                 }
                             case 9: // set player patch config
                                 {
-                                    if (msg.Player.CurrentGame != null && msg.Player.CurrentGame.Host == msg.Player && msg.Player.CurrentGame.WorldStatus <= MediusWorldStatus.WorldStaging)
+                                    if (msg.Player.CurrentGame != null && msg.Player.CurrentGame.Host == msg.Player) // && msg.Player.CurrentGame.WorldStatus <= MediusWorldStatus.WorldStaging)
                                     {
                                         var request = new SetGameConfigRequestMessage();
                                         request.Deserialize(reader);
