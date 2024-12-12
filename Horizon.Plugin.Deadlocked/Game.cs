@@ -1118,6 +1118,9 @@ namespace Horizon.Plugin.Deadlocked
         public bool NewPlayerSync { get; set; }
         public bool QuickChat { get; set; }
         public bool NoFusionADS { get; set; }
+        public byte RespawnOverride { get; set; }
+        public bool FogOfWarRadar { get; set; }
+        public byte RadarShortDistance { get; set; }
         public byte PlayerSize { get; set; }
         public bool RotatingWeapons { get; set; }
         public byte Headbutt { get; set; }
@@ -1136,8 +1139,7 @@ namespace Horizon.Plugin.Deadlocked
 
         public byte[] Serialize()
         {
-            byte[] output = new byte[35];
-            using (var ms = new MemoryStream(output, true))
+            using (var ms = new MemoryStream())
             {
                 using (var writer = new BinaryWriter(ms))
                 {
@@ -1164,6 +1166,9 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(NewPlayerSync);
                     writer.Write(QuickChat);
                     writer.Write(NoFusionADS);
+                    writer.Write(RespawnOverride);
+                    writer.Write(FogOfWarRadar);
+                    writer.Write(RadarShortDistance);
                     writer.Write(PlayerSize);
                     writer.Write(RotatingWeapons);
                     writer.Write(Headbutt);
@@ -1177,10 +1182,10 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(Training_Aggression);
                     writer.Write(Training_Opt3);
                     writer.Write(Hns_HideTime);
+
+                    return ms.ToArray();
                 }
             }
-
-            return output;
         }
 
         public void Deserialize(BinaryReader reader)
@@ -1208,6 +1213,9 @@ namespace Horizon.Plugin.Deadlocked
             NewPlayerSync = reader.ReadBoolean();
             QuickChat = reader.ReadBoolean();
             NoFusionADS = reader.ReadBoolean();
+            RespawnOverride = reader.ReadByte();
+            FogOfWarRadar = reader.ReadBoolean();
+            RadarShortDistance = reader.ReadByte();
             PlayerSize = reader.ReadByte();
             RotatingWeapons = reader.ReadBoolean();
             Headbutt = reader.ReadByte();
@@ -1248,6 +1256,9 @@ namespace Horizon.Plugin.Deadlocked
                 && NewPlayerSync == other.NewPlayerSync
                 && QuickChat == other.QuickChat
                 && NoFusionADS == other.NoFusionADS
+                && RespawnOverride == other.RespawnOverride
+                && FogOfWarRadar == other.FogOfWarRadar
+                && RadarShortDistance == other.RadarShortDistance
                 && PlayerSize == other.PlayerSize
                 && RotatingWeapons == other.RotatingWeapons
                 && Headbutt == other.Headbutt

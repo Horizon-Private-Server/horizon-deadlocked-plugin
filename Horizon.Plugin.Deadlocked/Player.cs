@@ -261,18 +261,14 @@ namespace Horizon.Plugin.Deadlocked
         public bool EnableInGameScoreboard { get; set; }
         public bool EnableNPSLagComp { get; set; }
         public bool EnableFastUSBLoad { get; set; } = true;
+        public byte Deadzone { get; set; } = 0;
 #if TWEAKERS
         public byte[] CharacterTweakers { get; set; } = new byte[1 + 7*2];
 #endif
 
         public byte[] Serialize()
         {
-            int bufSize = 22;
-#if TWEAKERS
-            bufSize += 1 + 7*2;
-#endif
-            byte[] output = new byte[bufSize];
-            using (var ms = new MemoryStream(output, true))
+            using (var ms = new MemoryStream())
             {
                 using (var writer = new BinaryWriter(ms))
                 {
@@ -298,13 +294,14 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(EnableInGameScoreboard);
                     writer.Write(EnableNPSLagComp);
                     writer.Write(EnableFastUSBLoad);
+                    writer.Write(Deadzone);
 #if TWEAKERS
                     writer.Write(CharacterTweakers ?? new byte[1 + 7*2]);
 #endif
+
+                    return ms.ToArray();
                 }
             }
-
-            return output;
         }
 
         public void Deserialize(BinaryReader reader)
@@ -331,6 +328,7 @@ namespace Horizon.Plugin.Deadlocked
             EnableInGameScoreboard = reader.ReadBoolean();
             EnableNPSLagComp = reader.ReadBoolean();
             EnableFastUSBLoad = reader.ReadBoolean();
+            Deadzone = reader.ReadByte();
 #if TWEAKERS
             CharacterTweakers = reader.ReadBytes(1 + 7*2);
 #endif
@@ -360,6 +358,7 @@ namespace Horizon.Plugin.Deadlocked
                 && EnableInGameScoreboard == other.EnableInGameScoreboard
                 && EnableNPSLagComp == other.EnableNPSLagComp
                 && EnableFastUSBLoad == other.EnableFastUSBLoad
+                && Deadzone == other.Deadzone
 #if TWEAKERS
                 && (CharacterTweakers?.SequenceEqual(other.CharacterTweakers) ?? false)
 #endif
