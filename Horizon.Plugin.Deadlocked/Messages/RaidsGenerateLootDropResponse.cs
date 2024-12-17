@@ -16,7 +16,8 @@ namespace Horizon.Plugin.Deadlocked.Messages
         public override bool SkipEncryption { get => true; set { } }
 
         public Vector3 Position { get; set; }
-        public RaidsInventoryWeapon Drop { get; set; } = new RaidsInventoryWeapon();
+        public RaidsGenerateLootDropRequest.GenerateLootDropRequestType Type { get; set; }
+        public RaidsInventoryItem Drop { get; set; } = new RaidsInventoryItem();
         
         public override void Deserialize(MessageReader reader)
         {
@@ -24,6 +25,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
 
             Position = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
             reader.ReadSingle(); // padding
+            Type = (RaidsGenerateLootDropRequest.GenerateLootDropRequestType)reader.ReadInt32();
             Drop.Deserialize(reader);
         }
 
@@ -35,6 +37,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
             writer.Write(Position.Y);
             writer.Write(Position.Z);
             writer.Write(0f);
+            writer.Write((int)Type);
             Drop.Serialize(writer);
         }
     }

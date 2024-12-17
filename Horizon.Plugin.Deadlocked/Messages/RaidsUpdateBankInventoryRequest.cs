@@ -16,12 +16,13 @@ namespace Horizon.Plugin.Deadlocked.Messages
 
         public int Index { get; set; }
         public int Count { get; set; }
-        public RaidsInventoryWeapon[] Weapons { get; set; }
+        public RaidsInventoryItem[] Weapons { get; set; }
+        public sbyte EquippedBadgeIdx { get; set; }
         public sbyte[] EquippedWeaponIdxs { get; set; }
 
         public override void Deserialize(MessageReader reader)
         {
-            Weapons = new RaidsInventoryWeapon[16];
+            Weapons = new RaidsInventoryItem[16];
             EquippedWeaponIdxs = new sbyte[8];
 
             base.Deserialize(reader);
@@ -30,13 +31,15 @@ namespace Horizon.Plugin.Deadlocked.Messages
             Count = reader.ReadInt32();
             for (int i = 0; i < Weapons.Length; i++)
             {
-                Weapons[i] = new RaidsInventoryWeapon();
+                Weapons[i] = new RaidsInventoryItem();
                 Weapons[i].Deserialize(reader);
             }
+            EquippedBadgeIdx = reader.ReadSByte();
             for (int i = 0; i < EquippedWeaponIdxs.Length; i++)
             {
                 EquippedWeaponIdxs[i] = reader.ReadSByte();
             }
+            reader.ReadBytes(3); // padding
         }
 
         public override void Serialize(MessageWriter writer)

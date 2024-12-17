@@ -18,18 +18,24 @@ namespace Horizon.Plugin.Deadlocked.Messages
         {
             MobDeath = 0,
             MissionCompleteEvent,
+            Prestige,
+            Store
         }
 
         public Vector3 Position { get; set; }
         public GenerateLootDropRequestType Type { get; set; }
+        public int DifficultyStars { get; set; }
 
         // MOB (if mob death triggered loot)
         public float MobHealth { get; set; }
         public float MobSpeed { get; set; }
         public float MobDamage { get; set; }
-        public float MobDifficulty { get; set; }
         public int MobMobyOClass { get; set; }
         public Gadgets MobKilledByGadget { get; set; }
+
+        public bool IsAccountPrestige() => Type == GenerateLootDropRequestType.Prestige && (int)MobKilledByGadget == 0;
+        public bool IsPrestige() => Type == GenerateLootDropRequestType.Prestige;
+        public bool IsStore() => Type == GenerateLootDropRequestType.Store;
 
         public override void Deserialize(MessageReader reader)
         {
@@ -38,10 +44,10 @@ namespace Horizon.Plugin.Deadlocked.Messages
             Position = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
             reader.ReadSingle(); // padding
             Type = (GenerateLootDropRequestType)reader.ReadInt32();
+            DifficultyStars = reader.ReadInt32();
             MobHealth = reader.ReadSingle();
             MobDamage = reader.ReadSingle();
             MobSpeed = reader.ReadSingle();
-            MobDifficulty = reader.ReadSingle();
             MobKilledByGadget = (Gadgets)reader.ReadInt32();
             MobMobyOClass = reader.ReadInt16();
         }
@@ -55,10 +61,10 @@ namespace Horizon.Plugin.Deadlocked.Messages
             writer.Write(Position.Z);
             writer.Write(0f);
             writer.Write(Type);
+            writer.Write(DifficultyStars);
             writer.Write(MobHealth);
             writer.Write(MobDamage);
             writer.Write(MobSpeed);
-            writer.Write(MobDifficulty);
             writer.Write(MobKilledByGadget);
             writer.Write((ushort)MobMobyOClass);
         }
