@@ -14,6 +14,9 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 {
     public class RaidsCustomMode : BaseCustomMode
     {
+        public static readonly int MAX_ACCOUNT_LEVEL = 99;
+        public static readonly int MAX_WEAPON_LEVEL = 99;
+
         public override CustomModeId Id => CustomModeId.CMODE_ID_RAIDS;
         public override string Name => "DreadZone Raids";
 
@@ -407,7 +410,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         BERSERKER,
         DAMAGE_COOLDOWN,
         EXPLOSIVE_WRENCH,
-        EXTRALIFE,
         COUNT
     };
 
@@ -421,6 +423,11 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         public void Initialize()
         {
+            // make sure vipers & mag are always unlocked
+            Account.UnlockWeapon(Gadgets.Vipers);
+            Account.UnlockWeapon(Gadgets.MagmaCannon);
+            Account.ClampLevels();
+            
             if (Initialized) return;
 
             // give default weapons
@@ -575,6 +582,18 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             HasWeapon[gadget] = true;
         }
 
+        public void ClampLevels()
+        {
+            ulong maxAccountXp = GetXpFromLevel(RaidsCustomMode.MAX_ACCOUNT_LEVEL);
+            if (Experience > maxAccountXp)
+                Experience = maxAccountXp;
+
+            ulong maxWeaponXp = GetXpFromProficiency(RaidsCustomMode.MAX_WEAPON_LEVEL);
+            for (int i = 0; i < WeaponXp.Length; ++i)
+                if (WeaponXp[i] > maxWeaponXp)
+                    WeaponXp[i] = maxWeaponXp;
+        }
+
         public void Update(RaidsAccount account)
         {
             this.Experience = account.Experience;
@@ -582,6 +601,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             this.WeaponXp = account.WeaponXp;
             this.SkillPoints = account.SkillPoints;
             this.Skills = account.Skills;
+            ClampLevels();
         }
 
         public void Serialize(BinaryWriter writer)
@@ -935,10 +955,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             drop.Notify = 1;
             int rarity = GetRarityFromQuality(drop.Quality);
 
-            // limit drops for other weapons to the account proficiency
-            if (request != null && !request.IsPrestige() && drop.GadgetId != request.MobKilledByGadget && accountProf < drop.Proficiency)
-                drop.Proficiency = (byte)accountProf;
-
             // paint
             if (_rng.NextDouble() < paintChances[rarity])
                 drop.Paint = (RaidsWeaponPaints)_rng.Next(0, (int)RaidsWeaponPaints.COUNT);
@@ -962,6 +978,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             damage += damageScale * damage * 0.50 * (drop.Quality / 255.0) * _rng.NextDouble(); // up to +50% for higher rarity
             damage += damageScale * damage * 0.1 * (_rng.NextDouble() - 0.5); // +/- 5%
             damage += 10 * (_rng.NextDouble() - 0.5); // +/- 5 (good for early levels)
+            if (damage < _baseDamages[drop.GadgetId])
+                damage = _baseDamages[drop.GadgetId];
             drop.Damage = (int)damage;
 
             // alpha mods
@@ -1025,9 +1043,9 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             }
 
             // reroll if mythic-only badge
-            var isMythic = GetRarityFromQuality((int)(quality * 256)) == 4;
-            while (badgeType == RaidsBadgeType.EXTRALIFE && !isMythic)
-                badgeType = (RaidsBadgeType)_rng.Next((int)RaidsBadgeType.NONE + 1, (int)RaidsBadgeType.COUNT);
+            //var isMythic = GetRarityFromQuality((int)(quality * 256)) == 4;
+            //while (badgeType == RaidsBadgeType.EXTRALIFE && !isMythic)
+            //    badgeType = (RaidsBadgeType)_rng.Next((int)RaidsBadgeType.NONE + 1, (int)RaidsBadgeType.COUNT);
 
             drop.GadgetId = (Gadgets)_badgeGadgetId;
             drop.Proficiency = (byte)badgeType;
@@ -1163,7 +1181,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
             Items = Items.OrderByDescending(x => x.Price).ThenBy(x => x.IsWeapon()).ToList();
 
-            NextRefresh = DateTime.UtcNow.Date.AddDays(1);
+            NextRefresh = DateTime.UtcNow.AddHours(0.5f);
             return true;
         }
 
