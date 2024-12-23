@@ -506,8 +506,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public Dictionary<Gadgets, bool> HasWeapon = new Dictionary<Gadgets, bool>();
 
 
-        private static readonly int LEVELUP_MAX_LEVEL = 98;
-        private static int GetLevelFromXp(ulong xp)
+        private static int GetLevelFromXp(ulong xp, int maxLevel)
         {
             if (xp < 0) return 0;
 
@@ -529,20 +528,34 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             double level = term1 - term2;
 
             if (level < 0) return 0;
-            if (level > LEVELUP_MAX_LEVEL) return LEVELUP_MAX_LEVEL;
+            if (level > maxLevel) return maxLevel;
             return (int)level;
         }
 
         private static ulong GetXpFromLevel(int level)
         {
-            if (level > LEVELUP_MAX_LEVEL) level = LEVELUP_MAX_LEVEL;
             if (level <= 0) return 0;
             return (ulong)((double)Math.Pow(1 * level, 3) + (500 * level));
         }
 
+        private static int GetAccountLevelFromXp(ulong xp)
+        {
+            int level = (int)(xp / 100);
+            if (level <= 0) return 0;
+            if (level >= RaidsCustomMode.MAX_ACCOUNT_LEVEL) level = RaidsCustomMode.MAX_ACCOUNT_LEVEL - 1;
+            return level;
+        }
+
+        private static ulong GetAccountXpFromLevel(int level)
+        {
+            if (level <= 0) return 0;
+            if (level >= RaidsCustomMode.MAX_ACCOUNT_LEVEL) level = RaidsCustomMode.MAX_ACCOUNT_LEVEL - 1;
+            return (ulong)(level * 100);
+        }
+
         private static int GetProficiencyFromXp(ulong xp)
         {
-            return GetLevelFromXp(xp);
+            return GetLevelFromXp(xp, RaidsCustomMode.MAX_WEAPON_LEVEL-1);
         }
 
         private static ulong GetXpFromProficiency(int proficiency)
@@ -584,7 +597,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         public void ClampLevels()
         {
-            ulong maxAccountXp = GetXpFromLevel(RaidsCustomMode.MAX_ACCOUNT_LEVEL);
+            ulong maxAccountXp = GetAccountXpFromLevel(RaidsCustomMode.MAX_ACCOUNT_LEVEL);
             if (Experience > maxAccountXp)
                 Experience = maxAccountXp;
 
@@ -731,8 +744,9 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             { Gadgets.Flail, new AlphaMods[] { AlphaMods.Ammo, AlphaMods.Speed, AlphaMods.Area, AlphaMods.Impact, AlphaMods.Jackpot, AlphaMods.Nanoleech, AlphaMods.Xp } },
             { Gadgets.Holoshields, new AlphaMods[] { AlphaMods.Ammo, AlphaMods.Speed, AlphaMods.Impact, AlphaMods.Jackpot, AlphaMods.Nanoleech, AlphaMods.Xp } },
         };
-        private static readonly int[] _gadgetMaxProficiencyForDifficulty = new[] { 10, 25, 50, 80, 99 };
-        private static readonly float[] _gadgetMaxQualityForDifficulty = new[] { 0.4f, 0.6f, 0.725f, 0.90f, 0.999f };
+        private static readonly int[] _gadgetMinProficiencyForDifficulty = new[] { 0, 10, 30, 60, 90 };
+        private static readonly int[] _gadgetMaxProficiencyForDifficulty = new[] { 15, 35, 65, 90, 99 };
+        private static readonly float[] _gadgetMaxQualityForDifficulty = new[] { 0.4f, 0.6f, 0.70f, 0.85f, 0.999f };
         private static readonly float[] _gadgetMissionCompleteMinQualityForDifficulty = new[] { 0.1f, 0.2f, 0.3f, 0.4f, 0.5f };
 
         public static readonly RaidsInventoryItem Empty = new RaidsInventoryItem();
@@ -902,8 +916,10 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             int accountProf = account?.GetProficiency(drop.GadgetId) ?? 98;
             int minProficiency = account == null ? 0 : Math.Max(0, accountProf - 5);
             int maxProficiency = account == null ? 99 : Math.Min(99, accountProf + 5);
+            int difficultyMinProficiency = _gadgetMinProficiencyForDifficulty[request.DifficultyStars];
             int difficultyMaxProficiency = _gadgetMaxProficiencyForDifficulty[request.DifficultyStars];
             var difficultyMaxQuality = _gadgetMaxQualityForDifficulty[request.DifficultyStars] - 0.00001;
+            var proficiencyCurve = 1.5;
 
             // determine quality
             var quality = _rng.NextDouble() * _rng.NextDouble() * difficultyMaxQuality;
@@ -912,11 +928,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             {
                 case RaidsGenerateLootDropRequest.GenerateLootDropRequestType.MobDeath:
                     {
-                        // clamp to max proficiency per difficulty
-                        if (maxProficiency > difficultyMaxProficiency)
-                            maxProficiency = difficultyMaxProficiency;
-                        if (minProficiency >= maxProficiency)
-                            minProficiency = Math.Max(maxProficiency - 5, 0);
+                        minProficiency = difficultyMinProficiency;
+                        maxProficiency = difficultyMaxProficiency;
                         break;
                     }
                 case RaidsGenerateLootDropRequest.GenerateLootDropRequestType.MissionCompleteEvent:
@@ -924,14 +937,10 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                         var minQuality = _gadgetMissionCompleteMinQualityForDifficulty[request.DifficultyStars];
                         quality = Math.Pow(((1 - minQuality) * quality + minQuality), 1 - minQuality) + 0.01;
                         //quality = Math.Min(((1 - minQuality) * quality * (1 + minQuality)) + minQuality, Math.Min(1, difficultyMaxQuality + 0.05));
-                        minProficiency = accountProf;
-                        maxProficiency = Math.Min(99, accountProf + 10);
 
-                        // clamp to max proficiency per difficulty
-                        if (maxProficiency > difficultyMaxProficiency)
-                            maxProficiency = difficultyMaxProficiency;
-                        if (minProficiency >= maxProficiency)
-                            minProficiency = Math.Max(maxProficiency - 5, 0);
+                        minProficiency = difficultyMinProficiency;
+                        maxProficiency = difficultyMaxProficiency;
+                        proficiencyCurve = 1;
                         break;
                     }
                 case RaidsGenerateLootDropRequest.GenerateLootDropRequestType.Store:
@@ -951,7 +960,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             }
 
             drop.Quality = (byte)Math.Clamp(quality * 256, 0, 255);
-            drop.Proficiency = (byte)_rng.Next(minProficiency, maxProficiency);
+            drop.Proficiency = (byte)(minProficiency + (Math.Pow(_rng.NextDouble(), proficiencyCurve) * (maxProficiency - minProficiency)));
             drop.Notify = 1;
             int rarity = GetRarityFromQuality(drop.Quality);
 
