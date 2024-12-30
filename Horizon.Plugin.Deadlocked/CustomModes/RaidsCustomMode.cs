@@ -188,7 +188,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             // add & unlock weapon
             metadata.RaidsBank.Add(request.Item);
             if (request.Item.IsWeapon())
-                metadata.RaidsBank.Account.UnlockWeapon(request.Item.GadgetId);
+                metadata.RaidsBank.Account.UnlockWeapon(request.Item.WeaponData.GadgetId);
 
             // pass to store
             metadata.RaidsBank.Store.OnBuy(request.Page, request.PageSize, request.ItemIdx, request.Item, metadata.RaidsBank.Account);
@@ -409,8 +409,16 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         SHARPSHOOTER,
         BERSERKER,
         DAMAGE_COOLDOWN,
-        EXPLOSIVE_WRENCH,
+        HEATH_BUFF,
+        AMMO_BUFF,
         COUNT
+    };
+
+    public enum RaidsItemType
+    {
+        None = 0,
+        Weapon,
+        Badge
     };
 
     public class RaidsBank
@@ -445,6 +453,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             Account = new RaidsAccount();
             Account.UnlockWeapon(Gadgets.Vipers);
             Account.UnlockWeapon(Gadgets.MagmaCannon);
+            Account.Bolts = 300000; // start with 300k bolts
+
+            //for (int i = 2; i < RaidsInventory.ITEMS_COUNT; ++i)
+            //{
+            //    Inventory.Items[i] = RaidsInventoryItem.GenerateBadge(new RaidsGenerateLootDropRequest() { Type = RaidsGenerateLootDropRequest.GenerateLootDropRequestType.MissionCompleteEvent }, Account);
+            //}
 
             // give random stats/weapons
             if (false)
@@ -748,31 +762,60 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         private static readonly int[] _gadgetMaxProficiencyForDifficulty = new[] { 15, 35, 65, 90, 99 };
         private static readonly float[] _gadgetMaxQualityForDifficulty = new[] { 0.4f, 0.6f, 0.70f, 0.85f, 0.999f };
         private static readonly float[] _gadgetMissionCompleteMinQualityForDifficulty = new[] { 0.1f, 0.2f, 0.3f, 0.4f, 0.5f };
+        private static readonly int[] _badgeMinEffectCountForRarity = new[] { 1, 1, 2, 3, 4 };
+        private static readonly int[] _badgeMaxEffectCountForRarity = new[] { 2, 3, 4, 5, 7 };
+        private static readonly float[] _badgeEffectStrengthForRarity = new[] { 2f, 1.5f, 1.25f, 1f, 0.5f };
 
         public static readonly RaidsInventoryItem Empty = new RaidsInventoryItem();
-        public static readonly RaidsInventoryItem DefaultVipers = new RaidsInventoryItem() { Damage = 5, GadgetId = Gadgets.Vipers, AlphaModCounts = new byte[8] { 0, 0, 0, 0, 0, 1, 0, 0 } };
-        public static readonly RaidsInventoryItem DefaultMagmaCannon = new RaidsInventoryItem() { Damage = 15, GadgetId = Gadgets.MagmaCannon, AlphaModCounts = new byte[8] { 0, 0, 0, 0, 0, 1, 0, 0 } };
+        public static readonly RaidsInventoryItem DefaultVipers = GenerateDefaultWeapon(Gadgets.Vipers);
+        public static readonly RaidsInventoryItem DefaultMagmaCannon = GenerateDefaultWeapon(Gadgets.MagmaCannon);
 
-        public int Damage;
+        public class ItemWeaponData
+        {
+            public int Damage;
+            public Gadgets GadgetId;
+            public RaidsWeaponPaints Paint;
+            public RaidsPaintSpecialFlags PaintSpecialMask;
+            public byte Proficiency; // gadget lvl weapon created at (v1-v99)
+            public byte CritChance; // 0-255 (0-100%)
+            public OmegaMods OmegaMod;
+            public byte[] AlphaModCounts = new byte[8];
+        }
+
+        public class ItemBadgeData
+        {
+            public List<RaidsBadgeType> Effects = new List<RaidsBadgeType>();
+            public List<float> EffectStrength = new List<float>();
+        }
+
+        public RaidsItemType Type;
         public uint Price;
-        public Gadgets GadgetId;
-        public RaidsWeaponPaints Paint;
-        public RaidsPaintSpecialFlags PaintSpecialMask;
-        public byte Proficiency; // gadget lvl weapon created at (v1-v99)
-        public byte Quality; // rarity index (0-255)
-        public byte CritChance; // 0-255 (0-100%)
-        public OmegaMods OmegaMod;
         public byte Notify;
-        public byte[] AlphaModCounts = new byte[8];
+        public byte Quality; // rarity index (0-255)
+        public ItemWeaponData WeaponData = null;
+        public ItemBadgeData BadgeData = null;
 
-        public bool IsBadge() => (int)GadgetId == _badgeGadgetId;
-        public bool IsWeapon() => GadgetId != Gadgets.None && !IsBadge();
-        public bool IsSameItem(RaidsInventoryItem other) => (this.IsBadge() && other.IsBadge() && this.Proficiency == other.Proficiency) || (this.IsWeapon() && other.IsWeapon() && this.GadgetId == other.GadgetId);
+
+        public bool IsBadge() => Type == RaidsItemType.Badge;
+        public bool IsWeapon() => Type == RaidsItemType.Weapon;
+        public bool IsSameItem(RaidsInventoryItem other)
+        {
+            if (this.IsBadge() && other.IsBadge())
+            {
+                return this.BadgeData.Effects.Intersect(other.BadgeData.Effects).Count() == this.BadgeData.Effects.Count;
+            }
+            else if (this.IsWeapon() && other.IsWeapon())
+            {
+                return this.WeaponData.GadgetId == other.WeaponData.GadgetId;
+            }
+
+            return false;
+        }
 
         public bool IsValid()
         {
-            if (IsBadge()) return Proficiency > 0;
-            if (IsWeapon()) return IsGadgetValid(GadgetId) && Damage > 0;
+            if (IsBadge()) return BadgeData.Effects.Count > 0;
+            if (IsWeapon()) return IsGadgetValid(WeaponData.GadgetId) && WeaponData.Damage > 0;
 
             return false;
         }
@@ -793,17 +836,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public static float GetWeaponBaseDamage(Gadgets gadget)
         {
             return _baseDamages.GetValueOrDefault(gadget);
-        }
-
-        public static int Compare(RaidsInventoryItem a, RaidsInventoryItem b)
-        {
-            if (a.GadgetId == Gadgets.None && b.GadgetId == Gadgets.None) return 0;
-            if (a.GadgetId == Gadgets.None) return 1;
-            if (b.GadgetId == Gadgets.None) return -1;
-
-            if (a.GadgetId != b.GadgetId) return a.GadgetId.CompareTo(b.GadgetId);
-
-            return a.Quality.CompareTo(b.Quality);
         }
 
 
@@ -850,33 +882,16 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             return 4;
         }
 
-        public static RaidsInventoryItem Random()
+        public static RaidsInventoryItem GenerateDefaultWeapon(Gadgets gadget)
         {
-            var r = new Random();
-            var gadget = Gadgets.Vipers + r.Next(0, 8);
-            if (gadget == Gadgets.Miniturret) gadget = Gadgets.Flail;
-
             return new RaidsInventoryItem()
             {
-                Damage = r.Next(0, 1000),
-                GadgetId = gadget,
-                Paint = (RaidsWeaponPaints)r.Next(0, (int)RaidsWeaponPaints.COUNT),
-                PaintSpecialMask = (RaidsPaintSpecialFlags)r.Next(0, 4),
-                Proficiency = (byte)r.Next(0, 99),
-                Quality = (byte)r.Next(0, 256),
-                CritChance = (byte)r.Next(0, 256),
-                OmegaMod = (OmegaMods)r.Next(0, (int)OmegaMods.Shock + 1),
-                Notify = 1,
-                AlphaModCounts = new byte[8]
+                Type = RaidsItemType.Weapon,
+                WeaponData = new RaidsInventoryItem.ItemWeaponData()
                 {
-                    (byte)r.Next(0, 10),
-                    (byte)r.Next(0, 10),
-                    (byte)r.Next(0, 10),
-                    (byte)r.Next(0, 10),
-                    (byte)r.Next(0, 10),
-                    (byte)r.Next(0, 10),
-                    (byte)r.Next(0, 10),
-                    (byte)r.Next(0, 10)
+                    GadgetId = gadget,
+                    Damage = (int)RaidsInventoryItem.GetWeaponBaseDamage(gadget),
+                    AlphaModCounts = new byte[8] { 0, 0, 0, 0, 0, 1, 0, 0 }
                 }
             };
         }
@@ -884,8 +899,11 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public static RaidsInventoryItem GenerateWeapon(RaidsGenerateLootDropRequest request, RaidsAccount account)
         {
             var drop = new RaidsInventoryItem();
+            drop.Type = RaidsItemType.Weapon;
+            drop.WeaponData = new ItemWeaponData();
 
             var availableGadgets = account == null ? _weaponGadgetIds : _weaponGadgetIds.Where(x => account.HasUnlockedWeapon(x));
+            var unavailableGadgets = account == null ? new Gadgets[0] : _weaponGadgetIds.Where(x => !account.HasUnlockedWeapon(x));
             var paintChances = new[] { 0.05, 0.125, 0.175, 0.5, 1.0 };
             var specialChances = new[] { 0, 0.01, 0.02, 0.08, 0.25 };
             var omegaChances = new[] { 0, 0.1, 0.2, 0.5, 1.0 };
@@ -896,11 +914,19 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 { AlphaMods.Area, 10 },
                 { AlphaMods.Aiming, 99 },
                 { AlphaMods.Ammo, 99 },
-                { AlphaMods.Xp, 99 },
-                { AlphaMods.Jackpot, 99 },
-                { AlphaMods.Nanoleech, 99 },
+                { AlphaMods.Xp, 15 },
+                { AlphaMods.Jackpot, 15 },
+                { AlphaMods.Nanoleech, 15 },
                 { AlphaMods.Impact, 10 },
             };
+
+            // small chance of drop for weapon not yet unlocked (1%)
+            if (unavailableGadgets.Any() && request.Type == RaidsGenerateLootDropRequest.GenerateLootDropRequestType.MobDeath && _rng.NextDouble() < 0.01)
+            {
+                var gadget = unavailableGadgets.OrderBy(x => Guid.NewGuid()).First();
+                account.UnlockWeapon(gadget);
+                return GenerateDefaultWeapon(gadget);
+            }
 
             // can't generate for player
             if (!availableGadgets.Any()) return drop;
@@ -908,12 +934,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             // 50% chance to drop requested gadget
             // otherwise pick a random one
             if (availableGadgets.Contains(request.MobKilledByGadget) && _rng.NextDouble() < 0.5)
-                drop.GadgetId = request.MobKilledByGadget;
+                drop.WeaponData.GadgetId = request.MobKilledByGadget;
             else
-                drop.GadgetId = availableGadgets.OrderBy(x => Guid.NewGuid()).FirstOrDefault();
+                drop.WeaponData.GadgetId = availableGadgets.OrderBy(x => Guid.NewGuid()).FirstOrDefault();
 
             // 
-            int accountProf = account?.GetProficiency(drop.GadgetId) ?? 98;
+            int accountProf = account?.GetProficiency(drop.WeaponData.GadgetId) ?? 98;
             int minProficiency = account == null ? 0 : Math.Max(0, accountProf - 5);
             int maxProficiency = account == null ? 99 : Math.Min(99, accountProf + 5);
             int difficultyMinProficiency = _gadgetMinProficiencyForDifficulty[request.DifficultyStars];
@@ -960,52 +986,52 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             }
 
             drop.Quality = (byte)Math.Clamp(quality * 256, 0, 255);
-            drop.Proficiency = (byte)(minProficiency + (Math.Pow(_rng.NextDouble(), proficiencyCurve) * (maxProficiency - minProficiency)));
+            drop.WeaponData.Proficiency = (byte)(minProficiency + (Math.Pow(_rng.NextDouble(), proficiencyCurve) * (maxProficiency - minProficiency)));
             drop.Notify = 1;
             int rarity = GetRarityFromQuality(drop.Quality);
 
             // paint
             if (_rng.NextDouble() < paintChances[rarity])
-                drop.Paint = (RaidsWeaponPaints)_rng.Next(0, (int)RaidsWeaponPaints.COUNT);
+                drop.WeaponData.Paint = (RaidsWeaponPaints)_rng.Next(0, (int)RaidsWeaponPaints.COUNT);
 
             // special
             if (_rng.NextDouble() < specialChances[rarity])
-                drop.PaintSpecialMask = (RaidsPaintSpecialFlags)_rng.Next(0, (int)RaidsPaintSpecialFlags.ALL + 1);
+                drop.WeaponData.PaintSpecialMask = (RaidsPaintSpecialFlags)_rng.Next(0, (int)RaidsPaintSpecialFlags.ALL + 1);
 
             // omega mod
             if (_rng.NextDouble() < omegaChances[rarity])
-                drop.OmegaMod = GetRandomOmegaMod(drop.GadgetId);
+                drop.WeaponData.OmegaMod = GetRandomOmegaMod(drop.WeaponData.GadgetId);
 
             // crit
             if (_rng.NextDouble() < critChances[rarity])
-                drop.CritChance = (byte)(_rng.NextDouble() * drop.Quality);
+                drop.WeaponData.CritChance = (byte)(_rng.NextDouble() * drop.Quality);
 
             // damage
-            var damageScale = _damageScales[drop.GadgetId];
-            double damage = _baseDamages[drop.GadgetId];
-            damage += damageScale * _damageCurveMultMax * Math.Pow(drop.Proficiency / 98.0, 2);
+            var damageScale = _damageScales[drop.WeaponData.GadgetId];
+            double damage = _baseDamages[drop.WeaponData.GadgetId];
+            damage += damageScale * _damageCurveMultMax * Math.Pow(drop.WeaponData.Proficiency / 98.0, 2);
             damage += damageScale * damage * 0.50 * (drop.Quality / 255.0) * _rng.NextDouble(); // up to +50% for higher rarity
             damage += damageScale * damage * 0.1 * (_rng.NextDouble() - 0.5); // +/- 5%
             damage += 10 * (_rng.NextDouble() - 0.5); // +/- 5 (good for early levels)
-            if (damage < _baseDamages[drop.GadgetId])
-                damage = _baseDamages[drop.GadgetId];
-            drop.Damage = (int)damage;
+            if (damage < _baseDamages[drop.WeaponData.GadgetId])
+                damage = _baseDamages[drop.WeaponData.GadgetId];
+            drop.WeaponData.Damage = (int)damage;
 
             // alpha mods
             int minAmods = 2 * (int)Math.Pow(2, rarity) - 1;
-            int maxAmods = (2 * (int)Math.Pow(3, rarity)) + (drop.Proficiency / 25) + 2;
+            int maxAmods = (2 * (int)Math.Pow(3, rarity)) + (drop.WeaponData.Proficiency / 25) + 2;
             int amodCount = (int)(Math.Pow(_rng.NextDouble(), 1.1) * maxAmods);
             if (amodCount < minAmods) amodCount = minAmods;
             for (int i = 0; i < amodCount; ++i)
             {
                 while (true)
                 {
-                    var amod = GetRandomAlphaMod(drop.GadgetId);
+                    var amod = GetRandomAlphaMod(drop.WeaponData.GadgetId);
                     var amodIdx = (int)amod - 1;
                     if (amod != AlphaMods.None)
                     {
-                        if (drop.AlphaModCounts[amodIdx] >= alphaModMax[amod]) continue;
-                        drop.AlphaModCounts[amodIdx]++;
+                        if (drop.WeaponData.AlphaModCounts[amodIdx] >= alphaModMax[amod]) continue;
+                        drop.WeaponData.AlphaModCounts[amodIdx]++;
                     }
 
                     break;
@@ -1019,7 +1045,9 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public static RaidsInventoryItem GenerateBadge(RaidsGenerateLootDropRequest request, RaidsAccount account)
         {
             var drop = new RaidsInventoryItem();
-            var badgeType = (RaidsBadgeType)_rng.Next((int)RaidsBadgeType.NONE + 1, (int)RaidsBadgeType.COUNT);
+            drop.Type = RaidsItemType.Badge;
+            drop.BadgeData = new ItemBadgeData();
+
             var difficultyMaxQuality = _gadgetMaxQualityForDifficulty[request.DifficultyStars] - 0.00001;
 
             // determine quality
@@ -1051,16 +1079,26 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     }
             }
 
-            // reroll if mythic-only badge
-            //var isMythic = GetRarityFromQuality((int)(quality * 256)) == 4;
-            //while (badgeType == RaidsBadgeType.EXTRALIFE && !isMythic)
-            //    badgeType = (RaidsBadgeType)_rng.Next((int)RaidsBadgeType.NONE + 1, (int)RaidsBadgeType.COUNT);
-
-            drop.GadgetId = (Gadgets)_badgeGadgetId;
-            drop.Proficiency = (byte)badgeType;
             drop.Quality = (byte)Math.Clamp(quality * 256, 0, 255);
-            drop.Notify = 1;
 
+            int rarity = GetRarityFromQuality(drop.Quality);
+            int numEffects = rarity + 1;
+            var availableBadgeTypes = ((RaidsBadgeType[])Enum.GetValues(typeof(RaidsBadgeType))).ToList();
+            availableBadgeTypes.Remove(RaidsBadgeType.COUNT);
+            availableBadgeTypes.Remove(RaidsBadgeType.NONE);
+            for (int i = 0; i < numEffects; ++i)
+            {
+                if (!availableBadgeTypes.Any()) break;
+
+                int idx = _rng.Next(0, availableBadgeTypes.Count);
+                var badgeType = availableBadgeTypes[idx];
+                var strength = (float)Math.Clamp(Math.Pow(_rng.NextDouble() * Math.Pow(quality, 0.5), _badgeEffectStrengthForRarity[rarity]), 0.01, 1);
+                drop.BadgeData.Effects.Add(badgeType);
+                drop.BadgeData.EffectStrength.Add(strength);
+                availableBadgeTypes.Remove(badgeType);
+            }
+
+            drop.Notify = 1;
             drop.Price = ComputeSellPrice(drop);
             return drop;
         }
@@ -1082,14 +1120,16 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
             if (item.IsBadge())
             {
-                double bolts = (item.Proficiency * 100000) + Math.Pow(1000000, 1 + Math.Pow((rarity / 6.0), 2)) + (10000000 * quality);
+                double bolts = (item.BadgeData.Effects.Count * 100000) + (item.BadgeData.EffectStrength.Sum() * 1000000) + Math.Pow(1000000, 1 + Math.Pow((rarity / 6.0), 2)) + (10000000 * quality);
                 return (uint)(Math.Round(bolts / roundTo) * roundTo);
             }
-            else
+            else if (item.IsWeapon())
             {
-                double bolts = (item.Proficiency * 100000) + Math.Pow(1000000, 1 + Math.Pow((rarity / 6.0), 2)) + (10000000 * quality);
+                double bolts = (item.WeaponData.Proficiency * 100000) + Math.Pow(500000, 1 + Math.Pow((rarity / 6.0), 2)) + (10000000 * quality);
                 return (uint)(Math.Round(bolts / roundTo) * roundTo);
             }
+
+            throw new NotImplementedException();
         }
 
         public static uint ComputeSellPrice(RaidsInventoryItem item)
@@ -1103,44 +1143,104 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 double bolts = (5000 + Math.Pow(1000, 1 + Math.Pow((rarity / 4.0), 1.25)) + (10000 * quality));
                 return (uint)(Math.Round(bolts / roundTo) * roundTo);
             }
-            else
+            else if (item.IsWeapon())
             {
-                double bolts = (item.Proficiency * 1000) + Math.Pow(500, 1 + Math.Pow((rarity / 4.0), 2)) + (10000 * quality);
+                double bolts = (item.WeaponData.Proficiency * 1000) + Math.Pow(500, 1 + Math.Pow((rarity / 4.0), 2)) + (10000 * quality);
                 return (uint)(Math.Round(bolts / roundTo) * roundTo);
             }
+
+            return 0;
         }
 
         public void Serialize(BinaryWriter writer)
         {
-            if (AlphaModCounts == null) AlphaModCounts = new byte[8];
-            else if (AlphaModCounts.Length != 8) Array.Resize(ref AlphaModCounts, 8);
-
-            writer.Write(Damage);
-            writer.Write(Price);
-            writer.Write((byte)GadgetId);
-            writer.Write((byte)Paint);
-            writer.Write((byte)PaintSpecialMask);
-            writer.Write((byte)Proficiency);
+            writer.Write((byte)Type);
+            writer.Write((byte)Notify);
             writer.Write((byte)Quality);
-            writer.Write((byte)CritChance);
-            writer.Write((byte)OmegaMod);
-            writer.Write(Notify);
-            writer.Write(AlphaModCounts);
+            writer.Write((byte)0); // padding
+            writer.Write(Price);
+
+            switch (Type)
+            {
+                case RaidsItemType.Weapon:
+                    {
+                        if (WeaponData == null) WeaponData = new ItemWeaponData();
+                        if (WeaponData.AlphaModCounts == null) WeaponData.AlphaModCounts = new byte[8];
+                        else if (WeaponData.AlphaModCounts.Length != 8) Array.Resize(ref WeaponData.AlphaModCounts, 8);
+
+                        writer.Write(WeaponData.Damage);
+                        writer.Write((byte)WeaponData.GadgetId);
+                        writer.Write((byte)WeaponData.Paint);
+                        writer.Write((byte)WeaponData.PaintSpecialMask);
+                        writer.Write((byte)WeaponData.Proficiency);
+                        writer.Write((byte)WeaponData.CritChance);
+                        writer.Write((byte)WeaponData.OmegaMod);
+                        writer.Write(WeaponData.AlphaModCounts);
+                        writer.Write(new byte[2]);
+                        break;
+                    }
+                case RaidsItemType.Badge:
+                    {
+                        if (BadgeData == null) BadgeData = new ItemBadgeData();
+
+                        for (int i = 0; i < 8; ++i)
+                            writer.Write(i < BadgeData.Effects.Count ? (byte)BadgeData.Effects[i] : (byte)0);
+                        for (int i = 0; i < 8; ++i)
+                            writer.Write((byte)Math.Ceiling(i < BadgeData.EffectStrength.Count ? (BadgeData.EffectStrength[i] * 255) : 0));
+
+                        writer.Write(new byte[4]);
+                        break;
+                    }
+                default:
+                    {
+                        writer.Write(new byte[20]);
+                        break;
+                    }
+            }
+
         }
 
         public void Deserialize(BinaryReader reader)
         {
-            Damage = reader.ReadInt32();
-            Price = reader.ReadUInt32();
-            GadgetId = (Gadgets)reader.ReadByte();
-            Paint = (RaidsWeaponPaints)reader.ReadByte();
-            PaintSpecialMask = (RaidsPaintSpecialFlags)reader.ReadByte();
-            Proficiency = reader.ReadByte();
-            Quality = reader.ReadByte();
-            CritChance = reader.ReadByte();
-            OmegaMod = (OmegaMods)reader.ReadByte();
+            Type = (RaidsItemType)reader.ReadByte();
             Notify = reader.ReadByte();
-            AlphaModCounts = reader.ReadBytes(8);
+            Quality = reader.ReadByte();
+            reader.ReadByte();
+            Price = reader.ReadUInt32();
+
+            switch (Type)
+            {
+                case RaidsItemType.Weapon:
+                    {
+                        if (WeaponData == null) WeaponData = new ItemWeaponData();
+
+                        WeaponData.Damage = reader.ReadInt32();
+                        WeaponData.GadgetId = (Gadgets)reader.ReadByte();
+                        WeaponData.Paint = (RaidsWeaponPaints)reader.ReadByte();
+                        WeaponData.PaintSpecialMask = (RaidsPaintSpecialFlags)reader.ReadByte();
+                        WeaponData.Proficiency = reader.ReadByte();
+                        WeaponData.CritChance = reader.ReadByte();
+                        WeaponData.OmegaMod = (OmegaMods)reader.ReadByte();
+                        WeaponData.AlphaModCounts = reader.ReadBytes(8);
+                        reader.ReadBytes(2);
+                        break;
+                    }
+                case RaidsItemType.Badge:
+                    {
+                        if (BadgeData == null) BadgeData = new ItemBadgeData();
+
+                        BadgeData.Effects = reader.ReadBytes(8).Select(x => (RaidsBadgeType)x).ToList();
+                        BadgeData.EffectStrength = reader.ReadBytes(8).Select(x => x * 255f).ToList();
+                        reader.ReadBytes(4);
+                        break;
+                    }
+                default:
+                    {
+                        reader.ReadBytes(20);
+                        break;
+                    }
+            }
+
         }
     }
 
@@ -1150,14 +1250,14 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public static readonly byte[] STORE_FIXED_ITEM_ALPHAMODS = new byte[8] { 0, 0, 0, 0, 0, 1, 0, 0 };
         public static readonly List<RaidsInventoryItem> FIXED_ITEMS = new List<RaidsInventoryItem>()
         {
-            new RaidsInventoryItem() { GadgetId = Gadgets.Vipers, Damage = (int)RaidsInventoryItem.GetWeaponBaseDamage(Gadgets.Vipers), AlphaModCounts = STORE_FIXED_ITEM_ALPHAMODS },
-            new RaidsInventoryItem() { GadgetId = Gadgets.MagmaCannon, Damage = (int)RaidsInventoryItem.GetWeaponBaseDamage(Gadgets.MagmaCannon), AlphaModCounts = STORE_FIXED_ITEM_ALPHAMODS },
-            new RaidsInventoryItem() { GadgetId = Gadgets.Arbiter, Damage = (int)RaidsInventoryItem.GetWeaponBaseDamage(Gadgets.Arbiter), AlphaModCounts = STORE_FIXED_ITEM_ALPHAMODS },
-            new RaidsInventoryItem() { GadgetId = Gadgets.Fusion, Damage = (int)RaidsInventoryItem.GetWeaponBaseDamage(Gadgets.Fusion), AlphaModCounts = STORE_FIXED_ITEM_ALPHAMODS },
-            new RaidsInventoryItem() { GadgetId = Gadgets.MineLauncher, Damage = (int)RaidsInventoryItem.GetWeaponBaseDamage(Gadgets.MineLauncher), AlphaModCounts = STORE_FIXED_ITEM_ALPHAMODS },
-            new RaidsInventoryItem() { GadgetId = Gadgets.B6, Damage = (int)RaidsInventoryItem.GetWeaponBaseDamage(Gadgets.B6), AlphaModCounts = STORE_FIXED_ITEM_ALPHAMODS },
-            new RaidsInventoryItem() { GadgetId = Gadgets.Holoshields, Damage = (int)RaidsInventoryItem.GetWeaponBaseDamage(Gadgets.Holoshields), AlphaModCounts = STORE_FIXED_ITEM_ALPHAMODS },
-            new RaidsInventoryItem() { GadgetId = Gadgets.Flail, Damage = (int)RaidsInventoryItem.GetWeaponBaseDamage(Gadgets.Flail), AlphaModCounts = STORE_FIXED_ITEM_ALPHAMODS },
+            RaidsInventoryItem.GenerateDefaultWeapon(Gadgets.Vipers),
+            RaidsInventoryItem.GenerateDefaultWeapon(Gadgets.MagmaCannon),
+            RaidsInventoryItem.GenerateDefaultWeapon(Gadgets.Arbiter),
+            RaidsInventoryItem.GenerateDefaultWeapon(Gadgets.Fusion),
+            RaidsInventoryItem.GenerateDefaultWeapon(Gadgets.MineLauncher),
+            RaidsInventoryItem.GenerateDefaultWeapon(Gadgets.B6),
+            RaidsInventoryItem.GenerateDefaultWeapon(Gadgets.Holoshields),
+            RaidsInventoryItem.GenerateDefaultWeapon(Gadgets.Flail),
         };
 
         public List<RaidsInventoryItem> Items = new List<RaidsInventoryItem>();
@@ -1227,7 +1327,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
             // validate item matches
             RaidsInventoryItem storeItem = Items[idx];
-            if (storeItem.GadgetId != item.GadgetId || storeItem.Quality != item.Quality || storeItem.Proficiency != item.Proficiency) return;
+            if (storeItem.Type != item.Type) return;
 
             // generate new item
             Items[idx] = RaidsInventoryItem.Generate(new RaidsGenerateLootDropRequest() { Type = RaidsGenerateLootDropRequest.GenerateLootDropRequestType.Store }, account);
