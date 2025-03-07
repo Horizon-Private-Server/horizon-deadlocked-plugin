@@ -4,6 +4,7 @@ using Server.Common;
 using Server.Common.Stream;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.Text;
 
@@ -32,6 +33,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
         public float MobDamage { get; set; }
         public int MobMobyOClass { get; set; }
         public Gadgets MobKilledByGadget { get; set; }
+        public Gadgets[] QuickSelectGadgets { get; set; } = new Gadgets[3];
 
         public bool IsAccountPrestige() => Type == GenerateLootDropRequestType.Prestige && (int)MobKilledByGadget == 0;
         public bool IsPrestige() => Type == GenerateLootDropRequestType.Prestige;
@@ -50,6 +52,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
             MobSpeed = reader.ReadSingle();
             MobKilledByGadget = (Gadgets)reader.ReadInt32();
             MobMobyOClass = reader.ReadInt16();
+            QuickSelectGadgets = reader.ReadArray<byte>(3).Select(x => (Gadgets)x).ToArray();
         }
 
         public override void Serialize(MessageWriter writer)
@@ -67,6 +70,8 @@ namespace Horizon.Plugin.Deadlocked.Messages
             writer.Write(MobSpeed);
             writer.Write(MobKilledByGadget);
             writer.Write((ushort)MobMobyOClass);
+            for (int i = 0; i < 3; ++i)
+                writer.Write((byte)QuickSelectGadgets[i]);
         }
     }
 }

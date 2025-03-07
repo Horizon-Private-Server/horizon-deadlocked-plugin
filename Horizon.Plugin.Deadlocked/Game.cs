@@ -1040,31 +1040,30 @@ namespace Horizon.Plugin.Deadlocked
         public int Version { get; set; }
         public int CustomModeExtraDataMask { get; set; }
         public short ShrubMinRenderDistance { get; set; }
+        public short Sort { get; set; }
         public sbyte BaseMapId { get; set; }
         public sbyte ForcedModeId { get; set; }
-        public sbyte HideFromMapList { get; set; }
 
         public bool HasMap() => Filename != null && Filename.Any();
 
         public byte[] Serialize()
         {
-            byte[] output = new byte[64 + 32 + 4 + 4 + 2 + 1 + 1 + 1];
-            using (var ms = new MemoryStream(output, true))
+            using (var ms = new MemoryStream())
             {
                 using (var writer = new MessageWriter(ms))
                 {
                     writer.Write(Version);
                     writer.Write(CustomModeExtraDataMask);
                     writer.Write(ShrubMinRenderDistance);
+                    writer.Write(Sort);
                     writer.Write(BaseMapId);
                     writer.Write(ForcedModeId);
-                    writer.Write(HideFromMapList);
                     writer.Write(Name, 32);
-                    writer.Write(Filename, 64);
+                    writer.Write(Filename, 48);
                 }
-            }
 
-            return output;
+                return ms.ToArray();
+            }
         }
 
         public void Deserialize(MessageReader reader)
@@ -1072,11 +1071,11 @@ namespace Horizon.Plugin.Deadlocked
             Version = reader.ReadInt32();
             CustomModeExtraDataMask = reader.ReadInt32();
             ShrubMinRenderDistance = reader.ReadInt16();
+            Sort = reader.ReadInt16();
             BaseMapId = reader.ReadSByte();
             ForcedModeId = reader.ReadSByte();
-            HideFromMapList = reader.ReadSByte();
             Name = reader.ReadString(32);
-            Filename = reader.ReadString(64);
+            Filename = reader.ReadString(48);
         }
 
         public bool SameAs(GameCustomMapConfig other)
@@ -1086,9 +1085,9 @@ namespace Horizon.Plugin.Deadlocked
                 && Version == other.Version
                 && CustomModeExtraDataMask == other.CustomModeExtraDataMask
                 && ShrubMinRenderDistance == other.ShrubMinRenderDistance
+                && Sort == other.Sort
                 && BaseMapId == other.BaseMapId
                 && ForcedModeId == other.ForcedModeId
-                && HideFromMapList == other.HideFromMapList
                 ;
         }
     }

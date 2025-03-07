@@ -76,7 +76,7 @@ namespace Horizon.Plugin.Deadlocked
                 AppId = 11184,
                 HookAddress = 0x00138DFC, 
                 HookType = PatchSetup.PatchHookType.JUMP,
-                UnpatchPayload = (0x000CE000, Path.Combine(Plugin.WorkingDirectory, "bin/patch/unpatch-11184.bin")),
+                UnpatchPayload = (0x000F0000, Path.Combine(Plugin.WorkingDirectory, "bin/patch/unpatch-11184.bin")),
                 Payloads = new (uint, string)[]
                 {
 #if COMP
@@ -93,7 +93,7 @@ namespace Horizon.Plugin.Deadlocked
                 AppId = -1,
                 HookAddress = 0x00138DFC,
                 HookType = PatchSetup.PatchHookType.JUMP,
-                UnpatchPayload = (0x000CE000, Path.Combine(Plugin.WorkingDirectory, "bin/patch/unpatch-11184.bin")),
+                UnpatchPayload = (0x000F0000, Path.Combine(Plugin.WorkingDirectory, "bin/patch/unpatch-11184.bin")),
                 Payloads = new (uint, string)[]
                 {
                     (0x000FC000, Path.Combine(Plugin.WorkingDirectory, "bin/patch/elfloader-11184.bin")),
@@ -105,7 +105,7 @@ namespace Horizon.Plugin.Deadlocked
                 AppId = -2,
                 HookAddress = 0x00138DFC,
                 HookType = PatchSetup.PatchHookType.JUMP,
-                UnpatchPayload = (0x000CE000, Path.Combine(Plugin.WorkingDirectory, "bin/patch/unpatch-11184.bin")),
+                UnpatchPayload = (0x000F0000, Path.Combine(Plugin.WorkingDirectory, "bin/patch/unpatch-11184.bin")),
                 Payloads = new (uint, string)[]
                 {
                     (0x000D0000, Path.Combine(Plugin.WorkingDirectory, "bin/patch/mapdownloader-11184.bin")),

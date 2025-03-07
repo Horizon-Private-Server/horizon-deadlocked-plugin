@@ -261,7 +261,7 @@ namespace Horizon.Plugin.Deadlocked
         public bool EnableInGameScoreboard { get; set; }
         public bool EnableNPSLagComp { get; set; }
         public bool EnableFastUSBLoad { get; set; } = true;
-        public byte Deadzone { get; set; } = 0;
+        public byte LevelOfDetailMobs { get; set; } = 2; // normal
 #if TWEAKERS
         public byte[] CharacterTweakers { get; set; } = new byte[1 + 7*2];
 #endif
@@ -294,7 +294,7 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(EnableInGameScoreboard);
                     writer.Write(EnableNPSLagComp);
                     writer.Write(EnableFastUSBLoad);
-                    writer.Write(Deadzone);
+                    writer.Write(LevelOfDetailMobs);
 #if TWEAKERS
                     writer.Write(CharacterTweakers ?? new byte[1 + 7*2]);
 #endif
@@ -328,7 +328,7 @@ namespace Horizon.Plugin.Deadlocked
             EnableInGameScoreboard = reader.ReadBoolean();
             EnableNPSLagComp = reader.ReadBoolean();
             EnableFastUSBLoad = reader.ReadBoolean();
-            Deadzone = reader.ReadByte();
+            LevelOfDetailMobs = reader.ReadByte();
 #if TWEAKERS
             CharacterTweakers = reader.ReadBytes(1 + 7*2);
 #endif
@@ -358,7 +358,7 @@ namespace Horizon.Plugin.Deadlocked
                 && EnableInGameScoreboard == other.EnableInGameScoreboard
                 && EnableNPSLagComp == other.EnableNPSLagComp
                 && EnableFastUSBLoad == other.EnableFastUSBLoad
-                && Deadzone == other.Deadzone
+                && LevelOfDetailMobs == other.LevelOfDetailMobs
 #if TWEAKERS
                 && (CharacterTweakers?.SequenceEqual(other.CharacterTweakers) ?? false)
 #endif
