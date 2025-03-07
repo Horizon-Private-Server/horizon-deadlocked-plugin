@@ -1126,6 +1126,8 @@ namespace Horizon.Plugin.Deadlocked
         public bool HeadbuttFriendlyFire { get; set; }
         public bool ChargebootForever { get; set; }
         public bool Freecam { get; set; }
+        public bool NoRank { get; set; }
+        public bool HotReload { get; set; }
         //public byte Survival_Difficulty { get; set; }
         public byte Payload_ContestMode { get; set; }
         public byte Training_Type { get; set; }
@@ -1174,6 +1176,8 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(HeadbuttFriendlyFire);
                     writer.Write(ChargebootForever);
                     writer.Write(Freecam);
+                    writer.Write(NoRank);
+                    writer.Write(HotReload);
                     //writer.Write(Survival_Difficulty);
                     writer.Write(Payload_ContestMode);
                     writer.Write(Training_Type);
@@ -1221,6 +1225,8 @@ namespace Horizon.Plugin.Deadlocked
             HeadbuttFriendlyFire = reader.ReadBoolean();
             ChargebootForever = reader.ReadBoolean();
             Freecam = reader.ReadBoolean();
+            NoRank = reader.ReadBoolean();
+            HotReload = reader.ReadBoolean();
             //Survival_Difficulty = reader.ReadByte();
             Payload_ContestMode = reader.ReadByte();
             Training_Type = reader.ReadByte();
@@ -1264,6 +1270,8 @@ namespace Horizon.Plugin.Deadlocked
                 && HeadbuttFriendlyFire == other.HeadbuttFriendlyFire
                 && ChargebootForever == other.ChargebootForever
                 && Freecam == other.Freecam
+                && NoRank == other.NoRank
+                && HotReload == other.HotReload
                 //&& Survival_Difficulty == other.Survival_Difficulty
                 && Payload_ContestMode == other.Payload_ContestMode
                 && Training_Type == other.Training_Type
