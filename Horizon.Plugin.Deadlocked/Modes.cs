@@ -29,6 +29,7 @@ namespace Horizon.Plugin.Deadlocked
             new TagCustomMode(),
             new RaidsCustomMode(),
             new OitcCustomMode(),
+            new ObstacleCustomMode(),
         };
 
         public static BaseCustomMode FindCustomModeById(CustomModeId id)
@@ -55,6 +56,7 @@ namespace Horizon.Plugin.Deadlocked
         CMODE_ID_TAG,
         CMODE_ID_RAIDS,
         CMODE_ID_OITC,
+        CMODE_ID_OBSTACLE,
         CMODE_ID_ANIM_EXTRACTOR,
 
         // reserved for custom maps

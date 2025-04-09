@@ -17,6 +17,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         private static readonly string SURVIVAL_CMAP_FILENAME_ORXON = "survival v2 mf";
         private static readonly string SURVIVAL_CMAP_FILENAME_MPASS = "survival mpass";
         private static readonly string SURVIVAL_CMAP_FILENAME_VELDIN = "survival veldin";
+        private static readonly string SURVIVAL_CMAP_FILENAME_VALIX = "survival_valix";
 
         public enum SurvivalMobStatIds : int
         {
@@ -49,6 +50,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             { SURVIVAL_CMAP_FILENAME_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_XP },
             { SURVIVAL_CMAP_FILENAME_MPASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_XP },
             { SURVIVAL_CMAP_FILENAME_VELDIN, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP3_XP },
+            { SURVIVAL_CMAP_FILENAME_VALIX, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP4_XP },
         };
 
         private static readonly Dictionary<string, CustomPlayerStatIds> _survivalMapToPrestigeStatIndex = new Dictionary<string, CustomPlayerStatIds>()
@@ -56,6 +58,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             { SURVIVAL_CMAP_FILENAME_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_PRESTIGE },
             { SURVIVAL_CMAP_FILENAME_MPASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_PRESTIGE },
             { SURVIVAL_CMAP_FILENAME_VELDIN, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP3_PRESTIGE },
+            { SURVIVAL_CMAP_FILENAME_VALIX, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP4_PRESTIGE },
         };
 
         private static readonly Dictionary<string, CustomPlayerStatIds> _survivalMapToSoloHighScoreStatIndex = new Dictionary<string, CustomPlayerStatIds>()
@@ -63,6 +66,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             { SURVIVAL_CMAP_FILENAME_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_SOLO_HIGH_SCORE },
             { SURVIVAL_CMAP_FILENAME_MPASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_SOLO_HIGH_SCORE },
             { SURVIVAL_CMAP_FILENAME_VELDIN, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP3_SOLO_HIGH_SCORE },
+            { SURVIVAL_CMAP_FILENAME_VALIX, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP4_SOLO_HIGH_SCORE },
         };
 
         private static readonly Dictionary<string, CustomPlayerStatIds> _survivalMapToCoopHighScoreStatIndex = new Dictionary<string, CustomPlayerStatIds>()
@@ -70,6 +74,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             { SURVIVAL_CMAP_FILENAME_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_COOP_HIGH_SCORE },
             { SURVIVAL_CMAP_FILENAME_MPASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_COOP_HIGH_SCORE },
             { SURVIVAL_CMAP_FILENAME_VELDIN, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP3_COOP_HIGH_SCORE },
+            { SURVIVAL_CMAP_FILENAME_VALIX, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP4_COOP_HIGH_SCORE },
         };
 
         private static readonly Dictionary<string, CustomPlayerStatIds> _survivalMapToSolo50BestTimeStatIndex = new Dictionary<string, CustomPlayerStatIds>()
@@ -77,6 +82,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             { SURVIVAL_CMAP_FILENAME_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_SOLO_50_BEST_TIME },
             { SURVIVAL_CMAP_FILENAME_MPASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_SOLO_50_BEST_TIME },
             { SURVIVAL_CMAP_FILENAME_VELDIN, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP3_SOLO_50_BEST_TIME },
+            { SURVIVAL_CMAP_FILENAME_VALIX, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP4_SOLO_50_BEST_TIME },
         };
 
         private static readonly Dictionary<string, CustomPlayerStatIds> _survivalMapToCoop50BestTimeStatIndex = new Dictionary<string, CustomPlayerStatIds>()
@@ -84,6 +90,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             { SURVIVAL_CMAP_FILENAME_ORXON, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP1_COOP_50_BEST_TIME },
             { SURVIVAL_CMAP_FILENAME_MPASS, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP2_COOP_50_BEST_TIME },
             { SURVIVAL_CMAP_FILENAME_VELDIN, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP3_COOP_50_BEST_TIME },
+            { SURVIVAL_CMAP_FILENAME_VALIX, CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_MAP4_COOP_50_BEST_TIME },
         };
 
         public override CustomModeId Id => CustomModeId.CMODE_ID_SURVIVAL;
@@ -266,10 +273,10 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TIMES_REVIVED] += customGameData.TimesRevived[gameIdx];
 
                 // general mechanics
-                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TIMES_ROLLED_MYSTERY_BOX] += customGameData.TimesRolledMysteryBox[gameIdx];
-                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TIMES_ACTIVATED_DEMON_BELL] += customGameData.TimesActivatedDemonBell[gameIdx];
-                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TIMES_ACTIVATED_POWER] += customGameData.TimesActivatedPower[gameIdx];
-                args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TOKENS_USED_ON_GATES] += customGameData.TokensUsedOnGates[gameIdx];
+                //args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TIMES_ROLLED_MYSTERY_BOX] += customGameData.TimesRolledMysteryBox[gameIdx];
+                //args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TIMES_ACTIVATED_DEMON_BELL] += customGameData.TimesActivatedDemonBell[gameIdx];
+                //args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TIMES_ACTIVATED_POWER] += customGameData.TimesActivatedPower[gameIdx];
+                //args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TOKENS_USED_ON_GATES] += customGameData.TokensUsedOnGates[gameIdx];
 
                 // weapon stats
                 args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_WRENCH_KILLS] += (ushort)gameData.Data.WeaponKills[gameIdx][0];
