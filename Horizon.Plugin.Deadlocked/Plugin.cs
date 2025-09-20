@@ -483,7 +483,7 @@ namespace Horizon.Plugin.Deadlocked
                                                 {
                                                     await Task.Delay(1000);
 
-                                                    var bytes = File.ReadAllBytes("M:\\PS2\\dl-mapdownloader\\bin\\mapdownloader.packed.elf");
+                                                    var bytes = File.ReadAllBytes(Path.Combine(Plugin.WorkingDirectory, "bin/mapdownloader.packed.elf"));
                                                     var payload = new Payload(0x00085000, bytes);
                                                     await Downloader.InitiateDataDownload(client: msg.Player, 401, new Payload[] { payload }, (client, id) =>
                                                     {
@@ -656,7 +656,7 @@ namespace Horizon.Plugin.Deadlocked
                                     if (metadata == null) break;
                                     if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_RAIDS) break;
 
-                                    mode.OnClientRequestGenerateLootDrop(request, msg.Player);
+                                    await mode.OnClientRequestGenerateLootDrop(request, msg.Player);
                                     break;
                                 }
                             case 57: // raids request store items
@@ -747,6 +747,96 @@ namespace Horizon.Plugin.Deadlocked
                                     if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_RAIDS) break;
 
                                     mode.OnClientRequestBankEquippedInventory(request, msg.Player);
+                                    break;
+                                }
+                            case 63: // raids reset account request
+                                {
+                                    var request = new RaidsResetAccountRequest();
+                                    request.Deserialize(reader);
+
+                                    if (msg.Player.CurrentGame == null) break;
+
+                                    var mode = Modes.FindCustomModeById(CustomModeId.CMODE_ID_RAIDS) as RaidsCustomMode;
+                                    var metadata = await Game.GetGameMetadata(msg.Player.CurrentGame);
+                                    if (metadata == null) break;
+                                    if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_RAIDS) break;
+
+                                    mode.OnClientRequestAccountReset(request, msg.Player);
+                                    break;
+                                }
+                            case 64: // raids request contracts
+                                {
+                                    var request = new RaidsGetContractsRequest();
+                                    request.Deserialize(reader);
+
+                                    if (msg.Player.CurrentGame == null) break;
+
+                                    var mode = Modes.FindCustomModeById(CustomModeId.CMODE_ID_RAIDS) as RaidsCustomMode;
+                                    var metadata = await Game.GetGameMetadata(msg.Player.CurrentGame);
+                                    if (metadata == null) break;
+                                    if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_RAIDS) break;
+
+                                    mode.OnClientRequestContracts(request, msg.Player);
+                                    break;
+                                }
+                            case 65: // raids complete/reroll contract
+                                {
+                                    var request = new RaidsActionContractRequest();
+                                    request.Deserialize(reader);
+
+                                    if (msg.Player.CurrentGame == null) break;
+
+                                    var mode = Modes.FindCustomModeById(CustomModeId.CMODE_ID_RAIDS) as RaidsCustomMode;
+                                    var metadata = await Game.GetGameMetadata(msg.Player.CurrentGame);
+                                    if (metadata == null) break;
+                                    if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_RAIDS) break;
+
+                                    mode.OnClientActionContract(request, msg.Player);
+                                    break;
+                                }
+                            case 66: // raids update contract stats
+                                {
+                                    var request = new RaidsUpdateContractStatsRequest();
+                                    request.Deserialize(reader);
+
+                                    if (msg.Player.CurrentGame == null) break;
+
+                                    var mode = Modes.FindCustomModeById(CustomModeId.CMODE_ID_RAIDS) as RaidsCustomMode;
+                                    var metadata = await Game.GetGameMetadata(msg.Player.CurrentGame);
+                                    if (metadata == null) break;
+                                    if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_RAIDS) break;
+
+                                    mode.OnClientUpdateContractStats(request, msg.Player);
+                                    break;
+                                }
+                            case 67: // raids update map metadata
+                                {
+                                    var request = new RaidsUpdateMapMetadataRequest();
+                                    request.Deserialize(reader);
+
+                                    if (msg.Player.CurrentGame == null) break;
+
+                                    var mode = Modes.FindCustomModeById(CustomModeId.CMODE_ID_RAIDS) as RaidsCustomMode;
+                                    var metadata = await Game.GetGameMetadata(msg.Player.CurrentGame);
+                                    if (metadata == null) break;
+                                    if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_RAIDS) break;
+
+                                    mode.OnClientUpdateMapMetadata(request, msg.Player);
+                                    break;
+                                }
+                            case 68: // raids update map contract rules
+                                {
+                                    var request = new RaidsUpdateMapContractRulesRequest();
+                                    request.Deserialize(reader);
+
+                                    if (msg.Player.CurrentGame == null) break;
+
+                                    var mode = Modes.FindCustomModeById(CustomModeId.CMODE_ID_RAIDS) as RaidsCustomMode;
+                                    var metadata = await Game.GetGameMetadata(msg.Player.CurrentGame);
+                                    if (metadata == null) break;
+                                    if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_RAIDS) break;
+
+                                    mode.OnClientUpdateMapContractRules(request, msg.Player);
                                     break;
                                 }
                             default:

@@ -1115,7 +1115,7 @@ namespace Horizon.Plugin.Deadlocked
         public bool CqDisableTurrets { get; set; }
         public bool CqDisableUpgrades { get; set; }
         public bool NewPlayerSync { get; set; }
-        public bool QuickChat { get; set; }
+        public bool Lagjump { get; set; }
         public bool NoFusionADS { get; set; }
         public byte RespawnOverride { get; set; }
         public bool FogOfWarRadar { get; set; }
@@ -1165,7 +1165,7 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(CqDisableTurrets);
                     writer.Write(CqDisableUpgrades);
                     writer.Write(NewPlayerSync);
-                    writer.Write(QuickChat);
+                    writer.Write(Lagjump);
                     writer.Write(NoFusionADS);
                     writer.Write(RespawnOverride);
                     writer.Write(FogOfWarRadar);
@@ -1214,7 +1214,7 @@ namespace Horizon.Plugin.Deadlocked
             CqDisableTurrets = reader.ReadBoolean();
             CqDisableUpgrades = reader.ReadBoolean();
             NewPlayerSync = reader.ReadBoolean();
-            QuickChat = reader.ReadBoolean();
+            Lagjump = reader.ReadBoolean();
             NoFusionADS = reader.ReadBoolean();
             RespawnOverride = reader.ReadByte();
             FogOfWarRadar = reader.ReadBoolean();
@@ -1259,7 +1259,7 @@ namespace Horizon.Plugin.Deadlocked
                 && CqDisableTurrets == other.CqDisableTurrets
                 && CqDisableUpgrades == other.CqDisableUpgrades
                 && NewPlayerSync == other.NewPlayerSync
-                && QuickChat == other.QuickChat
+                && Lagjump == other.Lagjump
                 && NoFusionADS == other.NoFusionADS
                 && RespawnOverride == other.RespawnOverride
                 && FogOfWarRadar == other.FogOfWarRadar

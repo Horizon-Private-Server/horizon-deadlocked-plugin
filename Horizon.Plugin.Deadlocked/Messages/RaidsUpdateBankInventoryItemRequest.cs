@@ -18,9 +18,12 @@ namespace Horizon.Plugin.Deadlocked.Messages
         {
             None = 0,
             Sell,
-            SetNofify,
+            SetNotify,
             Equip,
             Unequip,
+            Upgrade,
+            UpgradeRarity,
+            Destroy
         }
 
         public RaidsInventoryItem Item { get; set; }

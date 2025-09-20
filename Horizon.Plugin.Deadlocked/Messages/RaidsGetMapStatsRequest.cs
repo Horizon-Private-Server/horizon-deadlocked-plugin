@@ -1,4 +1,5 @@
-﻿using RT.Common;
+﻿using Horizon.Plugin.Deadlocked.CustomModes;
+using RT.Common;
 using RT.Models;
 using Server.Common;
 using Server.Common.Stream;
@@ -17,7 +18,9 @@ namespace Horizon.Plugin.Deadlocked.Messages
         public uint ResponseAddress { get; set; }
         public int CollectiblesCount { get; set; }
         public int ChallengesCount { get; set; }
+        public RaidsMissionType MissionType { get; set; }
         public string MapFilename { get; set; }
+        public string MapName { get; set; }
 
         public override void Deserialize(MessageReader reader)
         {
@@ -26,7 +29,9 @@ namespace Horizon.Plugin.Deadlocked.Messages
             ResponseAddress = reader.ReadUInt32();
             CollectiblesCount = reader.ReadInt32();
             ChallengesCount = reader.ReadInt32();
+            MissionType = (RaidsMissionType)reader.ReadInt32();
             MapFilename = reader.ReadString(64);
+            MapName = reader.ReadString(32);
         }
 
         public override void Serialize(MessageWriter writer)
@@ -36,7 +41,9 @@ namespace Horizon.Plugin.Deadlocked.Messages
             writer.Write(ResponseAddress);
             writer.Write(CollectiblesCount);
             writer.Write(ChallengesCount);
+            writer.Write((int)MissionType);
             writer.Write(MapFilename, 64);
+            writer.Write(MapName, 32);
         }
     }
 }

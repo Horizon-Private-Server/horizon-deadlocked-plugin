@@ -67,6 +67,21 @@ namespace Horizon.Plugin.Deadlocked
         Nanoleech
     }
 
+    public enum WeaponMods
+    {
+        None = 0,
+        Napalm,
+        TimeBomb,
+        Freeze,
+        MiniBomb,
+        Morph,
+        Brainwash,
+        Acid,
+        Shock,
+        WillOWisp,
+        Lightfoot
+    }
+
     public static class Constants
     {
         public static readonly string[] Teams = new string[]
