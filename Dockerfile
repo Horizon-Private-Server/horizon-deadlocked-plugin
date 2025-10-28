@@ -13,13 +13,4 @@ RUN cp /server/*.dll /src/Horizon.Plugin.Deadlocked/
 WORKDIR /src/Horizon.Plugin.Deadlocked
 RUN dotnet publish -c Release -o /out/medius
 
-RUN mv /out/medius/runtimes/linux-x64/native/SQLite.Interop.dll /out/medius/
-RUN rm -rf /out/medius/runtimes/osx-x64  
-RUN rm -rf /out/medius/runtimes/win-x64  
-RUN rm -rf /out/medius/runtimes/unix 
-RUN rm -rf /out/medius/runtimes/win-x86 
-RUN rm -rf /out/medius/runtimes/win-arm64  
-RUN rm -rf /out/medius/runtimes/win
-RUN rm -rf /out/medius/runtimes
-
 CMD "/src/entrypoint.sh"
