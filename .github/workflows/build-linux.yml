@@ -28,11 +28,25 @@ jobs:
           path: repo
 
       # Step 2: Clone dependent repositories
-      - name: Clone dependencies
+      - name: Clone dependent repositories
+        shell: bash
         run: |
-          mkdir -p horizon-server horizon-deadlocked-patch
-          git clone https://github.com/Horizon-Private-Server/horizon-server.git horizon-server
-          git clone https://github.com/Horizon-Private-Server/horizon-deadlocked-patch.git horizon-deadlocked-patch
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            # Windows
+            pwsh -Command "New-Item -ItemType Directory -Force -Path horizon-server, horizon-deadlocked-patch"
+            git clone https://github.com/Horizon-Private-Server/horizon-server.git horizon-server
+            git clone https://github.com/Horizon-Private-Server/horizon-deadlocked-patch.git horizon-deadlocked-patch
+          else
+            # macOS/Linux
+            mkdir -p horizon-server horizon-deadlocked-patch
+            git clone https://github.com/Horizon-Private-Server/horizon-server.git horizon-server
+            git clone https://github.com/Horizon-Private-Server/horizon-deadlocked-patch.git horizon-deadlocked-patch
+          fi
+
+      - name: Build dependencies
+        working-directory: horizon-server
+        run: |
+          dotnet build --configuration Debug --no-restore
 
       # Step 3: Setup .NET
       - name: Setup .NET SDK
