@@ -66,13 +66,13 @@ jobs:
 
       - name: Build
         working-directory: repo
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet build --configuration Release --no-restore --output ../output/${{ matrix.rid }}
 
       # Step 5: Publish self-contained binaries
-      - name: Publish for ${{ matrix.os }}
-        working-directory: repo
-        run: |
-          dotnet publish --configuration Release --runtime ${{ matrix.rid }} --output ../output/${{ matrix.rid }}
+      #- name: Publish for ${{ matrix.os }}
+      #  working-directory: repo
+      #  run: |
+      #    dotnet publish --configuration Release --runtime ${{ matrix.rid }} --output ../output/${{ matrix.rid }}
 
       # Step 6: Upload binaries as an artifact
       - name: Upload build artifact
