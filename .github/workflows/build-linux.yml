@@ -72,10 +72,7 @@ jobs:
       - name: Publish for ${{ matrix.os }}
         working-directory: repo
         run: |
-          dotnet publish \
-            --configuration Release \
-            --runtime ${{ matrix.rid }} \
-            --output ../output/${{ matrix.rid }}
+          dotnet publish --configuration Release --runtime ${{ matrix.rid }} --output ../output/${{ matrix.rid }}
 
       # Step 6: Upload binaries as an artifact
       - name: Upload build artifact
