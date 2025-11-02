@@ -1128,13 +1128,13 @@ namespace Horizon.Plugin.Deadlocked
         public bool Freecam { get; set; }
         public bool NoRank { get; set; }
         public bool HotReload { get; set; }
-        //public byte Survival_Difficulty { get; set; }
         public byte Payload_ContestMode { get; set; }
         public byte Training_Type { get; set; }
         public byte Training_Variation { get; set; }
         public byte Training_Aggression { get; set; }
         public byte Training_Opt3 { get; set; }
         public byte Hns_HideTime { get; set; }
+        public byte Survival_Gambit { get; set; }
 
         public bool HasDevRule() => Freecam;
 
@@ -1178,13 +1178,13 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(Freecam);
                     writer.Write(NoRank);
                     writer.Write(HotReload);
-                    //writer.Write(Survival_Difficulty);
                     writer.Write(Payload_ContestMode);
                     writer.Write(Training_Type);
                     writer.Write(Training_Variation);
                     writer.Write(Training_Aggression);
                     writer.Write(Training_Opt3);
                     writer.Write(Hns_HideTime);
+                    writer.Write(Survival_Gambit);
 
                     return ms.ToArray();
                 }
@@ -1227,13 +1227,13 @@ namespace Horizon.Plugin.Deadlocked
             Freecam = reader.ReadBoolean();
             NoRank = reader.ReadBoolean();
             HotReload = reader.ReadBoolean();
-            //Survival_Difficulty = reader.ReadByte();
             Payload_ContestMode = reader.ReadByte();
             Training_Type = reader.ReadByte();
             Training_Variation = reader.ReadByte();
             Training_Aggression = reader.ReadByte();
             Training_Opt3 = reader.ReadByte();
             Hns_HideTime = reader.ReadByte();
+            Survival_Gambit = reader.ReadByte();
         }
 
         public bool SameAs(GameConfig other)
@@ -1272,13 +1272,13 @@ namespace Horizon.Plugin.Deadlocked
                 && Freecam == other.Freecam
                 && NoRank == other.NoRank
                 && HotReload == other.HotReload
-                //&& Survival_Difficulty == other.Survival_Difficulty
                 && Payload_ContestMode == other.Payload_ContestMode
                 && Training_Type == other.Training_Type
                 && Training_Variation == other.Training_Variation
                 && Training_Aggression == other.Training_Aggression
                 && Training_Opt3 == other.Training_Opt3
                 && Hns_HideTime == other.Hns_HideTime
+                && Survival_Gambit == other.Survival_Gambit
                 ;
         }
     }

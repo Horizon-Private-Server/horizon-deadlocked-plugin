@@ -1,4 +1,5 @@
 ﻿using Horizon.Plugin.Deadlocked.Messages;
+using Newtonsoft.Json;
 using Server.Common.Stream;
 using Server.Medius;
 using Server.Medius.Models;
@@ -12,7 +13,7 @@ using static Horizon.Plugin.Deadlocked.CustomModes.SurvivalCustomMode;
 
 namespace Horizon.Plugin.Deadlocked.CustomModes
 {
-    public class SurvivalCustomMode : BaseCustomMode
+    public class SurvivalCustomMode : BaseCustomMode, IDisposable
     {
         private static readonly string SURVIVAL_CMAP_FILENAME_ORXON = "survival v2 mf";
         private static readonly string SURVIVAL_CMAP_FILENAME_MPASS = "survival mpass";
@@ -102,6 +103,17 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         public override CustomModeId Id => CustomModeId.CMODE_ID_SURVIVAL;
         public override string Name => "Survival";
+
+        public SurvivalCustomMode()
+        {
+            Player.OnBuildDynamicPageContent -= Player_OnBuildDynamicPageContent;
+            Player.OnBuildDynamicPageContent += Player_OnBuildDynamicPageContent;
+        }
+
+        public void Dispose()
+        {
+            Player.OnBuildDynamicPageContent -= Player_OnBuildDynamicPageContent;
+        }
 
         private int GetRatingFromXp(long xp)
         {
@@ -235,6 +247,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             var gameData = args.GameData;
             var game = args.Game;
             var mapFilename = args.Metadata.CustomMapConfig.Filename;
+            var hasGambit = args.Metadata.GameConfig.Survival_Gambit > 0;
             if (customGameData.Points == null || String.IsNullOrEmpty(mapFilename)) return;
 
             // apply stats
@@ -272,6 +285,30 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TIME_PLAYED] += (int)((game.UtcTimeEnded - game.UtcTimeStarted)?.TotalSeconds ?? 0);
                 }
 
+                // gambit
+                if (hasGambit)
+                {
+                    var playerClient = args.Game.Clients.FirstOrDefault(x => x.Client?.AccountId == accountId)?.Client;
+                    if (playerClient != null)
+                    {
+                        var playerMetadata = Player.GetPlayerMetadata(playerClient);
+                        if (playerMetadata != null)
+                        {
+                            if (!playerMetadata.SurvivalMapStats.TryGetValue(mapFilename, out var mapStats))
+                                playerMetadata.SurvivalMapStats[mapFilename] = mapStats = new SurvivalMapStat();
+
+                            if (!mapStats.Gambits.TryGetValue(args.Metadata.GameConfig.Survival_Gambit, out var gambitStats))
+                                mapStats.Gambits[args.Metadata.GameConfig.Survival_Gambit] = gambitStats = new SurvivalMapGambitStat();
+
+                            gambitStats.BestRound = Math.Max(gambitStats.BestRound, customGameData.BestRound[gameIdx]);
+
+                            // save
+                            playerClient.Metadata = JsonConvert.SerializeObject(playerMetadata);
+                            _ = Server.Medius.Program.Database.PostAccountMetadata(playerClient.AccountId, playerClient.Metadata);
+                        }
+                    }
+                }
+
                 // general
                 args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_KILLS] += customGameData.Kills[gameIdx];
                 args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_DEATHS] += (ushort)gameData.Data.Deaths[gameIdx];
@@ -296,35 +333,38 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_SCORPION_FLAIL_KILLS] += (ushort)gameData.Data.WeaponKills[gameIdx][7];
 
                 // high scores
-                int? statIndex = null;
-                int? b50StatIndex = null;
-                var coop = game.AccountIdsAtStart.Contains(',');
-                if (coop)
+                if (!hasGambit)
                 {
-                    if (_survivalMapToCoopHighScoreStatIndex.TryGetValue(mapFilename, out var customStatId))
-                        statIndex = (int)customStatId;
-                    if (_survivalMapToCoop50BestTimeStatIndex.TryGetValue(mapFilename, out var b50CustomStatId))
-                        b50StatIndex = (int)b50CustomStatId;
-                }
-                else
-                {
-                    if (_survivalMapToSoloHighScoreStatIndex.TryGetValue(mapFilename, out var customStatId))
-                        statIndex = (int)customStatId;
-                    if (_survivalMapToSolo50BestTimeStatIndex.TryGetValue(mapFilename, out var b50CustomStatId))
-                        b50StatIndex = (int)b50CustomStatId;
-                }
-
-                if (statIndex.HasValue)
-                {
-                    args.PlayerCustomStats[accountId][statIndex.Value] = Math.Max(args.PlayerCustomStats[accountId][statIndex.Value], customGameData.BestRound[gameIdx]);
-                }
-
-                // min round 50 best time unless 0
-                if (b50StatIndex.HasValue && customGameData.BestRound[gameIdx] >= 50 && customGameData.Round50TimeMs > 0)
-                {
-                    if (args.PlayerCustomStats[accountId][b50StatIndex.Value] == 0 || customGameData.Round50TimeMs < args.PlayerCustomStats[accountId][b50StatIndex.Value])
+                    int? statIndex = null;
+                    int? b50StatIndex = null;
+                    var coop = game.AccountIdsAtStart.Contains(',');
+                    if (coop)
                     {
-                        args.PlayerCustomStats[accountId][b50StatIndex.Value] = customGameData.Round50TimeMs;
+                        if (_survivalMapToCoopHighScoreStatIndex.TryGetValue(mapFilename, out var customStatId))
+                            statIndex = (int)customStatId;
+                        if (_survivalMapToCoop50BestTimeStatIndex.TryGetValue(mapFilename, out var b50CustomStatId))
+                            b50StatIndex = (int)b50CustomStatId;
+                    }
+                    else
+                    {
+                        if (_survivalMapToSoloHighScoreStatIndex.TryGetValue(mapFilename, out var customStatId))
+                            statIndex = (int)customStatId;
+                        if (_survivalMapToSolo50BestTimeStatIndex.TryGetValue(mapFilename, out var b50CustomStatId))
+                            b50StatIndex = (int)b50CustomStatId;
+                    }
+
+                    if (statIndex.HasValue)
+                    {
+                        args.PlayerCustomStats[accountId][statIndex.Value] = Math.Max(args.PlayerCustomStats[accountId][statIndex.Value], customGameData.BestRound[gameIdx]);
+                    }
+
+                    // min round 50 best time unless 0
+                    if (b50StatIndex.HasValue && customGameData.BestRound[gameIdx] >= 50 && customGameData.Round50TimeMs > 0)
+                    {
+                        if (args.PlayerCustomStats[accountId][b50StatIndex.Value] == 0 || customGameData.Round50TimeMs < args.PlayerCustomStats[accountId][b50StatIndex.Value])
+                        {
+                            args.PlayerCustomStats[accountId][b50StatIndex.Value] = customGameData.Round50TimeMs;
+                        }
                     }
                 }
             }
@@ -341,6 +381,96 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             }
 
             return Task.CompletedTask;
+        }
+
+        public void OnUpdateSurvivalData(UpdateCustomMapSurvivalDataRequestMessage request, ClientObject client)
+        {
+            var playerMetadata = Player.GetPlayerMetadata(client);
+            if (playerMetadata != null)
+            {
+                if (!playerMetadata.SurvivalMapStats.TryGetValue(request.MapFilename, out var mapStats))
+                    playerMetadata.SurvivalMapStats[request.MapFilename] = mapStats = new SurvivalMapStat();
+
+                mapStats.GambitCount = request.GambitCount;
+                for (int i = 0; i < mapStats.GambitCount; ++i)
+                {
+                    var key = i + 1;
+                    if (!mapStats.Gambits.TryGetValue(key, out var gambitStats))
+                        mapStats.Gambits[key] = gambitStats = new SurvivalMapGambitStat();
+
+                    gambitStats.Name = request.Gambits.ElementAtOrDefault(i);
+                }
+
+                // save
+                client.Metadata = JsonConvert.SerializeObject(playerMetadata);
+                _ = Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
+            }
+        }
+
+        public void OnUpdateSurvivalGambitCompleted(UpdateSurvivalGambitCompletedRequestMessage request, ClientObject client)
+        {
+            var playerMetadata = Player.GetPlayerMetadata(client);
+            if (playerMetadata != null)
+            {
+                if (!playerMetadata.SurvivalMapStats.TryGetValue(request.MapFilename, out var mapStats))
+                    playerMetadata.SurvivalMapStats[request.MapFilename] = mapStats = new SurvivalMapStat();
+
+                if (!mapStats.Gambits.TryGetValue(request.GambitIdx, out var gambitStats))
+                    mapStats.Gambits[request.GambitIdx] = gambitStats = new SurvivalMapGambitStat() { Name = request.GambitName };
+
+                gambitStats.Completed = true;
+
+                // save
+                client.Metadata = JsonConvert.SerializeObject(playerMetadata);
+                _ = Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
+            }
+        }
+
+        private void Player_OnBuildDynamicPageContent(DynamicPageContentBuilder builder)
+        {
+            if (builder.Request.Type != GetDynamicPageContentRequestMessage.ContentType.SurvivalMapStats) return;
+
+            if (!_survivalMapToSoloHighScoreStatIndex.ContainsKey(builder.Request.MapFilename))
+            {
+                builder.LineItems.Add(("", "Unsupported map"));
+                return;
+            }
+
+            // get map stats
+            if (!builder.PlayerMetadata.SurvivalMapStats.TryGetValue(builder.Request.MapFilename, out var mapStats))
+                builder.PlayerMetadata.SurvivalMapStats[builder.Request.MapFilename] = mapStats = new SurvivalMapStat();
+
+            var soloBestRound = builder.Client.CustomWideStats[(int)_survivalMapToSoloHighScoreStatIndex[builder.Request.MapFilename]];
+            var soloBest50Ms = builder.Client.CustomWideStats[(int)_survivalMapToSolo50BestTimeStatIndex[builder.Request.MapFilename]];
+            var coopBestRound = builder.Client.CustomWideStats[(int)_survivalMapToCoopHighScoreStatIndex[builder.Request.MapFilename]];
+            var coopBest50Ms = builder.Client.CustomWideStats[(int)_survivalMapToCoop50BestTimeStatIndex[builder.Request.MapFilename]];
+            var soloBest50Time = TimeSpan.FromMilliseconds(soloBest50Ms);
+            var coopBest50Time = TimeSpan.FromMilliseconds(coopBest50Ms);
+
+            // write percent complete
+            var bestRound = Math.Max(soloBestRound, coopBestRound);
+            var gambitsCompleted = mapStats.Gambits.Where(x => (x.Key - 1) < mapStats.GambitCount).Count(x => x.Value.Completed);
+            var completedTasks = gambitsCompleted;
+            if (bestRound >= 50) completedTasks += 1;
+            var completion = completedTasks / (float)(mapStats.GambitCount + 1);
+            var completionCode = completion >= 1 ? "\x0A" : (completion > 0 ? "\x09" : "");
+            builder.LineItems.Add(($"{completionCode}Completion", $"{completionCode}{completion * 100:N0}%"));
+
+            // build high scores
+            //builder.LineItems.Add(("", ""));
+            builder.LineItems.Add(("Solo High Score", $"{soloBestRound} Rounds"));
+            builder.LineItems.Add(("Solo 50 Rounds", $"{(int)soloBest50Time.TotalHours}:{soloBest50Time:mm\\:ss\\.fff}"));
+            builder.LineItems.Add(("Coop High Score", $"{coopBestRound} Rounds"));
+            builder.LineItems.Add(("Coop 50 Rounds", $"{(int)coopBest50Time.TotalHours}:{coopBest50Time:mm\\:ss\\.fff}"));
+
+            // build gambits
+            builder.LineItems.Add(("", ""));
+            builder.LineItems.Add(("Gambits", $"{gambitsCompleted}/{mapStats.GambitCount}"));
+            foreach (var gambitStats in mapStats.Gambits.OrderBy(x => x.Key).Where(x => x.Key <= mapStats.GambitCount))
+            {
+                var code = gambitStats.Value.Completed ? "\x0A" : "";
+                builder.LineItems.Add(($"{code}{gambitStats.Value.Name}", $"{code}{gambitStats.Value.BestRound} Rounds"));
+            }
         }
     }
 

@@ -16,6 +16,8 @@ namespace Horizon.Plugin.Deadlocked
     {
         private static Dictionary<int, PlayerExtraInfo> _playerExtraInfos = new Dictionary<int, PlayerExtraInfo>();
 
+        public static event Action<DynamicPageContentBuilder> OnBuildDynamicPageContent;
+
         public static async Task SetPlayerMapVersion(ClientObject client, string mapFilename, int mapVersion)
         {
             var game = client.CurrentGame;
@@ -202,6 +204,45 @@ namespace Horizon.Plugin.Deadlocked
 
             return Task.CompletedTask;
         }
+
+        public static void OnPlayerRequestDynamicPageContent(ClientObject client, GetDynamicPageContentRequestMessage request)
+        {
+            var builder = new DynamicPageContentBuilder()
+            {
+                Client = client,
+                PlayerMetadata = GetPlayerMetadata(client),
+                Request = request
+            };
+
+            if (OnBuildDynamicPageContent != null)
+                OnBuildDynamicPageContent.Invoke(builder);
+
+            if (builder.Cancel)
+            {
+                client.Queue(RT.Models.RT_MSG_SERVER_MEMORY_POKE.FromPayload(request.StateAddress, new byte[1] { 3 }));
+            }
+            else
+            {
+                if (request.LineItemsAddress != 0)
+                {
+                    using (var ms = new MemoryStream())
+                    {
+                        using (var writer = new BinaryWriter(ms))
+                        {
+                            foreach (var lineItem in builder.LineItems)
+                            {
+                                writer.Write(lineItem.Name, null);
+                                writer.Write(lineItem.Value, null);
+                            }
+                            client.Queue(RT.Models.RT_MSG_SERVER_MEMORY_POKE.FromPayload(request.LineItemsAddress, ms.ToArray()));
+                        }
+                    }
+                    client.Queue(RT.Models.RT_MSG_SERVER_MEMORY_POKE.FromPayload(request.LineItemsCountAddress, BitConverter.GetBytes(builder.LineItems.Count)));
+                }
+
+                client.Queue(RT.Models.RT_MSG_SERVER_MEMORY_POKE.FromPayload(request.StateAddress, new byte[1] { 2 }));
+            }
+        }
     }
 
     public enum PlayerClientType
@@ -211,11 +252,21 @@ namespace Horizon.Plugin.Deadlocked
         PCSX2 = 2,
     }
 
+    public class DynamicPageContentBuilder
+    {
+        public ClientObject Client { get; set; }
+        public PlayerMetadata PlayerMetadata { get; set; }
+        public GetDynamicPageContentRequestMessage Request { get; set; }
+        public List<(string Name, string Value)> LineItems { get; } = new List<(string Name, string Value)>();
+        public bool Cancel { get; set; }
+    }
+
     public class PlayerMetadata
     {
         public PlayerConfig Config { get; set; } = new PlayerConfig();
         public PlayerClientType? LastLoginClientType { get; set; } = null;
         public Dictionary<PlayerClientType, DateTimeOffset?> LastLoginPerClientType { get; set; } = new Dictionary<PlayerClientType, DateTimeOffset?>();
+        public Dictionary<string, SurvivalMapStat> SurvivalMapStats { get; set; } = new Dictionary<string, SurvivalMapStat>();
         public PlayerCompConfig CompConfig { get; set; } = new PlayerCompConfig();
         public RaidsBank RaidsBank { get; set; } = new RaidsBank();
     }
@@ -226,6 +277,20 @@ namespace Horizon.Plugin.Deadlocked
         public byte[] PatchHash { get; set; }
         public bool PatchHandled { get; set; }
         public string LastChatCommand { get;set; }
+    }
+
+    public class SurvivalMapStat
+    {
+        public string Name { get; set; }
+        public Dictionary<int, SurvivalMapGambitStat> Gambits { get; set; } = new Dictionary<int, SurvivalMapGambitStat>();
+        public int GambitCount { get; set; }
+    }
+
+    public class SurvivalMapGambitStat
+    {
+        public string Name { get; set; }
+        public bool Completed { get; set; }
+        public int BestRound { get; set; }
     }
 
     public class PlayerCompConfig

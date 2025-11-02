@@ -839,6 +839,45 @@ namespace Horizon.Plugin.Deadlocked
                                     mode.OnClientUpdateMapContractRules(request, msg.Player);
                                     break;
                                 }
+                            case 69: // request dynamic page content
+                                {
+                                    var request = new GetDynamicPageContentRequestMessage();
+                                    request.Deserialize(reader);
+
+                                    Player.OnPlayerRequestDynamicPageContent(msg.Player, request);
+                                    break;
+                                }
+                            case 70: // update survival map metadata request
+                                {
+                                    var request = new UpdateCustomMapSurvivalDataRequestMessage();
+                                    request.Deserialize(reader);
+
+                                    //if (msg.Player.CurrentGame == null) break;
+
+                                    var mode = Modes.FindCustomModeById(CustomModeId.CMODE_ID_SURVIVAL) as SurvivalCustomMode;
+                                    //var metadata = await Game.GetGameMetadata(msg.Player.CurrentGame);
+                                    //if (metadata == null) break;
+                                    //if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_SURVIVAL) break;
+
+                                    mode.OnUpdateSurvivalData(request, msg.Player);
+                                    break;
+                                }
+                            case 71: // update survival gambit completed request
+                                {
+                                    var request = new UpdateSurvivalGambitCompletedRequestMessage();
+                                    request.Deserialize(reader);
+
+                                    if (msg.Player.CurrentGame == null) break;
+
+                                    var mode = Modes.FindCustomModeById(CustomModeId.CMODE_ID_SURVIVAL) as SurvivalCustomMode;
+                                    var metadata = await Game.GetGameMetadata(msg.Player.CurrentGame);
+                                    if (metadata == null) break;
+                                    if (metadata.GameConfig.HasDevRule()) break;
+                                    if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_SURVIVAL) break;
+
+                                    mode.OnUpdateSurvivalGambitCompleted(request, msg.Player);
+                                    break;
+                                }
                             default:
                                 {
                                     Host.Log(InternalLogLevel.WARN, $"Unhandled custom msg id {customMsgId}: {msg}");

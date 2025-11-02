@@ -12,13 +12,24 @@ public static class BinaryHelper
             count += ((value & (1 << i)) != 0) ? 1 : 0;
         return count;
     }
-    public static void Write(this BinaryWriter writer, string str, int length)
+
+    public static void Write(this BinaryWriter writer, string str, int? length)
     {
-        if (str == null)
-            writer.Write(new byte[length]);
-        else if (str.Length >= length)
-            writer.Write(Encoding.UTF8.GetBytes(str.Substring(0, length - 1) + "\0"));
+        if (length == null)
+        {
+            if (str != null)
+                writer.Write(Encoding.UTF8.GetBytes(str));
+
+            writer.Write(new byte[1]);
+        }
         else
-            writer.Write(Encoding.UTF8.GetBytes(str.PadRight(length, '\0')));
+        {
+            if (str == null)
+                writer.Write(new byte[length.Value]);
+            else if (str.Length >= length)
+                writer.Write(Encoding.UTF8.GetBytes(str.Substring(0, length.Value - 1) + "\0"));
+            else
+                writer.Write(Encoding.UTF8.GetBytes(str.PadRight(length.Value, '\0')));
+        }
     }
 }
