@@ -53,9 +53,10 @@ jobs:
             git clone https://github.com/Horizon-Private-Server/horizon-deadlocked-patch.git horizon-deadlocked-patch
           fi
 
-      - name: Build dependencies
+      - name: Restore and build dependencies
         working-directory: horizon-server
         run: |
+          dotnet restore
           dotnet build --configuration Debug --no-restore
 
       # Step 4: Restore and build
