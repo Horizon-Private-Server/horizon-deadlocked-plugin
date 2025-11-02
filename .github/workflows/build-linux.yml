@@ -25,14 +25,14 @@ jobs:
       - name: Checkout current repository
         uses: actions/checkout@v4
         with:
-          path: horizon-deadlocked-plugin
+          path: repo
 
       # Step 2: Clone dependent repositories
       - name: Clone dependencies
         run: |
-          mkdir -p ../horizon-server ../horizon-deadlocked-patch
-          git clone https://github.com/Horizon-Private-Server/horizon-server.git ../horizon-server
-          git clone https://github.com/Horizon-Private-Server/horizon-deadlocked-patch.git ../horizon-deadlocked-patch
+          mkdir -p horizon-server horizon-deadlocked-patch
+          git clone https://github.com/Horizon-Private-Server/horizon-server.git horizon-server
+          git clone https://github.com/Horizon-Private-Server/horizon-deadlocked-patch.git horizon-deadlocked-patch
 
       # Step 3: Setup .NET
       - name: Setup .NET SDK
@@ -42,16 +42,16 @@ jobs:
 
       # Step 4: Restore and build
       - name: Restore dependencies
-        working-directory: horizon-deadlocked-plugin
+        working-directory: repo
         run: dotnet restore
 
       - name: Build
-        working-directory: horizon-deadlocked-plugin
+        working-directory: repo
         run: dotnet build --configuration Release --no-restore
 
       # Step 5: Publish self-contained binaries
       - name: Publish for ${{ matrix.os }}
-        working-directory: horizon-deadlocked-plugin
+        working-directory: repo
         run: |
           dotnet publish \
             --configuration Release \
