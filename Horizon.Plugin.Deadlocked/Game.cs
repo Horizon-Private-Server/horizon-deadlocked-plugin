@@ -1098,7 +1098,8 @@ namespace Horizon.Plugin.Deadlocked
         public byte WeatherOverride { get; set; }
         public bool DisableWeaponPacks { get; set; }
         public byte V2s { get; set; }
-        public bool MirrorWorld { get; set; }
+        public bool NoSpawnImmunity { get; set; }
+        //public bool MirrorWorld { get; set; }
         public byte DisableHealthBoxes { get; set; }
         public byte Vampire { get; set; }
         public bool HalfTime { get; set; }
@@ -1120,7 +1121,8 @@ namespace Horizon.Plugin.Deadlocked
         public byte RespawnOverride { get; set; }
         public bool FogOfWarRadar { get; set; }
         public byte RadarShortDistance { get; set; }
-        public byte PlayerSize { get; set; }
+        public bool InstantDeath { get; set; }
+        //public byte PlayerSize { get; set; }
         public bool RotatingWeapons { get; set; }
         public byte Headbutt { get; set; }
         public bool HeadbuttFriendlyFire { get; set; }
@@ -1148,7 +1150,7 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(WeatherOverride);
                     writer.Write(DisableWeaponPacks);
                     writer.Write(V2s);
-                    writer.Write(MirrorWorld);
+                    writer.Write(NoSpawnImmunity);
                     writer.Write(DisableHealthBoxes);
                     writer.Write(Vampire);
                     writer.Write(HalfTime);
@@ -1170,7 +1172,7 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(RespawnOverride);
                     writer.Write(FogOfWarRadar);
                     writer.Write(RadarShortDistance);
-                    writer.Write(PlayerSize);
+                    writer.Write(InstantDeath);
                     writer.Write(RotatingWeapons);
                     writer.Write(Headbutt);
                     writer.Write(HeadbuttFriendlyFire);
@@ -1197,7 +1199,7 @@ namespace Horizon.Plugin.Deadlocked
             WeatherOverride = reader.ReadByte();
             DisableWeaponPacks = reader.ReadBoolean();
             V2s = reader.ReadByte();
-            MirrorWorld = reader.ReadBoolean();
+            NoSpawnImmunity = reader.ReadBoolean();
             DisableHealthBoxes = reader.ReadByte();
             Vampire = reader.ReadByte();
             HalfTime = reader.ReadBoolean();
@@ -1219,7 +1221,7 @@ namespace Horizon.Plugin.Deadlocked
             RespawnOverride = reader.ReadByte();
             FogOfWarRadar = reader.ReadBoolean();
             RadarShortDistance = reader.ReadByte();
-            PlayerSize = reader.ReadByte();
+            InstantDeath = reader.ReadBoolean();
             RotatingWeapons = reader.ReadBoolean();
             Headbutt = reader.ReadByte();
             HeadbuttFriendlyFire = reader.ReadBoolean();
@@ -1242,7 +1244,7 @@ namespace Horizon.Plugin.Deadlocked
                 && WeatherOverride == other.WeatherOverride
                 && DisableWeaponPacks == other.DisableWeaponPacks
                 && V2s == other.V2s
-                && MirrorWorld == other.MirrorWorld
+                && NoSpawnImmunity == other.NoSpawnImmunity
                 && DisableHealthBoxes == other.DisableHealthBoxes
                 && Vampire == other.Vampire
                 && HalfTime == other.HalfTime
@@ -1264,7 +1266,7 @@ namespace Horizon.Plugin.Deadlocked
                 && RespawnOverride == other.RespawnOverride
                 && FogOfWarRadar == other.FogOfWarRadar
                 && RadarShortDistance == other.RadarShortDistance
-                && PlayerSize == other.PlayerSize
+                && InstantDeath == other.InstantDeath
                 && RotatingWeapons == other.RotatingWeapons
                 && Headbutt == other.Headbutt
                 && HeadbuttFriendlyFire == other.HeadbuttFriendlyFire
