@@ -218,7 +218,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             return Task.FromResult(info);
         }
 
-        public override Task<Payload> GetPayload(Server.Medius.Models.Game game, GameMetadata metadata)
+        public override Task<Payload> GetPayload(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
         {
             var payload = new Payload(0x000F0000, File.ReadAllBytes(Path.Combine(Plugin.WorkingDirectory, "bin/patch/survival-11184.bin")));
             return Task.FromResult(payload);
@@ -303,8 +303,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                             gambitStats.BestRound = Math.Max(gambitStats.BestRound, customGameData.BestRound[gameIdx]);
 
                             // save
-                            playerClient.Metadata = JsonConvert.SerializeObject(playerMetadata);
-                            _ = Server.Medius.Program.Database.PostAccountMetadata(playerClient.AccountId, playerClient.Metadata);
+                            Player.SavePlayerMetadata(playerClient);
                         }
                     }
                 }
@@ -402,8 +401,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 }
 
                 // save
-                client.Metadata = JsonConvert.SerializeObject(playerMetadata);
-                _ = Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
+                Player.SavePlayerMetadata(client);
             }
         }
 
@@ -421,8 +419,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 gambitStats.Completed = true;
 
                 // save
-                client.Metadata = JsonConvert.SerializeObject(playerMetadata);
-                _ = Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
+                Player.SavePlayerMetadata(client);
             }
         }
 

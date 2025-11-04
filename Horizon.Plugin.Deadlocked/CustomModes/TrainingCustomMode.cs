@@ -75,7 +75,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             return Task.FromResult($"Training: {TrainingTypeNames[trainingType]} {TrainingVariationNames[metadata.GameConfig.Training_Variation]}\nAggression: {TrainingAggressionNames[(TrainingAggression)metadata.GameConfig.Training_Aggression]}");
         }
 
-        public override Task<Payload> GetPayload(Server.Medius.Models.Game game, GameMetadata metadata)
+        public override Task<Payload> GetPayload(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
         {
             var trainingType = (TrainingTypes)metadata.GameConfig.Training_Type;
 

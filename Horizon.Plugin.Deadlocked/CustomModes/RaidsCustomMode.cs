@@ -81,9 +81,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             }
 
             // save
-            client.Metadata = JsonConvert.SerializeObject(metadata);
-            if (update)
-                _ = Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
+            Player.SavePlayerMetadata(client);
         }
 
         public void OnClientRequestBankInventory(RaidsGetBankInventoryRequest request, ClientObject client)
@@ -135,9 +133,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             }
 
             // save
-            client.Metadata = JsonConvert.SerializeObject(metadata);
-            if (update)
-                _ = Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
+            Player.SavePlayerMetadata(client);
         }
 
         public void OnClientRequestBankInventoryItemUpdate(RaidsUpdateBankInventoryItemRequest request, ClientObject client)
@@ -191,8 +187,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             }
 
             // save
-            client.Metadata = JsonConvert.SerializeObject(metadata);
-            _ = Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
+            Player.SavePlayerMetadata(client);
         }
 
         public void OnClientRequestBankAccount(RaidsGetBankAccountRequest request, ClientObject client)
@@ -216,9 +211,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             }
 
             // save
-            client.Metadata = JsonConvert.SerializeObject(metadata);
-            if (update)
-                _ = Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
+            Player.SavePlayerMetadata(client);
         }
 
         public void OnClientRequestBankAccountUpdate(RaidsUpdateBankAccountRequest request, ClientObject client)
@@ -230,8 +223,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             metadata.RaidsBank.Account.Update(request.Account);
 
             // save
-            client.Metadata = JsonConvert.SerializeObject(metadata);
-            _ = Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
+            Player.SavePlayerMetadata(client);
         }
 
         public void OnClientRequestStoreItems(RaidsGetStoreItemsRequest request, ClientObject client)
@@ -267,9 +259,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             }
 
             // save
-            client.Metadata = JsonConvert.SerializeObject(metadata);
-            if (update)
-                _ = Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
+            Player.SavePlayerMetadata(client);
         }
 
         public void OnClientBuyStoreItem(RaidsBuyStoreItemRequest request, ClientObject client)
@@ -293,8 +283,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             metadata.RaidsBank.ItemStore.Refresh(metadata.RaidsBank.Account, false);
 
             // save
-            client.Metadata = JsonConvert.SerializeObject(metadata);
-            _ = Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
+            Player.SavePlayerMetadata(client);
         }
 
         public void OnClientRequestContracts(RaidsGetContractsRequest request, ClientObject client)
@@ -339,9 +328,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             }
 
             // save
-            client.Metadata = JsonConvert.SerializeObject(metadata);
-            if (update)
-                _ = Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
+            Player.SavePlayerMetadata(client);
         }
 
         public void OnClientActionContract(RaidsActionContractRequest request, ClientObject client)
@@ -378,8 +365,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             metadata.RaidsBank.ContractStore.Refresh(metadata.RaidsBank, false);
 
             // save
-            client.Metadata = JsonConvert.SerializeObject(metadata);
-            _ = Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
+            Player.SavePlayerMetadata(client);
         }
 
         public void OnClientUpdateContractStats(RaidsUpdateContractStatsRequest request, ClientObject client)
@@ -402,8 +388,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             metadata.RaidsBank.ContractStore.Refresh(metadata.RaidsBank, false);
 
             // save
-            client.Metadata = JsonConvert.SerializeObject(metadata);
-            _ = Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
+            Player.SavePlayerMetadata(client);
         }
         
         public async Task OnClientRequestGenerateLootDrop(RaidsGenerateLootDropRequest request, ClientObject client)
@@ -423,8 +408,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             // save
             bank.Add(drop);
             bank.TimeLastMobDeathLootDrop = DateTime.UtcNow;
-            client.Metadata = JsonConvert.SerializeObject(metadata);
-            _ = Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
+            Player.SavePlayerMetadata(client);
 
             // send back to client
             client.Queue(new RaidsGenerateLootDropResponse() { Position = request.Position, Drop = drop });
@@ -446,12 +430,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             mapStats.ChallengesCount = request.ChallengesCount;
             mapStats.MissionType = request.MissionType;
             mapStats.Name = request.MapName;
-            client.Metadata = JsonConvert.SerializeObject(metadata);
-
-            if (updated)
-            {
-                _ = Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
-            }
+            Player.SavePlayerMetadata(client);
 
             // send back to client
             using (var ms = new MemoryStream(2048))
@@ -482,8 +461,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             mapStats.ChallengesMask = request.ChallengesMask;
 
             // save
-            client.Metadata = JsonConvert.SerializeObject(metadata);
-            _ = Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
+            Player.SavePlayerMetadata(client);
         }
         
         public void OnClientUpdateMapMetadata(RaidsUpdateMapMetadataRequest request, ClientObject client)
@@ -501,8 +479,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             // add & save
             if (request.MobOClass > 0 && mapStats.EnabledMobs.Add((request.MobOClass, request.MobDifficulty)))
             {
-                client.Metadata = JsonConvert.SerializeObject(metadata);
-                _ = Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
+                Player.SavePlayerMetadata(client);
             }
         }
 
@@ -522,8 +499,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             if (!mapStats.ContractRules.SequenceEqual(request.ContractRules))
             {
                 mapStats.ContractRules = request.ContractRules;
-                client.Metadata = JsonConvert.SerializeObject(metadata);
-                _ = Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
+                Player.SavePlayerMetadata(client);
             }
         }
         
@@ -547,8 +523,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 mapStats.BestTimeMsPerDifficulty[request.Difficulty] = request.CompletedInMs;
 
                 // save
-                client.Metadata = JsonConvert.SerializeObject(metadata);
-                _ = Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
+                Player.SavePlayerMetadata(client);
             }
         }
 
@@ -560,10 +535,9 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             // reset bank
             metadata.RaidsBank = new RaidsBank();
             metadata.RaidsBank.Initialize();
-            
+
             // save
-            client.Metadata = JsonConvert.SerializeObject(metadata);
-            _ = Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
+            Player.SavePlayerMetadata(client);
         }
 
         public override Task<string> GetGameInfo(Server.Medius.Models.Game game, GameMetadata metadata)
@@ -572,7 +546,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             return Task.FromResult(info);
         }
 
-        public override Task<Payload> GetPayload(Server.Medius.Models.Game game, GameMetadata metadata)
+        public override Task<Payload> GetPayload(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
         {
             var payload = new Payload(0x000F0000, File.ReadAllBytes(Path.Combine(Plugin.WorkingDirectory, "bin/patch/raids-11184.bin")));
             return Task.FromResult(payload);

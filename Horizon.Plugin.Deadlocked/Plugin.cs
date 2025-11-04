@@ -100,6 +100,7 @@ namespace Horizon.Plugin.Deadlocked
                 }
             }
 
+            await Player.Tick();
             //await Queue.Tick();
         }
 
@@ -328,6 +329,7 @@ namespace Horizon.Plugin.Deadlocked
                     // cgm custom messages begin at 100
                     if (customMsgId >= 100)
                     {
+                        reader.ReadInt32(); // skip custom msg id
                         var game = msg.Player.CurrentGame;
                         if (game != null)
                         {

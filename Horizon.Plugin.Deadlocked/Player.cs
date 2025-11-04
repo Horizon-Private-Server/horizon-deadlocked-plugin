@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Server.Medius;
 using Server.Medius.Models;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -15,8 +16,24 @@ namespace Horizon.Plugin.Deadlocked
     public static class Player
     {
         private static Dictionary<int, PlayerExtraInfo> _playerExtraInfos = new Dictionary<int, PlayerExtraInfo>();
+        private static Dictionary<int, PlayerMetadata> _playerMetadatas = new Dictionary<int, PlayerMetadata>();
 
         public static event Action<DynamicPageContentBuilder> OnBuildDynamicPageContent;
+
+        private static ConcurrentQueue<ClientObject> _sendPlayerMetadatasQueue = new ConcurrentQueue<ClientObject>();
+
+        public static async Task Tick()
+        {
+            while (_sendPlayerMetadatasQueue.TryDequeue(out var client))
+            {
+                if (client == null) continue;
+                if (!_playerMetadatas.TryGetValue(client.AccountId, out var metadata))
+                    continue;
+
+                if (!await Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata))
+                    Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, $"Unable to post player metadata to {client.AccountId}: {client.Metadata}");
+            }
+        }
 
         public static async Task SetPlayerMapVersion(ClientObject client, string mapFilename, int mapVersion)
         {
@@ -117,7 +134,6 @@ namespace Horizon.Plugin.Deadlocked
             var metadata = GetPlayerMetadata(client);
             var changed = metadata.Config == null || !metadata.Config.SameAs(config);
             metadata.Config = config;
-            client.Metadata = JsonConvert.SerializeObject(metadata);
 
             // update location
             client.Location = config.PreferredGameServer;
@@ -126,9 +142,7 @@ namespace Horizon.Plugin.Deadlocked
             if (changed)
                 await BroadcastPatchConfigToGameLobby(client);
 
-            var result = await Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
-            if (!result)
-                Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, $"Unable to post player metadata to {client.AccountId}: {client.Metadata}");
+            Player.SavePlayerMetadata(client);
         }
 
         public static async Task SetClientType(ClientObject client, PlayerClientType clientType)
@@ -141,11 +155,7 @@ namespace Horizon.Plugin.Deadlocked
                 metadata.LastLoginPerClientType = new Dictionary<PlayerClientType, DateTimeOffset?>();
             metadata.LastLoginPerClientType[clientType] = DateTimeOffset.UtcNow;
 
-            client.Metadata = JsonConvert.SerializeObject(metadata);
-
-            var result = await Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
-            if (!result)
-                Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, $"Unable to post player metadata to {client.AccountId}: {client.Metadata}");
+            Player.SavePlayerMetadata(client);
         }
 
         public static async Task OnPickedUpHorizonBolt(ClientObject client)
@@ -181,12 +191,46 @@ namespace Horizon.Plugin.Deadlocked
 
         public static PlayerMetadata GetPlayerMetadata(ClientObject client)
         {
-            PlayerMetadata metadata = null;
+            if (_playerMetadatas.TryGetValue(client.AccountId, out var metadata) && metadata != null)
+                return metadata;
+
             try { metadata = JsonConvert.DeserializeObject<PlayerMetadata>(client.Metadata); } catch (Exception) { }
             if (metadata == null)
                 metadata = new PlayerMetadata();
 
-            return metadata;
+            return _playerMetadatas[client.AccountId] = metadata;
+        }
+
+        public static bool SavePlayerMetadata(ClientObject client)
+        {
+            if (!_playerMetadatas.TryGetValue(client.AccountId, out var metadata) || metadata == null)
+                return false;
+
+            var json = JsonConvert.SerializeObject(metadata);
+            if (client.Metadata != json)
+            {
+                client.Metadata = json;
+                if (!_sendPlayerMetadatasQueue.Contains(client))
+                    _sendPlayerMetadatasQueue.Enqueue(client);
+                return true;
+            }
+
+            return false;
+        }
+
+        public static async Task<bool> SavePlayerMetadataImmediately(ClientObject client)
+        {
+            if (!_playerMetadatas.TryGetValue(client.AccountId, out var metadata) || metadata == null)
+                return false;
+
+            var json = JsonConvert.SerializeObject(metadata);
+            if (client.Metadata != json)
+            {
+                client.Metadata = json;
+                return await Server.Medius.Program.Database.PostAccountMetadata(client.AccountId, client.Metadata);
+            }
+
+            return false;
         }
 
         public static PlayerExtraInfo GetPlayerExtraInfo(int accountId)
@@ -267,6 +311,7 @@ namespace Horizon.Plugin.Deadlocked
         public PlayerClientType? LastLoginClientType { get; set; } = null;
         public Dictionary<PlayerClientType, DateTimeOffset?> LastLoginPerClientType { get; set; } = new Dictionary<PlayerClientType, DateTimeOffset?>();
         public Dictionary<string, SurvivalMapStat> SurvivalMapStats { get; set; } = new Dictionary<string, SurvivalMapStat>();
+        public Dictionary<string, ObstacleCourseMapStat> ObstacleCourseStats { get; set; } = new Dictionary<string, ObstacleCourseMapStat>();
         public PlayerCompConfig CompConfig { get; set; } = new PlayerCompConfig();
         public RaidsBank RaidsBank { get; set; } = new RaidsBank();
     }
@@ -277,6 +322,11 @@ namespace Horizon.Plugin.Deadlocked
         public byte[] PatchHash { get; set; }
         public bool PatchHandled { get; set; }
         public string LastChatCommand { get;set; }
+    }
+
+    public class ObstacleCourseMapStat
+    {
+        public int Checkpoint { get; set; }
     }
 
     public class SurvivalMapStat

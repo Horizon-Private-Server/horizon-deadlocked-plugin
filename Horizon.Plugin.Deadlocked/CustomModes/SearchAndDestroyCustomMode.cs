@@ -321,7 +321,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             return Task.FromResult($"Round timelimit: {SNDConfig.RoundTimelimit/60.0f:0.##} minutes\nRounds to win: {SNDConfig.RoundsToWin}");
         }
 
-        public override Task<Payload> GetPayload(Server.Medius.Models.Game game, GameMetadata metadata)
+        public override Task<Payload> GetPayload(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
         {
             var payload = new Payload(0x000F0000, File.ReadAllBytes(Path.Combine(Plugin.WorkingDirectory, "bin/patch/snd-11184.bin")));
 

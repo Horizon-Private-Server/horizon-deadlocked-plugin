@@ -44,7 +44,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             return Task.FromResult(client.AccountName);
         }
 
-        public abstract Task<Payload> GetPayload(Server.Medius.Models.Game game, GameMetadata metadata);
+        public abstract Task<Payload> GetPayload(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client);
 
 
         protected abstract bool GameAcceptStats(Server.Medius.Models.Game game, GameMetadata metadata, GameData gameData);
