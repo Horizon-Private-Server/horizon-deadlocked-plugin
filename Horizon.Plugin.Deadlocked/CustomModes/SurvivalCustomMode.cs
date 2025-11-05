@@ -210,8 +210,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public override Task<string> GetGameInfo(Server.Medius.Models.Game game, GameMetadata metadata)
         {
             var round = metadata.GameState.RoundNumber;
+            var hostMetadata = Player.GetPlayerMetadata(game.Host);
+            var gambit = hostMetadata?.SurvivalMapStats?.GetValueOrDefault(metadata.CustomMapConfig.Filename)?.Gambits?.GetValueOrDefault(metadata.GameConfig.Survival_Gambit)?.Name;
 
             string info = "";
+            if (metadata.GameConfig.Survival_Gambit > 0 && gambit != null)
+                info += $"\nGambit: {gambit}";
             if (round > 0)
                 info += $"\nRound: {round}";
 

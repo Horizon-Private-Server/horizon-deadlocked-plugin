@@ -191,6 +191,8 @@ namespace Horizon.Plugin.Deadlocked
 
         public static PlayerMetadata GetPlayerMetadata(ClientObject client)
         {
+            if (client == null) return null;
+
             if (_playerMetadatas.TryGetValue(client.AccountId, out var metadata) && metadata != null)
                 return metadata;
 

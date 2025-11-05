@@ -1022,6 +1022,7 @@ namespace Horizon.Plugin.Deadlocked
                 });
             }
 
+            msg.Ignore = true;
             return Task.CompletedTask;
         }
 
