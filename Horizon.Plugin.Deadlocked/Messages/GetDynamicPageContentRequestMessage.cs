@@ -14,7 +14,8 @@ namespace Horizon.Plugin.Deadlocked.Messages
         public enum ContentType
         {
             None = 0,
-            SurvivalMapStats = 1
+            SurvivalMapStats = 1,
+            ObstacleMapStats = 2,
         }
 
         public override byte CustomMsgId => 69;

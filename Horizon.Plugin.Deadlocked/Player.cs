@@ -327,6 +327,8 @@ namespace Horizon.Plugin.Deadlocked
     public class ObstacleCourseMapStat
     {
         public int Checkpoint { get; set; }
+        public ulong CheckpointTicks { get; set; }
+        public ulong BestCheckpointTicks { get; set; }
     }
 
     public class SurvivalMapStat

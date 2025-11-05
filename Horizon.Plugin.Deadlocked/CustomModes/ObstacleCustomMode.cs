@@ -1,4 +1,5 @@
-﻿using Server.Common.Stream;
+﻿using Horizon.Plugin.Deadlocked.Messages;
+using Server.Common.Stream;
 using Server.Medius.Models;
 using Server.Medius.PluginArgs;
 using System;
@@ -14,6 +15,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
     {
         public override CustomModeId Id => CustomModeId.CMODE_ID_OBSTACLE;
         public override string Name => "Obstacle Course";
+
+        public ObstacleCustomMode()
+        {
+            Player.OnBuildDynamicPageContent -= Player_OnBuildDynamicPageContent;
+            Player.OnBuildDynamicPageContent += Player_OnBuildDynamicPageContent;
+        }
 
         public override Task<int?> GetRank(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
         {
@@ -41,11 +48,14 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 using (var writer = new BinaryWriter(ms))
                 {
                     writer.BaseStream.Position = 8;
-                    //writer.Write(0);
+
                     // last checkpoint
                     var playerMetadata = Player.GetPlayerMetadata(client);
                     if (playerMetadata?.ObstacleCourseStats != null && playerMetadata.ObstacleCourseStats.TryGetValue(metadata.CustomMap, out var mapStats) && mapStats != null)
+                    {
+                        writer.Write(mapStats.CheckpointTicks);
                         writer.Write(mapStats.Checkpoint);
+                    }
                 }
             }
 
@@ -56,7 +66,9 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         {
             if (messageId == 101)
             {
-                int checkpointUid = reader.ReadInt32();
+                // SAVE CHECKPOINT
+                var checkpointTicks = reader.ReadUInt64();
+                var checkpointUid = reader.ReadInt32();
 
                 var metadata = await Game.GetGameMetadata(client.CurrentGame);
                 if (metadata == null) return;
@@ -70,6 +82,30 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     playerMetadata.ObstacleCourseStats[metadata.CustomMap] = obstacleMapStats = new ObstacleCourseMapStat();
 
                 obstacleMapStats.Checkpoint = checkpointUid;
+                obstacleMapStats.CheckpointTicks = checkpointTicks;
+                Player.SavePlayerMetadata(client);
+            }
+            else if (messageId == 102)
+            {
+                // FINISHED
+                var totalTicks = reader.ReadUInt64();
+
+                var metadata = await Game.GetGameMetadata(client.CurrentGame);
+                if (metadata == null) return;
+                if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_OBSTACLE) return;
+
+                var playerMetadata = Player.GetPlayerMetadata(client);
+                if (playerMetadata == null) return;
+
+                playerMetadata.ObstacleCourseStats ??= new Dictionary<string, ObstacleCourseMapStat>();
+                if (!playerMetadata.ObstacleCourseStats.TryGetValue(metadata.CustomMap, out var obstacleMapStats))
+                    playerMetadata.ObstacleCourseStats[metadata.CustomMap] = obstacleMapStats = new ObstacleCourseMapStat();
+
+                if (obstacleMapStats.BestCheckpointTicks == 0)
+                    obstacleMapStats.BestCheckpointTicks = totalTicks;
+                else
+                    obstacleMapStats.BestCheckpointTicks = Math.Min(totalTicks, obstacleMapStats.BestCheckpointTicks);
+
                 Player.SavePlayerMetadata(client);
             }
         }
@@ -88,6 +124,40 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         protected override Task UpdateCustomStats(CustomModeUpdateStatsArgs args)
         {
             throw new NotImplementedException();
+        }
+
+        private void Player_OnBuildDynamicPageContent(DynamicPageContentBuilder builder)
+        {
+            if (builder.Request.Type != GetDynamicPageContentRequestMessage.ContentType.ObstacleMapStats) return;
+
+            // get map stats
+            if (!builder.PlayerMetadata.ObstacleCourseStats.TryGetValue(builder.Request.MapFilename, out var mapStats))
+                builder.PlayerMetadata.ObstacleCourseStats[builder.Request.MapFilename] = mapStats = new ObstacleCourseMapStat();
+
+            // build high scores
+            if (mapStats.BestCheckpointTicks > 0)
+            {
+                var bestTime = TimeSpan.FromMilliseconds(mapStats.BestCheckpointTicks * 16.6666666);
+                builder.LineItems.Add(("Status", "\x0A" + "Complete"));
+                builder.LineItems.Add(("Best Time", $"{(int)bestTime.TotalHours}:{bestTime:mm\\:ss\\.fff}"));
+            }
+            else
+            {
+                builder.LineItems.Add(("Status", "Incomplete"));
+            }
+
+            builder.LineItems.Add(("", ""));
+
+            if (mapStats.Checkpoint > 0)
+            {
+                var time = TimeSpan.FromMilliseconds(mapStats.CheckpointTicks * 16.6666666);
+                builder.LineItems.Add(("Saved Checkpoint", "\x0A" + "Yes"));
+                builder.LineItems.Add(("Saved Time", $"{(int)time.TotalHours}:{time:mm\\:ss\\.fff}"));
+            }
+            else
+            {
+                builder.LineItems.Add(("Saved Checkpoint", "No"));
+            }
         }
     }
 }
