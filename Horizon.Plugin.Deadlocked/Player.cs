@@ -6,6 +6,7 @@ using Server.Medius.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -331,14 +332,28 @@ namespace Horizon.Plugin.Deadlocked
     {
         public enum Difficulty
         {
+            [Description("Easy")]
             Easy,
+            [Description("Medium")]
             Medium,
+            [Description("Hard")]
             Hard,
+            [Description("Very Hard")]
             VeryHard
         }
 
         public Dictionary<uint, Difficulty> Bolts { get; set; } = new Dictionary<uint, Difficulty>();
         public HashSet<uint> CollectedBoltUids { get; set; } = new HashSet<uint>();
+
+        public int GetCount(Difficulty difficulty) => Bolts.Count(x => x.Value == difficulty);
+        public int GetCollectedCount(Difficulty difficulty) => Bolts.Count(x => x.Value == difficulty && CollectedBoltUids.Contains(x.Key));
+        public float GetCompletion()
+        {
+            var completedTasks = Bolts.Count(x => CollectedBoltUids.Contains(x.Key));
+            var totalTasks = Bolts.Count;
+            var completion = completedTasks / (float)Math.Max(1, totalTasks);
+            return completion;
+        }
     }
 
     public class ObstacleCourseMapStat

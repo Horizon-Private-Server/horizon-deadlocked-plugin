@@ -37,7 +37,16 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         public override Task<string> GetGameInfo(Server.Medius.Models.Game game, GameMetadata metadata)
         {
-            return Task.FromResult((string)null);
+            var round = metadata.GameState.RoundNumber;
+            var hostMetadata = Player.GetPlayerMetadata(game.Host);
+            var mapStats = hostMetadata?.CollectathonStats?.GetValueOrDefault(metadata.CustomMapConfig.Filename);
+            if (mapStats == null) return Task.FromResult(string.Empty);
+
+            var sb = new StringBuilder();
+            sb.AppendLine($"Completion: {mapStats.GetCompletion()*100:N0}%");
+            foreach (CollectathonMapStat.Difficulty difficulty in Enum.GetValues(typeof(CollectathonMapStat.Difficulty)))
+                sb.AppendLine($"{difficulty.GetDescription()} Bolts: {mapStats.GetCollectedCount(difficulty)}/{mapStats.GetCount(difficulty)}");
+            return Task.FromResult(sb.ToString().Trim());
         }
 
         public override Task<Payload> GetPayload(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
@@ -158,18 +167,13 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             if (!builder.PlayerMetadata.CollectathonStats.TryGetValue(builder.Request.MapFilename, out var mapStats))
                 builder.PlayerMetadata.CollectathonStats[builder.Request.MapFilename] = mapStats = new CollectathonMapStat();
 
-            var completedTasks = mapStats.Bolts.Count(x => mapStats.CollectedBoltUids.Contains(x.Key));
-            var totalTasks = mapStats.Bolts.Count;
-            var completion = completedTasks / (float)Math.Max(1, totalTasks);
+            var completion = mapStats.GetCompletion();
             var completionCode = completion >= 1 ? "\x0A" : (completion > 0 ? "\x09" : "");
             builder.LineItems.Add(($"{completionCode}Completion", $"{completionCode}{completion * 100:N0}%"));
 
             foreach (CollectathonMapStat.Difficulty difficulty in Enum.GetValues(typeof(CollectathonMapStat.Difficulty)))
             {
-                var count = mapStats.Bolts.Count(x => x.Value == difficulty);
-                var collected = mapStats.Bolts.Count(b => b.Value == difficulty && mapStats.CollectedBoltUids.Contains(b.Key));
-
-                builder.LineItems.Add((difficulty.ToString(), $"{collected}/{count}"));
+                builder.LineItems.Add((difficulty.GetDescription(), $"{mapStats.GetCollectedCount(difficulty)}/{mapStats.GetCount(difficulty)}"));
             }
         }
     }
