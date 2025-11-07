@@ -16,6 +16,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
             None = 0,
             SurvivalMapStats = 1,
             ObstacleMapStats = 2,
+            CollectathonMapStats = 3,
         }
 
         public override byte CustomMsgId => 69;

@@ -1,4 +1,5 @@
-﻿using Server.Common.Stream;
+﻿using Horizon.Plugin.Deadlocked.Messages;
+using Server.Common.Stream;
 using Server.Medius;
 using Server.Medius.Models;
 using Server.Medius.PluginArgs;
@@ -22,6 +23,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             public List<StatsGamePlayer> Players { get; set; }
         }
 
+        private Dictionary<int, List<BaseCustomModeExDataCollector>> _exDataCollectors = new Dictionary<int, List<BaseCustomModeExDataCollector>>();
 
         public abstract CustomModeId Id { get; }
         public abstract string Name { get; }
@@ -52,6 +54,27 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         protected abstract ICustomGameData CreateCustomGameData();
 
         protected abstract Task UpdateCustomStats(CustomModeUpdateStatsArgs args);
+
+        public async Task UpdateCustomMapExData(ClientObject client, UpdateCustomMapExDataRequestMessage request)
+        {
+            if (!_exDataCollectors.TryGetValue(client.AccountId, out var collectors))
+                _exDataCollectors[client.AccountId] = collectors = new List<BaseCustomModeExDataCollector>();
+
+            var collector = collectors.FirstOrDefault(x => x.MapFilename == request.MapFilename);
+            if (collector == null)
+                collectors.Add(collector = new BaseCustomModeExDataCollector(request.MapFilename));
+
+            if (collector.OnMessage(request))
+            {
+                await UpdateCustomMapExData(client, request.MapFilename, collector.Pop());
+                collectors.Remove(collector); // remove
+            }
+        }
+
+        protected virtual Task UpdateCustomMapExData(ClientObject client, string mapFilename, byte[] data)
+        {
+            return Task.CompletedTask;
+        }
 
         public virtual Task OnGameStart(Server.Medius.Models.Game game, GameMetadata metadata)
         {
@@ -172,5 +195,29 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         {
             return 0;
         }
+    }
+
+    class BaseCustomModeExDataCollector
+    {
+        public int AccountId { get; set; }
+        public string MapFilename { get; set; }
+        public MemoryStream MemoryStream { get; set; }
+
+        public BaseCustomModeExDataCollector(string mapFilename)
+        {
+            MapFilename = mapFilename;
+        }
+
+        public bool OnMessage(UpdateCustomMapExDataRequestMessage message)
+        {
+            // reset on new
+            if (message.Offset == 0)
+                MemoryStream = new MemoryStream();
+
+            MemoryStream.Write(message.Data, 0, message.Length);
+            return message.End;
+        }
+
+        public byte[] Pop() { return MemoryStream.ToArray(); }
     }
 }

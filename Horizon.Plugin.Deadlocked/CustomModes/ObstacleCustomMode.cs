@@ -51,7 +51,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
                     // last checkpoint
                     var playerMetadata = Player.GetPlayerMetadata(client);
-                    if (playerMetadata?.ObstacleCourseStats != null && playerMetadata.ObstacleCourseStats.TryGetValue(metadata.CustomMap, out var mapStats) && mapStats != null)
+                    if (metadata.CustomMap != null && playerMetadata?.ObstacleCourseStats != null && playerMetadata.ObstacleCourseStats.TryGetValue(metadata.CustomMap, out var mapStats) && mapStats != null)
                     {
                         writer.Write(mapStats.CheckpointTicks);
                         writer.Write(mapStats.Checkpoint);

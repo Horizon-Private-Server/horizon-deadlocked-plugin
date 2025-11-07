@@ -386,27 +386,37 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             return Task.CompletedTask;
         }
 
-        public void OnUpdateSurvivalData(UpdateCustomMapSurvivalDataRequestMessage request, ClientObject client)
+        protected override Task UpdateCustomMapExData(ClientObject client, string mapFilename, byte[] data)
         {
             var playerMetadata = Player.GetPlayerMetadata(client);
-            if (playerMetadata != null)
+            if (playerMetadata == null) return Task.CompletedTask;
+
+            if (!playerMetadata.SurvivalMapStats.TryGetValue(mapFilename, out var mapStats))
+                playerMetadata.SurvivalMapStats[mapFilename] = mapStats = new SurvivalMapStat();
+
+            using (var ms = new MemoryStream(data))
             {
-                if (!playerMetadata.SurvivalMapStats.TryGetValue(request.MapFilename, out var mapStats))
-                    playerMetadata.SurvivalMapStats[request.MapFilename] = mapStats = new SurvivalMapStat();
-
-                mapStats.GambitCount = request.GambitCount;
-                for (int i = 0; i < mapStats.GambitCount; ++i)
+                using (var reader = new BinaryReader(ms))
                 {
-                    var key = i + 1;
-                    if (!mapStats.Gambits.TryGetValue(key, out var gambitStats))
-                        mapStats.Gambits[key] = gambitStats = new SurvivalMapGambitStat();
+                    var modeVersion = reader.ReadInt32();
+                    var gambitCount = reader.ReadInt32();
 
-                    gambitStats.Name = request.Gambits.ElementAtOrDefault(i);
+                    for (int i = 0; i < gambitCount; ++i)
+                    {
+                        var gambitName = reader.ReadCString();
+                        var gambitDesc = reader.ReadCString();
+
+                        var key = i + 1;
+                        if (!mapStats.Gambits.TryGetValue(key, out var gambitStats))
+                            mapStats.Gambits[key] = gambitStats = new SurvivalMapGambitStat();
+
+                        gambitStats.Name = gambitName;
+                    }
                 }
-
-                // save
-                Player.SavePlayerMetadata(client);
             }
+
+            Player.SavePlayerMetadata(client);
+            return Task.CompletedTask;
         }
 
         public void OnUpdateSurvivalGambitCompleted(UpdateSurvivalGambitCompletedRequestMessage request, ClientObject client)

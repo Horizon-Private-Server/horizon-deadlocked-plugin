@@ -32,4 +32,18 @@ public static class BinaryHelper
                 writer.Write(Encoding.UTF8.GetBytes(str.PadRight(length.Value, '\0')));
         }
     }
+
+
+    public static string ReadCString(this BinaryReader reader)
+    {
+        var pos = reader.BaseStream.Position;
+        while (reader.BaseStream.Position < reader.BaseStream.Length && reader.ReadByte() != 0)
+            ;
+
+        var len = (int)(reader.BaseStream.Position - pos);
+        reader.BaseStream.Position = pos;
+        var str = Encoding.UTF8.GetString(reader.ReadBytes(len-1));
+        reader.ReadByte(); // skip null byte
+        return str;
+    }
 }

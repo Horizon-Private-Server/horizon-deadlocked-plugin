@@ -314,6 +314,7 @@ namespace Horizon.Plugin.Deadlocked
         public Dictionary<PlayerClientType, DateTimeOffset?> LastLoginPerClientType { get; set; } = new Dictionary<PlayerClientType, DateTimeOffset?>();
         public Dictionary<string, SurvivalMapStat> SurvivalMapStats { get; set; } = new Dictionary<string, SurvivalMapStat>();
         public Dictionary<string, ObstacleCourseMapStat> ObstacleCourseStats { get; set; } = new Dictionary<string, ObstacleCourseMapStat>();
+        public Dictionary<string, CollectathonMapStat> CollectathonStats { get; set; } = new Dictionary<string, CollectathonMapStat>();
         public PlayerCompConfig CompConfig { get; set; } = new PlayerCompConfig();
         public RaidsBank RaidsBank { get; set; } = new RaidsBank();
     }
@@ -324,6 +325,20 @@ namespace Horizon.Plugin.Deadlocked
         public byte[] PatchHash { get; set; }
         public bool PatchHandled { get; set; }
         public string LastChatCommand { get;set; }
+    }
+    
+    public class CollectathonMapStat
+    {
+        public enum Difficulty
+        {
+            Easy,
+            Medium,
+            Hard,
+            VeryHard
+        }
+
+        public Dictionary<uint, Difficulty> Bolts { get; set; } = new Dictionary<uint, Difficulty>();
+        public HashSet<uint> CollectedBoltUids { get; set; } = new HashSet<uint>();
     }
 
     public class ObstacleCourseMapStat

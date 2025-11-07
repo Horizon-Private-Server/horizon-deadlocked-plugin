@@ -849,21 +849,6 @@ namespace Horizon.Plugin.Deadlocked
                                     Player.OnPlayerRequestDynamicPageContent(msg.Player, request);
                                     break;
                                 }
-                            case 70: // update survival map metadata request
-                                {
-                                    var request = new UpdateCustomMapSurvivalDataRequestMessage();
-                                    request.Deserialize(reader);
-
-                                    //if (msg.Player.CurrentGame == null) break;
-
-                                    var mode = Modes.FindCustomModeById(CustomModeId.CMODE_ID_SURVIVAL) as SurvivalCustomMode;
-                                    //var metadata = await Game.GetGameMetadata(msg.Player.CurrentGame);
-                                    //if (metadata == null) break;
-                                    //if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_SURVIVAL) break;
-
-                                    mode.OnUpdateSurvivalData(request, msg.Player);
-                                    break;
-                                }
                             case 71: // update survival gambit completed request
                                 {
                                     var request = new UpdateSurvivalGambitCompletedRequestMessage();
@@ -878,6 +863,17 @@ namespace Horizon.Plugin.Deadlocked
                                     if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_SURVIVAL) break;
 
                                     mode.OnUpdateSurvivalGambitCompleted(request, msg.Player);
+                                    break;
+                                }
+                            case 72: // update custom map ex data request
+                                {
+                                    var request = new UpdateCustomMapExDataRequestMessage();
+                                    request.Deserialize(reader);
+
+                                    var mode = Modes.FindCustomModeById(request.CustomModeId);
+                                    if (mode == null) break;
+
+                                    await mode.UpdateCustomMapExData(msg.Player, request);
                                     break;
                                 }
                             default:
