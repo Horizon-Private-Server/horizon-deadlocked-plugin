@@ -37,16 +37,21 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         public override Task<string> GetGameInfo(Server.Medius.Models.Game game, GameMetadata metadata)
         {
-            var round = metadata.GameState.RoundNumber;
-            var hostMetadata = Player.GetPlayerMetadata(game.Host);
-            var mapStats = hostMetadata?.CollectathonStats?.GetValueOrDefault(metadata.CustomMapConfig.Filename);
-            if (mapStats == null) return Task.FromResult(string.Empty);
+            return Task.FromResult(string.Empty);
 
-            var sb = new StringBuilder();
-            sb.AppendLine($"Completion: {mapStats.GetCompletion()*100:N0}%");
-            foreach (CollectathonMapStat.Difficulty difficulty in Enum.GetValues(typeof(CollectathonMapStat.Difficulty)))
-                sb.AppendLine($"{difficulty.GetDescription()} Bolts: {mapStats.GetCollectedCount(difficulty)}/{mapStats.GetCount(difficulty)}");
-            return Task.FromResult(sb.ToString().Trim());
+            //var sb = new StringBuilder();
+            //foreach (var client in game.Clients)
+            //{
+            //    var playerMetadata = Player.GetPlayerMetadata(client.Client);
+            //    var mapStats = playerMetadata?.CollectathonStats?.GetValueOrDefault(metadata.CustomMapConfig.Filename);
+            //    if (mapStats == null) continue;
+
+            //    sb.AppendLine($"{client.Client.AccountName}: {mapStats.GetCompletion() * 100:N0}%");
+            //    //foreach (CollectathonMapStat.Difficulty difficulty in Enum.GetValues(typeof(CollectathonMapStat.Difficulty)))
+            //    //    sb.AppendLine($"{difficulty.GetDescription()} Bolts: {mapStats.GetCollectedCount(difficulty)}/{mapStats.GetCount(difficulty)}");
+            //}
+
+            //return Task.FromResult(sb.ToString().Trim());
         }
 
         public override Task<Payload> GetPayload(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
