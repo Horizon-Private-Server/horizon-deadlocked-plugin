@@ -412,6 +412,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
                         gambitStats.Name = gambitName;
                     }
+
+                    mapStats.GambitCount = gambitCount;
                 }
             }
 

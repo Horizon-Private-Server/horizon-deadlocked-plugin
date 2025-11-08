@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <Configurations>Debug;Release</Configurations>
   </PropertyGroup>
 
@@ -10,34 +10,34 @@
   </PropertyGroup>
 
   <ItemGroup>
-	  <PackageReference Include="DotNetty.Common" Version="0.7.1" />
+	  <PackageReference Include="DotNetty.Common" Version="0.7.6" />
 	  <PackageReference Include="Hjg.Pngcs" Version="1.1.4" />
-	  <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+	  <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 
   <ItemGroup>
     <Reference Include="RT.Common">
-      <HintPath>..\..\horizon-server\RT.Common\bin\Debug\netstandard2.0\RT.Common.dll</HintPath>
+      <HintPath>..\..\horizon-server\RT.Common\bin\Debug\net9.0\RT.Common.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="RT.Models">
-      <HintPath>..\..\horizon-server\RT.Models\bin\Debug\netstandard2.0\RT.Models.dll</HintPath>
+      <HintPath>..\..\horizon-server\RT.Models\bin\Debug\net9.0\RT.Models.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Server.Common">
-      <HintPath>..\..\horizon-server\Server.Common\bin\Debug\netstandard2.0\Server.Common.dll</HintPath>
+      <HintPath>..\..\horizon-server\Server.Common\bin\Debug\net9.0\Server.Common.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Server.Database">
-      <HintPath>..\..\horizon-server\Server.Database\bin\Debug\netstandard2.0\Server.Database.dll</HintPath>
+      <HintPath>..\..\horizon-server\Server.Database\bin\Debug\net9.0\Server.Database.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Server.Medius">
-      <HintPath>..\..\horizon-server\Server.Medius\bin\Debug\netcoreapp3.1\Server.Medius.dll</HintPath>
+      <HintPath>..\..\horizon-server\Server.Medius\bin\Debug\net9.0\Server.Medius.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Server.Plugins.Interface">
-      <HintPath>..\..\horizon-server\Server.Plugins.Interface\bin\Debug\netstandard2.0\Server.Plugins.Interface.dll</HintPath>
+      <HintPath>..\..\horizon-server\Server.Plugins.Interface\bin\Debug\net9.0\Server.Plugins.Interface.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
