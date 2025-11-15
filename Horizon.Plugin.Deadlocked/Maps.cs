@@ -11,7 +11,7 @@ namespace Horizon.Plugin.Deadlocked
 {
     public static class Maps
     {
-        static readonly string MapVersionPath = Path.Combine(Plugin.WorkingDirectory, "bin/cmaps version.txt");
+        //static readonly string MapVersionPath = Path.Combine(Plugin.WorkingDirectory, "bin/cmaps version.txt");
         static readonly string[] MapModules = new string[]
         {
             Path.Combine(Plugin.WorkingDirectory, "bin/usbhdfsd.irx"),
@@ -30,7 +30,7 @@ namespace Horizon.Plugin.Deadlocked
             {
                 client.Queue(new MapModulesResponseMessage()
                 {
-                    CustomMapsVersion = int.Parse(File.ReadAllText(MapVersionPath)),
+                    CustomMapsVersion = 0, //int.Parse(File.ReadAllText(MapVersionPath)),
                     Module1Size = payloads[0].Data.Length,
                     Module2Size = payloads[1].Data.Length,
                 });
@@ -39,15 +39,15 @@ namespace Horizon.Plugin.Deadlocked
             });
         }
 
-        public static Task SendMapVersion(ClientObject client)
-        {
-            client.Queue(new MapGlobalVersionMessage()
-            {
-                CustomMapsVersion = int.Parse(File.ReadAllText(MapVersionPath))
-            });
+        //public static Task SendMapVersion(ClientObject client)
+        //{
+        //    client.Queue(new MapGlobalVersionMessage()
+        //    {
+        //        CustomMapsVersion = int.Parse(File.ReadAllText(MapVersionPath))
+        //    });
 
-            return Task.CompletedTask;
-        }
+        //    return Task.CompletedTask;
+        //}
 
         public static Task SendMapOverride(ClientObject client, GameCustomMapConfig mapConfig)
         {
