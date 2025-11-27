@@ -66,7 +66,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
                     // write out collected bolt uids
                     var playerMetadata = Player.GetPlayerMetadata(client);
-                    if (metadata.CustomMap != null && playerMetadata?.CollectathonStats != null && playerMetadata.CollectathonStats.TryGetValue(metadata.CustomMap, out var mapStats) && mapStats != null)
+                    if (metadata.CustomMapConfig?.Filename != null && playerMetadata?.CollectathonStats != null && playerMetadata.CollectathonStats.TryGetValue(metadata.CustomMapConfig.Filename, out var mapStats) && mapStats != null)
                     {
                         for (int i = 0; i < MaxBolts; ++i)
                         {
@@ -105,8 +105,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 if (playerMetadata == null) return;
 
                 playerMetadata.CollectathonStats ??= new Dictionary<string, CollectathonMapStat>();
-                if (!playerMetadata.CollectathonStats.TryGetValue(metadata.CustomMap, out var mapStats))
-                    playerMetadata.CollectathonStats[metadata.CustomMap] = mapStats = new CollectathonMapStat();
+                if (!playerMetadata.CollectathonStats.TryGetValue(metadata.CustomMapConfig.Filename, out var mapStats))
+                    playerMetadata.CollectathonStats[metadata.CustomMapConfig.Filename] = mapStats = new CollectathonMapStat();
 
                 if (mapStats.CollectedBoltUids.Add(boltUid))
                     Player.SavePlayerMetadata(client);

@@ -51,7 +51,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
                     // last checkpoint
                     var playerMetadata = Player.GetPlayerMetadata(client);
-                    if (metadata.CustomMap != null && playerMetadata?.ObstacleCourseStats != null && playerMetadata.ObstacleCourseStats.TryGetValue(metadata.CustomMap, out var mapStats) && mapStats != null)
+                    if (metadata.CustomMapConfig?.Filename != null && playerMetadata?.ObstacleCourseStats != null && playerMetadata.ObstacleCourseStats.TryGetValue(metadata.CustomMapConfig?.Filename, out var mapStats) && mapStats != null)
                     {
                         writer.Write(mapStats.CheckpointTicks);
                         writer.Write(mapStats.Checkpoint);
@@ -78,8 +78,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 if (playerMetadata == null) return;
 
                 playerMetadata.ObstacleCourseStats ??= new Dictionary<string, ObstacleCourseMapStat>();
-                if (!playerMetadata.ObstacleCourseStats.TryGetValue(metadata.CustomMap, out var obstacleMapStats))
-                    playerMetadata.ObstacleCourseStats[metadata.CustomMap] = obstacleMapStats = new ObstacleCourseMapStat();
+                if (!playerMetadata.ObstacleCourseStats.TryGetValue(metadata.CustomMapConfig.Filename, out var obstacleMapStats))
+                    playerMetadata.ObstacleCourseStats[metadata.CustomMapConfig.Filename] = obstacleMapStats = new ObstacleCourseMapStat();
 
                 obstacleMapStats.Checkpoint = checkpointUid;
                 obstacleMapStats.CheckpointTicks = checkpointTicks;
@@ -98,8 +98,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 if (playerMetadata == null) return;
 
                 playerMetadata.ObstacleCourseStats ??= new Dictionary<string, ObstacleCourseMapStat>();
-                if (!playerMetadata.ObstacleCourseStats.TryGetValue(metadata.CustomMap, out var obstacleMapStats))
-                    playerMetadata.ObstacleCourseStats[metadata.CustomMap] = obstacleMapStats = new ObstacleCourseMapStat();
+                if (!playerMetadata.ObstacleCourseStats.TryGetValue(metadata.CustomMapConfig.Filename, out var obstacleMapStats))
+                    playerMetadata.ObstacleCourseStats[metadata.CustomMapConfig.Filename] = obstacleMapStats = new ObstacleCourseMapStat();
 
                 if (obstacleMapStats.BestCheckpointTicks == 0)
                     obstacleMapStats.BestCheckpointTicks = totalTicks;

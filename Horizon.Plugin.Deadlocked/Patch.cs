@@ -338,7 +338,7 @@ namespace Horizon.Plugin.Deadlocked
                 }
 
                 // send global map version
-                await Maps.SendMapVersion(client);
+                //await Maps.SendMapVersion(client);
             }
             catch (Exception ex)
             {

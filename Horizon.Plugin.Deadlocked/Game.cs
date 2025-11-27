@@ -143,7 +143,7 @@ namespace Horizon.Plugin.Deadlocked
             await Maps.SendMapOverride(client, metadata.CustomMapConfig);
 
             // send global maps version
-            await Maps.SendMapVersion(client);
+            //await Maps.SendMapVersion(client);
 
             // send game config if not host
             if (game.Host != client)
