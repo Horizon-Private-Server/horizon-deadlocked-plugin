@@ -739,6 +739,24 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                             BestWeaponLevels[i] = reader.ReadArray<byte>(9);
                         break;
                     }
+                case 7:
+                    {
+                        AlphaModsReceived = new byte[10][];
+                        BestWeaponLevels = new byte[10][];
+                        KillsPerMob = new int[10][];
+                        DeathsByMob = new short[10][];
+                        PlayerUpgrades = new short[10][];
+
+                        Rounds = reader.ReadInt32();
+                        Round50TimeMs = reader.ReadInt32();
+                        reader.ReadInt32();
+                        Points = reader.ReadArray<ulong>(10);
+                        Kills = reader.ReadArray<int>(10);
+                        Revives = reader.ReadArray<int>(10);
+                        TimesRevived = reader.ReadArray<int>(10);
+                        BestRound = reader.ReadArray<short>(10);
+                        break;
+                    }
                 default:
                     {
                         Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.WARN, $"Unsupported survival data version {Version}");
