@@ -29,7 +29,12 @@ namespace Horizon.Plugin.Deadlocked.Messages
             base.Serialize(writer);
 
             writer.Write(DmeId);
-            writer.Write(Config.Serialize());
+
+            // align
+            var config = Config.Serialize();
+            writer.Write(config);
+            if (config.Length % 4 != 0)
+                writer.Write(new byte[4 - (config.Length % 4)]);
         }
     }
 }

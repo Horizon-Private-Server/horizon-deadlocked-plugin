@@ -106,6 +106,7 @@ namespace Horizon.Plugin.Deadlocked
 
         public static async Task BroadcastPatchConfigToGameLobby(ClientObject client)
         {
+            return; // disabled, only used if character tweakers are enabled
             var metadata = GetPlayerMetadata(client);
 
             // broadcast to all clients in lobby if changed
