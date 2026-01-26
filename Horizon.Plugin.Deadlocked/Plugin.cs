@@ -1034,7 +1034,8 @@ namespace Horizon.Plugin.Deadlocked
             name += '\0';
 
             // add mode
-            name += (char)metadata.GameConfig.GamemodeOverride;
+            name += (char)((byte)metadata.GameConfig.GamemodeOverride >> 4);
+            name += (char)((byte)metadata.GameConfig.GamemodeOverride & 0xf);
 
             // add map name
             name += metadata.CustomMap;
