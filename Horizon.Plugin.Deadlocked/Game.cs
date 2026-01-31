@@ -769,8 +769,14 @@ namespace Horizon.Plugin.Deadlocked
             LastPackedGameState.Deserialize(reader);
 
             // 
-            CustomGameData?.Deserialize(reader);
-
+            try
+            {
+                CustomGameData?.Deserialize(reader);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.ERROR, ex, "Error deserializing CustomGameData");
+            }
         }
     }
 
