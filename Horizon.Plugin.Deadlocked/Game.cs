@@ -247,7 +247,9 @@ namespace Horizon.Plugin.Deadlocked
 
         public static async Task<bool> SetGameState(Server.Medius.Models.Game game, PackedGameState packedGameState)
         {
+            var gameState = new GameState(packedGameState, game);
             var metadata = await GetGameMetadata(game);
+            if (gameState.Equals(metadata.GameState)) return false;
 
             // update game state
             metadata.GameState = new GameState(packedGameState, game);
@@ -330,10 +332,10 @@ namespace Horizon.Plugin.Deadlocked
                 Array.Copy(metadata.TempGameData, 0, metadata.GameData, 0, metadata.GameData.Length);
                 metadata.TempGameData = null;
                 metadata.ReceivedGameData = true;
-            }
 
-            // update
-            await SetGameMetadata(game, metadata);
+                // update
+                await SetGameMetadata(game, metadata);
+            }
         }
 
         public static async Task SendGameMode(Server.Medius.Models.Game game, ClientObject targetClient = null)
@@ -731,6 +733,18 @@ namespace Horizon.Plugin.Deadlocked
                 }
             }
         }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is GameState other)
+            {
+                return this.TeamsEnabled == other.TeamsEnabled
+                    && this.RoundNumber == other.RoundNumber
+                    && this.Teams.SequenceEqual(other.Teams);
+            }
+
+            return false;
+        }
     }
 
     public class GameStateTeam
@@ -739,6 +753,19 @@ namespace Horizon.Plugin.Deadlocked
         public string Name { get; set; }
         public int Score { get; set; }
         public List<string> Players { get; set; } = new List<string>();
+
+        public override bool Equals(object obj)
+        {
+            if (obj is GameStateTeam other)
+            {
+                return this.Id == other.Id
+                    && this.Name == other.Name
+                    && this.Score == other.Score
+                    && this.Players.SequenceEqual(other.Players);
+            }
+
+            return false;
+        }
     }
 
     public class GameData
