@@ -106,16 +106,16 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             }
             else if (messageId == 101)
             {
-                AnimExtractorJointCacheCompleteMessage msg = new AnimExtractorJointCacheCompleteMessage();
-                msg.Deserialize(reader);
+                var OClass = reader.ReadInt16();
+                var SeqId = reader.ReadInt16();
 
                 // find existing sequence if it exists
-                var key = (msg.OClass, msg.SeqId);
+                var key = (OClass, SeqId);
                 if (activeSequences.TryGetValue(key, out var sequence))
                 {
                     // save to file
                     string json = Newtonsoft.Json.JsonConvert.SerializeObject(sequence);
-                    var dirPath = $"M:\\VS\\asd\\wrench\\games\\dl_scus_974_65\\mobies\\{msg.OClass}\\";
+                    var dirPath = @$"C:\Users\dna11\OneDrive\Desktop\moby_anims\{OClass}";
                     if (!Directory.Exists(dirPath))
                     {
                         // moby doesn't exist yet
@@ -125,7 +125,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     dirPath = Path.Combine(dirPath, "anims");
                     if (!Directory.Exists(dirPath))
                         Directory.CreateDirectory(dirPath);
-                    var path = Path.Combine(dirPath, $"mesh_{msg.SeqId}.json");
+                    var path = Path.Combine(dirPath, $"mesh_{SeqId}.json");
                     File.WriteAllText(path, json);
 
                     // remove from sequences
@@ -147,6 +147,33 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             };
 
             return Enumerable.Range(0, count).Select(x => defaultMatrix.ToArray()).ToList();
+        }
+    }
+
+
+    class AnimExtractorJointCacheBlockMessage
+    {
+        public int Offset { get; set; }
+        public short OClass { get; set; }
+        public short SeqId { get; set; }
+        public float Time { get; set; }
+        public float Scale { get; set; }
+        public sbyte JointCount { get; set; }
+        public bool IsEnd { get; set; }
+        public float[] Data { get; set; }
+
+        public void Deserialize(MessageReader reader)
+        {
+            Offset = reader.ReadInt32();
+            OClass = reader.ReadInt16();
+            SeqId = reader.ReadInt16();
+            Time = reader.ReadSingle();
+            Scale = reader.ReadSingle();
+            JointCount = reader.ReadSByte();
+            IsEnd = reader.ReadBoolean();
+            Data = new float[16 * 7];
+            for (int i = 0; i < Data.Length; ++i)
+                Data[i] = reader.ReadSingle();
         }
     }
 }
