@@ -22,6 +22,7 @@ namespace Horizon.Plugin.Deadlocked
         public static string WorkingDirectory = null;
         public static IPluginHost Host = null;
         public static readonly int[] SupportedAppIds = { 11184 };
+        public static PluginDatabase Database = null;
 
         private static bool hasQueriedAppSettings = false;
         private static DateTime timeLastQueriedAppSettings = DateTime.MinValue;
@@ -40,7 +41,7 @@ namespace Horizon.Plugin.Deadlocked
         {
             WorkingDirectory = workingDirectory;
             Host = host;
-
+            Database = new PluginDatabase(workingDirectory);
 
             //
             host.RegisterAction(PluginEvent.TICK, OnTick);
@@ -100,6 +101,7 @@ namespace Horizon.Plugin.Deadlocked
                 }
             }
 
+            await Database.Tick();
             await Player.Tick();
             //await Queue.Tick();
         }
@@ -846,7 +848,7 @@ namespace Horizon.Plugin.Deadlocked
                                     var request = new GetDynamicPageContentRequestMessage();
                                     request.Deserialize(reader);
 
-                                    Player.OnPlayerRequestDynamicPageContent(msg.Player, request);
+                                    await Player.OnPlayerRequestDynamicPageContentAsync(msg.Player, request);
                                     break;
                                 }
                             case 71: // update survival gambit completed request

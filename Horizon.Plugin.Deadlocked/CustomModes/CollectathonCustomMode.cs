@@ -19,8 +19,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         public CollectathonCustomMode()
         {
-            Player.OnBuildDynamicPageContent -= Player_OnBuildDynamicPageContent;
-            Player.OnBuildDynamicPageContent += Player_OnBuildDynamicPageContent;
+            Player.OnBuildDynamicPageContentCallbacks.Add(Player_OnBuildDynamicPageContentAsync);
         }
 
         public override Task<int?> GetRank(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
@@ -164,7 +163,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             return Task.CompletedTask;
         }
 
-        private void Player_OnBuildDynamicPageContent(DynamicPageContentBuilder builder)
+        private async Task Player_OnBuildDynamicPageContentAsync(DynamicPageContentBuilder builder)
         {
             if (builder.Request.Type != GetDynamicPageContentRequestMessage.ContentType.CollectathonMapStats) return;
 

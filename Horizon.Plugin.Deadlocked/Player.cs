@@ -19,7 +19,7 @@ namespace Horizon.Plugin.Deadlocked
         private static Dictionary<int, PlayerExtraInfo> _playerExtraInfos = new Dictionary<int, PlayerExtraInfo>();
         private static Dictionary<int, PlayerMetadata> _playerMetadatas = new Dictionary<int, PlayerMetadata>();
 
-        public static event Action<DynamicPageContentBuilder> OnBuildDynamicPageContent;
+        public static List<Func<DynamicPageContentBuilder, Task>> OnBuildDynamicPageContentCallbacks = [];
 
         private static ConcurrentQueue<ClientObject> _sendPlayerMetadatasQueue = new ConcurrentQueue<ClientObject>();
 
@@ -253,7 +253,7 @@ namespace Horizon.Plugin.Deadlocked
             return Task.CompletedTask;
         }
 
-        public static void OnPlayerRequestDynamicPageContent(ClientObject client, GetDynamicPageContentRequestMessage request)
+        public static async Task OnPlayerRequestDynamicPageContentAsync(ClientObject client, GetDynamicPageContentRequestMessage request)
         {
             var builder = new DynamicPageContentBuilder()
             {
@@ -262,8 +262,11 @@ namespace Horizon.Plugin.Deadlocked
                 Request = request
             };
 
-            if (OnBuildDynamicPageContent != null)
-                OnBuildDynamicPageContent.Invoke(builder);
+            if (OnBuildDynamicPageContentCallbacks != null)
+            {
+                foreach (var callback in OnBuildDynamicPageContentCallbacks)
+                    await callback(builder);
+            }
 
             if (builder.Cancel)
             {
