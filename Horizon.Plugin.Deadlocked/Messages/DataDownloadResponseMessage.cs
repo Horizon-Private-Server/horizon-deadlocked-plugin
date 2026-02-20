@@ -13,6 +13,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
 
         public int Id { get; set; }
         public int BytesReceived { get; set; }
+        public bool Stop { get; set; }
 
         public override void Deserialize(MessageReader reader)
         {
@@ -20,6 +21,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
 
             Id = reader.ReadInt32();
             BytesReceived = reader.ReadInt32();
+            Stop = reader.ReadInt32() != 0;
         }
 
         public override void Serialize(MessageWriter writer)
@@ -28,6 +30,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
 
             writer.Write(Id);
             writer.Write(BytesReceived);
+            writer.Write(Stop ? 1 : 0);
         }
     }
 }

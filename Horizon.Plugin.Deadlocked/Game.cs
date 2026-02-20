@@ -338,54 +338,51 @@ namespace Horizon.Plugin.Deadlocked
             }
         }
 
-        public static async Task SendGameMode(Server.Medius.Models.Game game, ClientObject targetClient = null)
+        public static async Task SendGameMode(Server.Medius.Models.Game game, ClientObject targetClient)
         {
             var metadata = await GetGameMetadata(game);
 
             // send to each client
-            foreach (var gameClient in game.Clients)
+            if (targetClient == null)
+                return;
+
+            // construct payloads to send to client
+            var payloads = new List<Payload>();
+
+            // add remove module entry
+            payloads.Add(new Payload(0x000CF000, new PatchModuleEntry()
             {
-                if (targetClient != null && gameClient.Client != targetClient)
-                    continue;
+                Type = PatchModuleEntryType.DISABLED,
+                ModeId = 0,
+                Arg2 = 0,
+                Arg3 = 0,
+            }.Serialize()));
 
-                // construct payloads to send to client
-                var payloads = new List<Payload>();
-
-                // add remove module entry
-                payloads.Add(new Payload(0x000CF000, new PatchModuleEntry()
+            // parse gamemode
+            var mode = Modes.FindCustomModeById(metadata.GetRealCustomModeId());
+            if (mode != null)
+            {
+                var modePayload = await mode.GetPayload(game, metadata, targetClient);
+                if (modePayload != null)
                 {
-                    Type = PatchModuleEntryType.DISABLED,
-                    ModeId = 0,
-                    Arg2 = 0,
-                    Arg3 = 0,
-                }.Serialize()));
+                    // add mode payload
+                    payloads.Add(modePayload);
 
-                // parse gamemode
-                var mode = Modes.FindCustomModeById(metadata.GetRealCustomModeId());
-                if (mode != null)
-                {
-                    var modePayload = await mode.GetPayload(game, metadata, gameClient.Client);
-                    if (modePayload != null)
+                    // add mode module entry
+                    payloads.Add(new Payload(0x000CF000, new PatchModuleEntry()
                     {
-                        // add mode payload
-                        payloads.Add(modePayload);
-
-                        // add mode module entry
-                        payloads.Add(new Payload(0x000CF000, new PatchModuleEntry()
-                        {
-                            Type = PatchModuleEntryType.RUN_ONCE_GAME,
-                            ModeId = (sbyte)mode.Id,
-                            Arg2 = mode.GetModuleArg2(game, metadata),
-                            Arg3 = mode.GetModuleArg3(game, metadata),
-                            Entrypoint = modePayload.Address,
-                        }.Serialize()));
-                    }
+                        Type = PatchModuleEntryType.RUN_ONCE_GAME,
+                        ModeId = (sbyte)mode.Id,
+                        Arg2 = mode.GetModuleArg2(game, metadata),
+                        Arg3 = mode.GetModuleArg3(game, metadata),
+                        Entrypoint = modePayload.Address,
+                    }.Serialize()));
                 }
-
-                // send payloads
-                if (payloads.Count > 0)
-                    await Downloader.InitiateDataDownload(gameClient.Client, 201, payloads);
             }
+
+            // send payloads
+            if (payloads.Count > 0)
+                await Downloader.InitiateDataDownload(targetClient, 201, payloads);
         }
 
         public static async Task OnGameStarted(Server.Medius.Models.Game game)

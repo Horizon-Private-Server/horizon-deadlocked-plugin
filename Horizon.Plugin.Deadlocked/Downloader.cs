@@ -29,7 +29,7 @@ namespace Horizon.Plugin.Deadlocked
 
         public static Task OnDataDownloadResponse(ClientObject client, DataDownloadResponseMessage response)
         {
-            _ = onDataDownloadResponse(client, response.Id, response.BytesReceived);
+            _ = onDataDownloadResponse(client, response.Id, response.BytesReceived, response.Stop);
             return Task.CompletedTask;
         }
 
@@ -47,7 +47,7 @@ namespace Horizon.Plugin.Deadlocked
             _states[client.AccountId] = state;
 
             // begin
-            return onDataDownloadResponse(client, id, 0);
+            return onDataDownloadResponse(client, id, 0, false);
         }
 
         public static Task OnPlayerLoggedOut(ClientObject client)
@@ -66,7 +66,7 @@ namespace Horizon.Plugin.Deadlocked
             return Task.CompletedTask;
         }
 
-        private static async Task onDataDownloadResponse(ClientObject client, int id, int bytesReceived)
+        private static async Task onDataDownloadResponse(ClientObject client, int id, int bytesReceived, bool stop)
         {
             const int chunkCount = 5;
 
@@ -76,8 +76,25 @@ namespace Horizon.Plugin.Deadlocked
             if (state.Id != id)
                 throw new InvalidOperationException($"onDataDownloadResponse triggered for {client.AccountId} with active state id {state.Id} with id {id}");
 
+            var totalPayloadSize = state.Payloads.Sum(x => x.Data.Length);
+
+            // stop sends empty message to indicate end
+            if (stop)
+            {
+                client.Queue(new DataDownloadRequestMessage()
+                {
+                    Id = state.Id,
+                    Data = new byte[0],
+                    TargetAddress = 0,
+                    TotalSize = 0,
+                    Chunk = 0,
+                    DataOffset = bytesReceived
+                });
+                bytesReceived = totalPayloadSize;
+            }
+
             // check for end
-            if (bytesReceived >= state.Payloads.Sum(x => x.Data.Length))
+            if (bytesReceived >= totalPayloadSize)
             {
                 // remove from active
                 _states.Remove(client.AccountId);
