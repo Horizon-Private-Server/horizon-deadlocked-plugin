@@ -227,6 +227,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             var hasGambit = args.Metadata.GameConfig.Survival_Gambit > 0;
             var gambit = GetGambitName(mapFilename, args.Metadata.GameConfig.Survival_Gambit);
             if (customGameData.Points == null || String.IsNullOrEmpty(mapFilename)) return;
+            if (args.Metadata.GameConfig.HasDevRule()) return;
 
             // invalid map
             if (!await Plugin.Database.GetIsSupportedSurvivalMapAsync(mapFilename))
