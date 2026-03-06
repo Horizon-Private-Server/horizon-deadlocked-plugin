@@ -50,6 +50,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         public SurvivalCustomMode()
         {
+            Player.OnBuildDynamicPageContentCallbacks.Remove(Player_OnBuildDynamicPageContentAsync);
             Player.OnBuildDynamicPageContentCallbacks.Add(Player_OnBuildDynamicPageContentAsync);
         }
 
@@ -78,7 +79,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             return gambitsCompleted / (decimal)(gambitsCount + 1);
         }
 
-        private string GetGambitName(string mapFilename, int gambitIdx)
+        private static string GetGambitName(string mapFilename, int gambitIdx)
         {
             return _survivalMapGambits.GetValueOrDefault((mapFilename, gambitIdx));
         }
@@ -88,7 +89,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             _survivalMapGambits[(mapFilename, gambitIdx)] = gambitName;
         }
 
-        private int GetGambitCount(string mapFilename)
+        private static int GetGambitCount(string mapFilename)
         {
             return _survivalMapGambitCount.GetValueOrDefault(mapFilename);
         }
@@ -381,7 +382,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             await Plugin.Database.UpdateSurvivalAccountMapGambitStatsAsync(client.AccountId, request.MapFilename, request.GambitName, null, true);
         }
 
-        private async Task Player_OnBuildDynamicPageContentAsync(DynamicPageContentBuilder builder)
+        private static async Task Player_OnBuildDynamicPageContentAsync(DynamicPageContentBuilder builder)
         {
             if (builder.Request.Type != GetDynamicPageContentRequestMessage.ContentType.SurvivalMapStats) return;
 
