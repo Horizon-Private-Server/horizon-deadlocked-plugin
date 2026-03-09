@@ -243,58 +243,65 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             // apply stats
             foreach (var accountId in args.PlayerCustomStats.Keys)
             {
-                var player = args.Players.FirstOrDefault(x => x.AccountId == accountId);
-                var gameIdx = player.Index;
-                var accountStats = await Plugin.Database.GetSurvivalStatsAsync(accountId);
-                var mapStats = await Plugin.Database.GetSurvivalMapStatsAsync(accountId, mapFilename);
-                var points = customGameData.Points[gameIdx];
-
-                mapStats.Xp = (int)Math.Max(0, Math.Min(int.MaxValue, (ulong)mapStats.Xp + points));
-                mapStats.Rank = GetRatingFromXp(mapStats.Xp);
-                mapStats.PercentCompleted = GetPercentComplete(mapStats);
-                await Plugin.Database.UpdateSurvivalAccountMapStatsAsync(mapStats);
-
-                if (!player.Left)
+                try
                 {
-                    accountStats.TimePlayedMs += (int)((game.UtcTimeEnded - game.UtcTimeStarted)?.TotalSeconds ?? 0);
-                }
+                    var player = args.Players.FirstOrDefault(x => x.AccountId == accountId);
+                    var gameIdx = player.Index;
+                    var accountStats = await Plugin.Database.GetSurvivalStatsAsync(accountId) ?? new SurvivalAccountStatDTO() { AccountId = accountId };
+                    var mapStats = await Plugin.Database.GetSurvivalMapStatsAsync(accountId, mapFilename) ?? new SurvivalAccountMapStatDTO() { AccountId = accountId, MapFilename = mapFilename };
+                    var points = customGameData.Points[gameIdx];
 
-                // gambit
-                if (hasGambit)
-                {
-                    var playerClient = args.Game.Clients.FirstOrDefault(x => x.Client?.AccountId == accountId)?.Client;
-                    if (playerClient != null)
+                    mapStats.Xp = (int)Math.Max(0, Math.Min(int.MaxValue, (ulong)mapStats.Xp + points));
+                    mapStats.Rank = GetRatingFromXp(mapStats.Xp);
+                    mapStats.PercentCompleted = GetPercentComplete(mapStats);
+                    await Plugin.Database.UpdateSurvivalAccountMapStatsAsync(mapStats);
+
+                    if (!player.Left)
                     {
-                        await Plugin.Database.UpdateSurvivalAccountMapGambitStatsAsync(playerClient.AccountId, mapFilename, gambit, customGameData.BestRound[gameIdx], null);
+                        accountStats.TimePlayedMs += (int)((game.UtcTimeEnded - game.UtcTimeStarted)?.TotalSeconds ?? 0);
                     }
+
+                    // gambit
+                    if (hasGambit)
+                    {
+                        var playerClient = args.Game.Clients.FirstOrDefault(x => x.Client?.AccountId == accountId)?.Client;
+                        if (playerClient != null)
+                        {
+                            await Plugin.Database.UpdateSurvivalAccountMapGambitStatsAsync(playerClient.AccountId, mapFilename, gambit, customGameData.BestRound[gameIdx], null);
+                        }
+                    }
+
+                    // general
+                    accountStats.Kills += customGameData.Kills[gameIdx];
+                    accountStats.Deaths += (ushort)gameData.Data.Deaths[gameIdx];
+                    accountStats.GamesPlayed += 1;
+                    accountStats.Revives += customGameData.Revives[gameIdx];
+                    accountStats.TimesRevived += customGameData.TimesRevived[gameIdx];
+
+                    // general mechanics
+                    //args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TIMES_ROLLED_MYSTERY_BOX] += customGameData.TimesRolledMysteryBox[gameIdx];
+                    //args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TIMES_ACTIVATED_DEMON_BELL] += customGameData.TimesActivatedDemonBell[gameIdx];
+                    //args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TIMES_ACTIVATED_POWER] += customGameData.TimesActivatedPower[gameIdx];
+                    //args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TOKENS_USED_ON_GATES] += customGameData.TokensUsedOnGates[gameIdx];
+
+                    // weapon stats
+                    accountStats.WrenchKills += (ushort)gameData.Data.WeaponKills[gameIdx][0];
+                    accountStats.DualViperKills += (ushort)gameData.Data.WeaponKills[gameIdx][1];
+                    accountStats.MagmaCannonKills += (ushort)gameData.Data.WeaponKills[gameIdx][2];
+                    accountStats.ArbiterKills += (ushort)gameData.Data.WeaponKills[gameIdx][3];
+                    accountStats.FusionRifleKills += (ushort)gameData.Data.WeaponKills[gameIdx][4];
+                    accountStats.MineLauncherKills += (ushort)gameData.Data.WeaponKills[gameIdx][5];
+                    accountStats.B6Kills += (ushort)gameData.Data.WeaponKills[gameIdx][6];
+                    accountStats.ScorpionFlailKills += (ushort)gameData.Data.WeaponKills[gameIdx][7];
+                    accountStats.HoloshieldKills += (ushort)gameData.Data.WeaponKills[gameIdx][8];
+
+                    // post update
+                    await Plugin.Database.UpdateSurvivalStatsAsync(accountStats);
                 }
-
-                // general
-                accountStats.Kills += customGameData.Kills[gameIdx];
-                accountStats.Deaths += (ushort)gameData.Data.Deaths[gameIdx];
-                accountStats.GamesPlayed += 1;
-                accountStats.Revives += customGameData.Revives[gameIdx];
-                accountStats.TimesRevived += customGameData.TimesRevived[gameIdx];
-
-                // general mechanics
-                //args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TIMES_ROLLED_MYSTERY_BOX] += customGameData.TimesRolledMysteryBox[gameIdx];
-                //args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TIMES_ACTIVATED_DEMON_BELL] += customGameData.TimesActivatedDemonBell[gameIdx];
-                //args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TIMES_ACTIVATED_POWER] += customGameData.TimesActivatedPower[gameIdx];
-                //args.PlayerCustomStats[accountId][(int)CustomPlayerStatIds.CUSTOM_STAT_SURVIVAL_TOKENS_USED_ON_GATES] += customGameData.TokensUsedOnGates[gameIdx];
-
-                // weapon stats
-                accountStats.WrenchKills += (ushort)gameData.Data.WeaponKills[gameIdx][0];
-                accountStats.DualViperKills += (ushort)gameData.Data.WeaponKills[gameIdx][1];
-                accountStats.MagmaCannonKills += (ushort)gameData.Data.WeaponKills[gameIdx][2];
-                accountStats.ArbiterKills += (ushort)gameData.Data.WeaponKills[gameIdx][3];
-                accountStats.FusionRifleKills += (ushort)gameData.Data.WeaponKills[gameIdx][4];
-                accountStats.MineLauncherKills += (ushort)gameData.Data.WeaponKills[gameIdx][5];
-                accountStats.B6Kills += (ushort)gameData.Data.WeaponKills[gameIdx][6];
-                accountStats.ScorpionFlailKills += (ushort)gameData.Data.WeaponKills[gameIdx][7];
-                accountStats.HoloshieldKills += (ushort)gameData.Data.WeaponKills[gameIdx][8];
-
-                // post update
-                await Plugin.Database.UpdateSurvivalStatsAsync(accountStats);
+                catch (Exception ex)
+                {
+                    Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.ERROR, ex);
+                }
             }
 
             // post each set of people that made it to a round
@@ -309,25 +316,32 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
                 roundsPosted.Add(bestRound);
 
-                // get account ids that were in game at this point
-                var accountIds = accountIdsAtStart
+                try
+                {
+                    // get account ids that were in game at this point
+                    var accountIds = accountIdsAtStart
                     .Select(x => args.Players.FirstOrDefault(p => p.AccountId == int.Parse(x)))
                     .Where(x => x != null && customGameData.BestRound[x.Index] >= bestRound)
                     .Select(x => x.AccountId)
                     .ToArray();
 
-                // post run
-                await Plugin.Database.CreateSurvivalMapRunAsync(new DTO.SurvivalRunDTO()
+                    // post run
+                    await Plugin.Database.CreateSurvivalMapRunAsync(new DTO.SurvivalRunDTO()
+                    {
+                        GameHistoryId = game.Id,
+                        MapFilename = mapFilename,
+                        Gambit = hasGambit ? gambit : null,
+                        PlayerCountAtStart = accountIdsAtStart.Length,
+                        AccountIds = accountIds,
+                        RoundsCompleted = bestRound,
+                        Time50Ms = (customGameData.Round50TimeMs <= 0 || bestRound < 50) ? null : customGameData.Round50TimeMs,
+                        TimeMs = 0
+                    });
+                }
+                catch (Exception ex)
                 {
-                    GameHistoryId = game.Id,
-                    MapFilename = mapFilename,
-                    Gambit = hasGambit ? gambit : null,
-                    PlayerCountAtStart = accountIdsAtStart.Length,
-                    AccountIds = accountIds,
-                    RoundsCompleted = bestRound,
-                    Time50Ms = (customGameData.Round50TimeMs <= 0 || bestRound < 50) ? null : customGameData.Round50TimeMs,
-                    TimeMs = 0
-                });
+                    Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.ERROR, ex);
+                }
             }
         }
 
