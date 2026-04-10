@@ -17,4 +17,20 @@ public static class ReflectionHelper
 
         return attribute?.Description ?? value.ToString();
     }
+
+    public static string GetDescription(this object value)
+    {
+        if (value == null)
+            return null;
+
+        var valueType = value.GetType();
+        if (valueType.IsEnum)
+        {
+            var field = valueType.GetField(value.ToString());
+            var attribute = field?.GetCustomAttribute<DescriptionAttribute>();
+            return attribute?.Description ?? value.ToString();
+        }
+
+        return value.ToString();
+    }
 }

@@ -390,10 +390,11 @@ namespace Horizon.Plugin.Deadlocked
                                         request.Deserialize(reader);
 
                                         // try to update game config
-                                        if (await Game.SetGameConfig(msg.Player.CurrentGame, request.Config, request.CustomMapConfig))
+                                        var changes = new Dictionary<string, string>();
+                                        if (await Game.SetGameConfig(msg.Player.CurrentGame, request.Config, request.CustomMapConfig, changes))
                                         {
                                             // send new game config to other players in lobby
-                                            await Game.BroadcastGameConfig(msg.Player.CurrentGame);
+                                            await Game.BroadcastGameConfig(msg.Player.CurrentGame, changes: changes);
                                         }
                                     }
                                     break;

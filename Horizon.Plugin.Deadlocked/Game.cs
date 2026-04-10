@@ -9,9 +9,11 @@ using Server.Medius.PluginArgs;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -21,7 +23,7 @@ namespace Horizon.Plugin.Deadlocked
     {
         private static readonly Dictionary<int, GameMetadata> _metadatas = new Dictionary<int, GameMetadata>();
 
-        public static async Task BroadcastGameConfig(Server.Medius.Models.Game game, bool skipSendChatMessage = false)
+        public static async Task BroadcastGameConfig(Server.Medius.Models.Game game, bool skipSendChatMessage = false, Dictionary<string, string> changes = null)
         {
             var metadata = await GetGameMetadata(game);
 
@@ -47,6 +49,15 @@ namespace Horizon.Plugin.Deadlocked
                 if (!skipSendChatMessage)
                 {
                     game.ChatChannel.SendSystemMessage(gameClient.Client, "AThe host has updated the game settings.");
+
+                    // print out individual changes
+                    if (changes != null && changes.Any())
+                    {
+                        foreach (var change in changes)
+                        {
+                            game.ChatChannel.SendSystemMessage(gameClient.Client, $"A{change.Value}");
+                        }
+                    }
                 }
 
                 // send custom map override
@@ -259,13 +270,45 @@ namespace Horizon.Plugin.Deadlocked
             return await SetGameMetadata(game, metadata);
         }
 
-        public static async Task<bool> SetGameConfig(Server.Medius.Models.Game game, GameConfig config, GameCustomMapConfig mapConfig)
+        public static async Task<bool> SetGameConfig(Server.Medius.Models.Game game, GameConfig config, GameCustomMapConfig mapConfig, Dictionary<string, string> changes)
         {
             var metadata = await GetGameMetadata(game);
 
             // if no change, return false
-            if (metadata.GameConfig.SameAs(config) && metadata.CustomMapConfig.SameAs(mapConfig))
+            var gameConfigChanged = !metadata.GameConfig.SameAs(config);
+            var mapConfigChanged = !metadata.CustomMapConfig.SameAs(mapConfig);
+            if (!gameConfigChanged && !mapConfigChanged)
                 return false;
+
+            // populate changes
+            if (gameConfigChanged)
+            {
+                var propertyInfos = config.GetType().GetProperties(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+                foreach (var propInfo in propertyInfos)
+                {
+                    var changeMessageAttr = propInfo.GetCustomAttribute<ChangeMessageAttribute>();
+                    if (changeMessageAttr?.Message is null) continue;
+
+                    var oldValue = propInfo.GetValue(metadata.GameConfig);
+                    var newValue = propInfo.GetValue(config);
+
+                    if (oldValue == null && newValue == null) continue;
+                    if (oldValue != null && oldValue.Equals(newValue)) continue;
+
+                    var oldValueStr = oldValue?.GetDescription();
+                    var newValueStr = newValue?.GetDescription();
+                    if (changeMessageAttr.Choices is not null)
+                    {
+                        if (oldValue is bool bOld) oldValueStr = (string)changeMessageAttr.Choices.GetValue(bOld ? 1 : 0) ?? oldValueStr;
+                        if (oldValue is int iOld) oldValueStr = (string)changeMessageAttr.Choices.GetValue(iOld) ?? oldValueStr;
+
+                        if (newValue is bool bNew) newValueStr = (string)changeMessageAttr.Choices.GetValue(bNew ? 1 : 0) ?? newValueStr;
+                        if (newValue is int iNew) newValueStr = (string)changeMessageAttr.Choices.GetValue(iNew) ?? newValueStr;
+                    }
+
+                    changes[propInfo.Name] = string.Format(changeMessageAttr.Message, oldValueStr, newValueStr);
+                }
+            }
 
             // update
             metadata.GameConfig = config;
@@ -281,7 +324,6 @@ namespace Horizon.Plugin.Deadlocked
             // update other metadata
             metadata.CustomMap = String.IsNullOrEmpty(metadata.CustomMapConfig.Name) ? null : metadata.CustomMapConfig.Name;
             metadata.CustomGameMode = Modes.FindCustomModeById(metadata.GetRealCustomModeId())?.Name;
-            metadata.Weather = metadata.GameConfig.WeatherOverride.ToString();
             metadata.GameInfo = await GetGameInfo(game, metadata);
 
 
@@ -394,7 +436,7 @@ namespace Horizon.Plugin.Deadlocked
                 await mode.OnGameStart(game, metadata);
 
             // send map override to all clients
-            await BroadcastGameConfig(game, true);
+            await BroadcastGameConfig(game, skipSendChatMessage: true);
 
             // store player wide stats
             var tasks = game.Clients.Select(async (gameClient) =>
@@ -580,7 +622,6 @@ namespace Horizon.Plugin.Deadlocked
     {
         public string CustomGameMode { get; set; }
         public string CustomMap { get; set; }
-        public string Weather { get; set; }
         public string GameInfo { get; set; }
         public int Location { get; set; }
         public GameConfig GameConfig { get; set; } = new GameConfig();
@@ -1126,10 +1167,30 @@ namespace Horizon.Plugin.Deadlocked
         }
     }
 
+    [AttributeUsage(AttributeTargets.Property)]
+    public class ChangeMessageAttribute : System.Attribute
+    {
+        public string Message { get; init; }
+        public string[] Choices { get; init; }
+    }
+
     public class GameConfig
     {
+        public enum InputRestrictions
+        {
+            [Description("Allow All")]
+            AllowAll,
+
+            [Description("Controller Only")]
+            ControllerOnly,
+
+            [Description("KBM Only")]
+            KbmOnly
+        }
+
         public sbyte GamemodeOverride { get; set; }
-        public byte WeatherOverride { get; set; }
+        [ChangeMessage(Message = "Camera Input: {1}")]
+        public InputRestrictions InputRestriction { get; set; }
         public bool DisableWeaponPacks { get; set; }
         public byte V2s { get; set; }
         public bool NoSpawnImmunity { get; set; }
@@ -1151,6 +1212,7 @@ namespace Horizon.Plugin.Deadlocked
         public bool CqDisableUpgrades { get; set; }
         public bool NewPlayerSync { get; set; }
         public bool Lagjump { get; set; }
+        [ChangeMessage(Message = "Fusion Scoping: {1}", Choices = ["Permitted", "Disabled"])]
         public bool NoFusionADS { get; set; }
         public byte RespawnOverride { get; set; }
         public bool FogOfWarRadar { get; set; }
@@ -1181,7 +1243,7 @@ namespace Horizon.Plugin.Deadlocked
                 using (var writer = new BinaryWriter(ms))
                 {
                     writer.Write(GamemodeOverride);
-                    writer.Write(WeatherOverride);
+                    writer.Write((byte)InputRestriction);
                     writer.Write(DisableWeaponPacks);
                     writer.Write(V2s);
                     writer.Write(NoSpawnImmunity);
@@ -1230,7 +1292,7 @@ namespace Horizon.Plugin.Deadlocked
         public void Deserialize(BinaryReader reader)
         {
             GamemodeOverride = reader.ReadSByte();
-            WeatherOverride = reader.ReadByte();
+            InputRestriction = (InputRestrictions)reader.ReadByte();
             DisableWeaponPacks = reader.ReadBoolean();
             V2s = reader.ReadByte();
             NoSpawnImmunity = reader.ReadBoolean();
@@ -1274,8 +1336,8 @@ namespace Horizon.Plugin.Deadlocked
 
         public bool SameAs(GameConfig other)
         {
-            return GamemodeOverride == other.GamemodeOverride
-                && WeatherOverride == other.WeatherOverride
+             return GamemodeOverride == other.GamemodeOverride
+                && InputRestriction == other.InputRestriction
                 && DisableWeaponPacks == other.DisableWeaponPacks
                 && V2s == other.V2s
                 && NoSpawnImmunity == other.NoSpawnImmunity
