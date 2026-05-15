@@ -9,6 +9,21 @@ namespace Horizon.Plugin.Deadlocked
     public static class Stats
     {
         static readonly float[] DEFAULT_REWARD_CURVE = new float[] { 0.4f, 0.3f, 0.3f };
+        static readonly int[] SKILLS_TABLE = new int[] { 100, 200, 800, 1600, 2500, 3500, 5000, 6500, 8000, 9500 };
+
+        public static decimal RankToSkillLevel(int rank)
+        {
+            if (rank <= SKILLS_TABLE[0])
+                return 1;
+            if (rank >= SKILLS_TABLE[9])
+                return 10;
+
+            int i = 0;
+            while (rank > SKILLS_TABLE[i])
+                i += 1;
+
+            return i + (rank - SKILLS_TABLE[i - 1]) / (decimal)(SKILLS_TABLE[i] - SKILLS_TABLE[i - 1]);
+        }
 
         public static void RateGame(IEnumerable<StatsGamePlayer> players, double[] teamScores, float teamWager = 0.3f, float ffaWager = 0.1f, float rewardFlatness = 0.5f, float drawPenalty = 0.1f)
         {

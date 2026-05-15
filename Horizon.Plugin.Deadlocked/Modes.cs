@@ -30,7 +30,8 @@ namespace Horizon.Plugin.Deadlocked
             new RaidsCustomMode(),
             new OitcCustomMode(),
             new ObstacleCustomMode(),
-            new CollectathonCustomMode()
+            new CollectathonCustomMode(),
+            new ForgeCgmCustomMode()
         };
 
         public static BaseCustomMode FindCustomModeById(CustomModeId id)
@@ -67,6 +68,7 @@ namespace Horizon.Plugin.Deadlocked
         CMODE_ID_HOVERBIKE_RACE = -3,
         CMODE_ID_INFINITE_CLIMBER = -4,
         CMODE_ID_BENCHMARK = -5,
+        CMODE_ID_FORGE_CUSTOM = -6,
     }
 
 }

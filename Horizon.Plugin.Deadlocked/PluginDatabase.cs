@@ -470,12 +470,265 @@ namespace Horizon.Plugin.Deadlocked
 
         #endregion
 
+        #region ForgeCgm Db
+
+        public async Task<ForgeCgmMapDTO> GetForgeCgmMapAsync(string mapFilename)
+        {
+            ForgeCgmMapDTO result = null;
+
+            try
+            {
+                if (IsSimulated)
+                {
+                    result = _simulatedDb.ForgeCgmMaps.FirstOrDefault(x => x.MapFilename == mapFilename) ?? new ForgeCgmMapDTO() { MapFilename = mapFilename };
+                }
+                else
+                {
+                    var uri = $"ForgeCgm/getMap/{Uri.EscapeDataString(mapFilename)}";
+                    if (TryGetCache<ForgeCgmMapDTO>(uri, out var value))
+                        result = value;
+                    else
+                        result = SetCache(uri, await Program.Database.GetDbAsync<ForgeCgmMapDTO>(uri));
+                }
+            }
+            catch (Exception e)
+            {
+                Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.ERROR, e);
+            }
+
+            return result;
+        }
+
+        public async Task<ForgeCgmMapDTO> UpdateForgeCgmMapAsync(string mapFilename, string name, string? sharedRankCode, string metadata)
+        {
+            ForgeCgmMapDTO result = null;
+
+            try
+            {
+                if (IsSimulated)
+                {
+                    var existing = _simulatedDb.ForgeCgmMaps.FirstOrDefault(x => x.MapFilename == mapFilename);
+                    if (existing != null)
+                    {
+                        existing.Name = name;
+                        existing.SharedRankCode = sharedRankCode;
+                        existing.Metadata = metadata;
+                        result = existing;
+                    }
+                    else
+                    {
+                        result = existing = new ForgeCgmMapDTO()
+                        {
+                            MapFilename = mapFilename,
+                            Name = name,
+                            SharedRankCode = sharedRankCode,
+                            Metadata = metadata,
+                        };
+
+                        _simulatedDb.ForgeCgmMaps.Add(existing);
+                    }
+
+                    SaveSimulated();
+                }
+                else
+                {
+                    InvalidateCache($"ForgeCgm/getMap/{Uri.EscapeDataString(mapFilename)}");
+                    result = await Program.Database.PostDbAsync<ForgeCgmMapDTO>($"ForgeCgm/updateMap", new ForgeCgmMapDTO() { MapFilename = mapFilename, Name = name, SharedRankCode = sharedRankCode, Metadata = metadata });
+                }
+            }
+            catch (Exception e)
+            {
+                Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.ERROR, e);
+            }
+
+            return result;
+        }
+
+        public async Task<ForgeCgmMapAccountStatDTO> GetForgeCgmMapAccountStatsAsync(int accountId, string mapFilename)
+        {
+            ForgeCgmMapAccountStatDTO result = null;
+
+            try
+            {
+                if (IsSimulated)
+                {
+                    var map = _simulatedDb.ForgeCgmMaps.FirstOrDefault(x => x.MapFilename == mapFilename);
+                    if (map == null)
+                        return result;
+
+                    result = _simulatedDb.ForgeCgmMapAccountStats.FirstOrDefault(x => x.AccountId == accountId && x.MapFilename == mapFilename) ?? new ForgeCgmMapAccountStatDTO() { AccountId = accountId, MapFilename = mapFilename };
+                
+                    // get rank as highest among maps with shared rank code
+                    if (!string.IsNullOrEmpty(map.SharedRankCode))
+                    {
+                        var sharedRankMapFilenames = _simulatedDb.ForgeCgmMaps.Where(x => x.SharedRankCode == map.SharedRankCode).Select(x => x.MapFilename).ToHashSet();
+                        result.Rank = _simulatedDb.ForgeCgmMapAccountStats.Where(x => x.AccountId == accountId && sharedRankMapFilenames.Contains(x.MapFilename)).DefaultIfEmpty().Max(x => x.Rank);
+                    }
+                }
+                else
+                {
+                    var uri = $"ForgeCgm/getMapAccountStats?AccountId={accountId}&MapFilename={Uri.EscapeDataString(mapFilename)}";
+                    if (TryGetCache<ForgeCgmMapAccountStatDTO>(uri, out var value))
+                        result = value;
+                    else
+                        result = SetCache(uri, await Program.Database.GetDbAsync<ForgeCgmMapAccountStatDTO>(uri));
+                }
+            }
+            catch (Exception e)
+            {
+                Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.ERROR, e);
+            }
+
+            return result;
+        }
+
+        public async Task<ForgeCgmMapAggregatedAccountStatDTO> GetForgeCgmMapAggregatedAccountStatsAsync(int accountId, string mapFilename)
+        {
+            ForgeCgmMapAggregatedAccountStatDTO result = null;
+
+            try
+            {
+                if (IsSimulated)
+                {
+                    var map = _simulatedDb.ForgeCgmMaps.FirstOrDefault(x => x.MapFilename == mapFilename);
+                    if (map == null)
+                        return result;
+
+                    var accountStat = _simulatedDb.ForgeCgmMapAccountStats.FirstOrDefault(x => x.AccountId == accountId && x.MapFilename == mapFilename) ?? new ForgeCgmMapAccountStatDTO() { AccountId = accountId, MapFilename = mapFilename };
+                    
+                    if (!string.IsNullOrEmpty(map.SharedRankCode))
+                    {
+                        var sharedRankMapFilenames = _simulatedDb.ForgeCgmMaps.Where(x => x.SharedRankCode == map.SharedRankCode).Select(x => x.MapFilename).ToHashSet();
+                        var allAccountDbStats = _simulatedDb.ForgeCgmMapAccountStats.Where(x => x.AccountId == accountId && sharedRankMapFilenames.Contains(x.MapFilename)).ToArray();
+                        var ranking = _simulatedDb.ForgeCgmMapAccountStats
+                            .Where(x => sharedRankMapFilenames.Contains(x.MapFilename))
+                            .GroupBy(x => x.AccountId)
+                            .Select(x => x.MaxBy(x => x.Rank))
+                            .OrderByDescending(x => x.Rank)
+                            .Index()
+                            .FirstOrDefault(x => x.Item == accountStat).Index;
+
+                        result = new ForgeCgmMapAggregatedAccountStatDTO()
+                        {
+                            AccountId = accountId,
+                            Rank = allAccountDbStats.Max(x => x.Rank),
+                            Ranking = ranking + 1,
+                            Wins = allAccountDbStats.Sum(x => x.Wins),
+                            Losses = allAccountDbStats.Sum(x => x.Losses),
+                            GamesPlayed = allAccountDbStats.Sum(x => x.GamesPlayed),
+                            TimePlayedMs = allAccountDbStats.Sum(x => x.TimePlayedMs),
+                            TrackedStats = accountStat.TrackedStats.ToArray(),
+                        };
+                    }
+                    else
+                    {
+                        result = new ForgeCgmMapAggregatedAccountStatDTO()
+                        {
+                            AccountId = accountId,
+                            Rank = accountStat.Rank,
+                            Ranking = _simulatedDb.ForgeCgmMapAccountStats.Where(x => x.MapFilename == mapFilename).OrderByDescending(x => x.Rank).Index().FirstOrDefault(x => x.Item == accountStat).Index + 1,
+                            Wins = accountStat.Wins,
+                            Losses = accountStat.Losses,
+                            GamesPlayed = accountStat.GamesPlayed,
+                            TimePlayedMs = accountStat.GamesPlayed,
+                            TrackedStats = accountStat.TrackedStats.ToArray(),
+                        };
+                    }
+                }
+                else
+                {
+                    var uri = $"ForgeCgm/getMapAggregatedAccountStats?AccountId={accountId}&MapFilename={Uri.EscapeDataString(mapFilename)}";
+                    if (TryGetCache<ForgeCgmMapAggregatedAccountStatDTO>(uri, out var value))
+                        result = value;
+                    else
+                        result = SetCache(uri, await Program.Database.GetDbAsync<ForgeCgmMapAggregatedAccountStatDTO>(uri));
+                }
+            }
+            catch (Exception e)
+            {
+                Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.ERROR, e);
+            }
+
+            return result;
+        }
+
+        public async Task<ForgeCgmMapAccountStatDTO> UpdateForgeCgmMapAccountStatsAsync(ForgeCgmMapAccountStatDTO stats)
+        {
+            ForgeCgmMapAccountStatDTO result = null;
+
+            try
+            {
+                if (IsSimulated)
+                {
+                    var map = _simulatedDb.ForgeCgmMaps.FirstOrDefault(x => x.MapFilename == stats.MapFilename);
+                    if (map == null)
+                        return result;
+
+                    var existing = _simulatedDb.ForgeCgmMapAccountStats.FirstOrDefault(x => x.AccountId == stats.AccountId && x.MapFilename == stats.MapFilename);
+                    if (existing != null)
+                    {
+                        existing.Rank = stats.Rank;
+                        existing.GamesPlayed = stats.GamesPlayed;
+                        existing.TimePlayedMs = stats.TimePlayedMs;
+                        existing.TrackedStats = stats.TrackedStats.ToArray();
+                        result = existing;
+                    }
+                    else
+                    {
+                        result = existing = new ForgeCgmMapAccountStatDTO()
+                        {
+                            AccountId = stats.AccountId,
+                            MapFilename = stats.MapFilename,
+                            Rank = stats.Rank,
+                            GamesPlayed = stats.GamesPlayed,
+                            TimePlayedMs = stats.TimePlayedMs,
+                            TrackedStats = stats.TrackedStats.ToArray(),
+                        };
+
+                        _simulatedDb.ForgeCgmMapAccountStats.Add(existing);
+                    }
+
+                    // update rank for all maps with shared rank code
+                    if (!string.IsNullOrEmpty(map.SharedRankCode))
+                    {
+                        var sharedRankMapFilenames = _simulatedDb.ForgeCgmMaps.Where(x => x.SharedRankCode == map.SharedRankCode).Select(x => x.MapFilename).ToHashSet();
+                        foreach (var sharedRankMapFilename in sharedRankMapFilenames)
+                        {
+                            var dbStats = _simulatedDb.ForgeCgmMapAccountStats.FirstOrDefault(x => x.AccountId == stats.AccountId && x.MapFilename == sharedRankMapFilename);
+                            if (dbStats != null)
+                            {
+                                dbStats.Rank = stats.Rank;
+                            }
+                        }
+                    }
+
+                    SaveSimulated();
+                }
+                else
+                {
+                    InvalidateCache($"ForgeCgm/getMapAccountStats?AccountId={stats.AccountId}&MapFilename={Uri.EscapeDataString(stats.MapFilename)}");
+                    InvalidateCache($"ForgeCgm/getMapAggregatedAccountStats?AccountId={stats.AccountId}&MapFilename={Uri.EscapeDataString(stats.MapFilename)}");
+                    result = await Program.Database.PostDbAsync<ForgeCgmMapAccountStatDTO>($"ForgeCgm/updateMapAccountStats", stats);
+                }
+            }
+            catch (Exception e)
+            {
+                Plugin.Host.Log(DotNetty.Common.Internal.Logging.InternalLogLevel.ERROR, e);
+            }
+
+            return result;
+        }
+
+        #endregion
+
     }
 
     class PluginDatabaseSimulated
     {
         public List<SurvivalAccountStatDTO> SurvivalAccountStats { get; set; } = new List<SurvivalAccountStatDTO>();
         public List<SurvivalAccountMapStatDTO> SurvivalAccountMapStats { get; set; } = new List<SurvivalAccountMapStatDTO>();
+        public List<ForgeCgmMapDTO> ForgeCgmMaps { get; set; } = new List<ForgeCgmMapDTO>();
+        public List<ForgeCgmMapAccountStatDTO> ForgeCgmMapAccountStats { get; set; } = new List<ForgeCgmMapAccountStatDTO>();
 
         public bool Save(string filepath, string key)
         {

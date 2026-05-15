@@ -34,6 +34,11 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             return Task.CompletedTask;
         }
 
+        public virtual Task<string> GetCustomModeName(Server.Medius.Models.Game game, GameMetadata metadata)
+        {
+            return Task.FromResult(Name);
+        }
+
         public virtual Task<string> GetGameInfo(Server.Medius.Models.Game game, GameMetadata metadata)
         {
             return Task.FromResult<string>(null);

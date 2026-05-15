@@ -46,4 +46,15 @@ public static class BinaryHelper
         reader.ReadByte(); // skip null byte
         return str;
     }
+
+    public static string ReadString(this BinaryReader reader, int fixedLength)
+    {
+        var bytes = reader.ReadBytes(fixedLength);
+        var str = Encoding.UTF8.GetString(bytes);
+        var endCharIdx = str.IndexOf('\0');
+        if (endCharIdx >= 0)
+            return str.Substring(0, endCharIdx);
+
+        return str;
+    }
 }

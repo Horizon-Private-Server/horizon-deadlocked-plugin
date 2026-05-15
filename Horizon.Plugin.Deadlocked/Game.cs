@@ -323,9 +323,11 @@ namespace Horizon.Plugin.Deadlocked
 
             // update other metadata
             metadata.CustomMap = String.IsNullOrEmpty(metadata.CustomMapConfig.Name) ? null : metadata.CustomMapConfig.Name;
-            metadata.CustomGameMode = Modes.FindCustomModeById(metadata.GetRealCustomModeId())?.Name;
             metadata.GameInfo = await GetGameInfo(game, metadata);
 
+            var mode = Modes.FindCustomModeById(metadata.GetRealCustomModeId());
+            if (mode != null)
+                metadata.CustomGameMode = await mode.GetCustomModeName(game, metadata);
 
             // send to database
             return await SetGameMetadata(game, metadata);
@@ -1233,6 +1235,10 @@ namespace Horizon.Plugin.Deadlocked
         public byte Training_Opt3 { get; set; }
         public byte Hns_HideTime { get; set; }
         public byte Survival_Gambit { get; set; }
+        public byte ForgeCgm_Param1 { get; set; }
+        public byte ForgeCgm_Param2 { get; set; }
+        public byte ForgeCgm_Param3 { get; set; }
+        public byte ForgeCgm_Param4 { get; set; }
 
         public bool HasDevRule() => Freecam;
 
@@ -1283,6 +1289,10 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(Training_Opt3);
                     writer.Write(Hns_HideTime);
                     writer.Write(Survival_Gambit);
+                    writer.Write(ForgeCgm_Param1);
+                    writer.Write(ForgeCgm_Param2);
+                    writer.Write(ForgeCgm_Param3);
+                    writer.Write(ForgeCgm_Param4);
 
                     return ms.ToArray();
                 }
@@ -1332,6 +1342,10 @@ namespace Horizon.Plugin.Deadlocked
             Training_Opt3 = reader.ReadByte();
             Hns_HideTime = reader.ReadByte();
             Survival_Gambit = reader.ReadByte();
+            ForgeCgm_Param1 = reader.ReadByte();
+            ForgeCgm_Param2 = reader.ReadByte();
+            ForgeCgm_Param3 = reader.ReadByte();
+            ForgeCgm_Param4 = reader.ReadByte();
         }
 
         public bool SameAs(GameConfig other)
@@ -1377,6 +1391,10 @@ namespace Horizon.Plugin.Deadlocked
                 && Training_Opt3 == other.Training_Opt3
                 && Hns_HideTime == other.Hns_HideTime
                 && Survival_Gambit == other.Survival_Gambit
+                && ForgeCgm_Param1 == other.ForgeCgm_Param1
+                && ForgeCgm_Param2 == other.ForgeCgm_Param2
+                && ForgeCgm_Param3 == other.ForgeCgm_Param3
+                && ForgeCgm_Param4 == other.ForgeCgm_Param4
                 ;
         }
     }
