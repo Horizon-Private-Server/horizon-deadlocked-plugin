@@ -25,9 +25,18 @@ namespace Horizon.Plugin.Deadlocked.Messages
 
         public override void Serialize(Server.Common.Stream.MessageWriter writer)
         {
+            var startPos = writer.BaseStream.Position;
+
             writer.Write(this.CustomMsgId);
             writer.Write(new byte[3]);
             base.Serialize(writer);
+
+            // store datasize in message
+            var dataSize = (int)(writer.BaseStream.Position - startPos) - 4;
+            writer.BaseStream.Position = startPos + 1;
+            writer.Write((byte)1);
+            writer.Write((ushort)dataSize);
+            writer.BaseStream.Position += dataSize;
         }
     }
 }
