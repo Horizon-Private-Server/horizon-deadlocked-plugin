@@ -20,7 +20,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         {
             Integer,
             TimeSeconds,
-            Float
+            Float,
+            TimeMilliseconds,
         }
 
         public enum StatTrackerType
@@ -406,6 +407,15 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                             var sec = rawValue % 60;
                             var min = (rawValue / 60) % 60;
                             var hr = rawValue / 3600;
+                            printValue = $"{hr}h {min}m {sec}s";
+                            break;
+                        }
+                    case StatValueType.TimeMilliseconds:
+                        {
+                            var totalSeconds = rawValue / 1000;
+                            var sec = totalSeconds % 60;
+                            var min = (totalSeconds / 60) % 60;
+                            var hr = totalSeconds / 3600;
                             printValue = $"{hr}h {min}m {sec}s";
                             break;
                         }
