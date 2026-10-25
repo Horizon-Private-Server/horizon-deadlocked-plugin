@@ -33,12 +33,20 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         };
 
         public override CustomModeId Id => CustomModeId.CMODE_ID_RAIDS;
-        public override string Name => "DreadZone Raids";
+        public override string Name => "DreadZone Raids (Alpha)";
 
         private int GetRatingFromXp(long xp)
         {
             //return (int)Math.Max(100, Math.Min(10000, 100 + Math.Sqrt(xp * 4)));
             return (int)Math.Max(100, Math.Min(10000, 100 + (xp / 5000f)));
+        }
+
+        public override Task OnModeSelected(Server.Medius.Models.Game game, GameMetadata metadata)
+        {
+            game.ChatChannel.BroadcastSystemMessage(game.ChatChannel.Clients, $"ARaids is a new PvE mode currently in Alpha.");
+            game.ChatChannel.BroadcastSystemMessage(game.ChatChannel.Clients, $"APlease submit feedback and bugs to the Horizon Discord.");
+            game.ChatChannel.BroadcastSystemMessage(game.ChatChannel.Clients, $"AThe Raids map pack is required to play.");
+            return Task.CompletedTask;
         }
 
         public override async Task<int?> GetRank(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
