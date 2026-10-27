@@ -13,12 +13,16 @@ namespace Horizon.Plugin.Deadlocked.Messages
 {
     public class RaidsUpdateMapContractRulesRequest : BasePluginMessage
     {
-        const int MAX_CONTRACTS = 16;
+        public const int MAX_CONTRACTS = 16;
+        public const int RULES_PER_PAGE = 8;
 
         public override byte CustomMsgId => 68;
         public override bool SkipEncryption { get => true; set { } }
 
         public string MapFilename { get; set; }
+        public int Offset { get; set; }
+        public int Count { get; set; }
+        public int TotalCount { get; set; }
         public List<RaidsContractRule> ContractRules { get; set; } = new List<RaidsContractRule>();
 
         public override void Deserialize(MessageReader reader)
@@ -26,11 +30,14 @@ namespace Horizon.Plugin.Deadlocked.Messages
             base.Deserialize(reader);
 
             MapFilename = reader.ReadString(64);
-            for (int i = 0; i < MAX_CONTRACTS; ++i)
+            Offset = reader.ReadInt32();
+            Count = reader.ReadInt32();
+            TotalCount = reader.ReadInt32();
+            for (int i = 0; i < RULES_PER_PAGE; ++i)
             {
                 var contractRule = new RaidsContractRule();
                 contractRule.Deserialize(reader);
-                if (contractRule.OClass > 0)
+                if (i < Count)
                     ContractRules.Add(contractRule);
             }
         }

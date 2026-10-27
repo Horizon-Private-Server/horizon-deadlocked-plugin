@@ -8,12 +8,14 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace Horizon.Plugin.Deadlocked.CustomModes
 {
     public class RaidsCustomMode : BaseCustomMode
     {
+        public static readonly int MAX_CLASS_LEVEL = 9;
         public static readonly int MAX_ACCOUNT_LEVEL = 98;
         public static readonly int MAX_WEAPON_LEVEL = 98;
         public static readonly string HUB_MAP_FILENAME = "raids_hub";
@@ -31,6 +33,57 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             new RaidsMobMetadata("Reaper", 0x2570),
             new RaidsMobMetadata("Tremor", 0x24D3),
         };
+
+        public static readonly List<RaidsClass> RAIDS_CLASSES =
+        [
+            new RaidsClass(RaidsClassType.Contestant, "Contestant", 1.0m)
+            {
+                WeaponRarityLimits = new Dictionary<GadgetSlots, RaidsItemRarity>()
+                {
+                    { GadgetSlots.Vipers, RaidsItemRarity.Rare },
+                    { GadgetSlots.MagmaCannon, RaidsItemRarity.Rare },
+                    { GadgetSlots.B6, RaidsItemRarity.Common },
+                }
+            },
+            new RaidsClass(RaidsClassType.Support, "Support", 1.0m)
+            {
+                WeaponRarityLimits = new Dictionary<GadgetSlots, RaidsItemRarity>()
+                {
+                    { GadgetSlots.MagmaCannon, RaidsItemRarity.Common },
+                    { GadgetSlots.Fusion, RaidsItemRarity.Common },
+                    { GadgetSlots.Holoshields, RaidsItemRarity.Rare },
+                },
+                UnlockRules =
+                [
+                    new RaidsClassUnlockRule(RaidsClassType.Contestant, 5)
+                ]
+            },
+            new RaidsClass(RaidsClassType.Demolitionist, "Demolitionist", 1.0m)
+            {
+                WeaponRarityLimits = new Dictionary<GadgetSlots, RaidsItemRarity>()
+                {
+                    { GadgetSlots.B6, RaidsItemRarity.Rare },
+                    { GadgetSlots.Arbiter, RaidsItemRarity.Rare },
+                    { GadgetSlots.MineLauncher, RaidsItemRarity.Rare },
+                },
+                UnlockRules =
+                [
+                    new RaidsClassUnlockRule(RaidsClassType.Contestant, 5)
+                ]
+            },
+            new RaidsClass(RaidsClassType.Melee, "Berserker", 1.0m)
+            {
+                WeaponRarityLimits = new Dictionary<GadgetSlots, RaidsItemRarity>()
+                {
+                    { GadgetSlots.Flail, RaidsItemRarity.Rare },
+                    { GadgetSlots.MagmaCannon, RaidsItemRarity.Common },
+                },
+                UnlockRules =
+                [
+                    new RaidsClassUnlockRule(RaidsClassType.Contestant, 5)
+                ]
+            },
+        ];
 
         public override CustomModeId Id => CustomModeId.CMODE_ID_RAIDS;
         public override string Name => "DreadZone Raids";
@@ -226,6 +279,64 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             Player.SavePlayerMetadata(client);
         }
 
+        public void OnClientRequestEquippedClass(RaidsGetEquippedClassRequest request, ClientObject client)
+        {
+            var metadata = Player.GetPlayerMetadata(client);
+            if (metadata == null) return;
+
+            // ensure bank is initialized
+            var update = metadata.RaidsBank.Initialize();
+
+            // send to client
+            using (var ms = new MemoryStream(2048))
+            {
+                using (var writer = new BinaryWriter(ms))
+                {
+                    var raidsClass = metadata.RaidsBank.Account.GetEquippedClass();
+                    var stats = metadata.RaidsBank.Account.GetEquippedClassStats();
+                    raidsClass ??= new RaidsClass(RaidsClassType.Contestant, "ERROR", 0);
+
+                    raidsClass.Serialize(writer, stats);
+                    client.Queue(RT.Models.RT_MSG_SERVER_MEMORY_POKE.FromPayload(request.DestAddress, ms.GetBuffer().AsSpan(0, (int)ms.Length).ToArray()));
+                    client.Queue(RT.Models.RT_MSG_SERVER_MEMORY_POKE.FromPayload(request.DestHasFlagAddress, BitConverter.GetBytes(1)));
+                    client.Queue(RT.Models.RT_MSG_SERVER_MEMORY_POKE.FromPayload(request.DestTimeFlagAddress, new byte[8]));
+                }
+            }
+
+            // save
+            Player.SavePlayerMetadata(client);
+        }
+
+        public void OnClientRequestClasses(RaidsGetClassesRequest request, ClientObject client)
+        {
+            var metadata = Player.GetPlayerMetadata(client);
+            if (metadata == null) return;
+
+            // ensure bank is initialized
+            var update = metadata.RaidsBank.Initialize();
+
+            // send to client
+            using (var ms = new MemoryStream(2048))
+            {
+                using (var writer = new BinaryWriter(ms))
+                {
+                    var classes = RAIDS_CLASSES.Skip(request.Offset).Take(request.Count).ToList();
+                    foreach (var item in classes)
+                    {
+                        var stats = metadata.RaidsBank.Account.ClassStats.GetValueOrDefault(item.ClassType);
+                        item.Serialize(writer, stats);
+                    }
+
+                    client.Queue(RT.Models.RT_MSG_SERVER_MEMORY_POKE.FromPayload(request.DestAddress, ms.GetBuffer().AsSpan(0, (int)ms.Length).ToArray()));
+                    client.Queue(RT.Models.RT_MSG_SERVER_MEMORY_POKE.FromPayload(request.DestHasFlagAddress, BitConverter.GetBytes(1)));
+                    client.Queue(RT.Models.RT_MSG_SERVER_MEMORY_POKE.FromPayload(request.DestTimeFlagAddress, new byte[8]));
+                }
+            }
+
+            // save
+            Player.SavePlayerMetadata(client);
+        }
+
         public void OnClientRequestStoreItems(RaidsGetStoreItemsRequest request, ClientObject client)
         {
             var metadata = Player.GetPlayerMetadata(client);
@@ -384,6 +495,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             contract.Kills = request.Kills;
             contract.CompletedTimeMs = request.CompletedTimeMs;
 
+            // Remember the class on the first successful raid contract update.
+            if (contract.RewardClassXp > 0 && !contract.CompletedClassType.HasValue
+                && contract.IsActivated() && !contract.IsExpired() && contract.HasRaidTimeRequirement()
+                && request.CompletedTimeMs > 0 && request.CompletedTimeMs < contract.RequiredRaidTimeMs)
+                contract.CompletedClassType = metadata.RaidsBank.Account.EquippedClass;
+
             // check for refresh of contracts
             metadata.RaidsBank.ContractStore.Refresh(metadata.RaidsBank, false);
 
@@ -485,6 +602,16 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         public void OnClientUpdateMapContractRules(RaidsUpdateMapContractRulesRequest request, ClientObject client)
         {
+            if (string.IsNullOrWhiteSpace(request.MapFilename)
+                || request.TotalCount < 0 || request.TotalCount > RaidsUpdateMapContractRulesRequest.MAX_CONTRACTS
+                || request.Offset < 0 || request.Offset > request.TotalCount
+                || (request.TotalCount > 0 && request.Offset == request.TotalCount)
+                || request.Offset % RaidsUpdateMapContractRulesRequest.RULES_PER_PAGE != 0
+                || request.Count != Math.Min(RaidsUpdateMapContractRulesRequest.RULES_PER_PAGE, request.TotalCount - request.Offset)
+                || request.ContractRules.Count != request.Count
+                || request.ContractRules.Any(x => x.MobDefMask == 0 || string.IsNullOrWhiteSpace(x.Name)))
+                return;
+
             var metadata = Player.GetPlayerMetadata(client);
             if (metadata == null) return;
 
@@ -495,12 +622,20 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             if (mapStats == null)
                 bank.MapStats.Add(request.MapFilename, mapStats = new RaidsMapStats());
 
-            // add & save
-            if (!mapStats.ContractRules.SequenceEqual(request.ContractRules))
+            // Apply each page directly; pages must not leave gaps in the list.
+            var rules = mapStats.ContractRules;
+            if (request.Offset > rules.Count) return;
+            for (int i = 0; i < request.Count; ++i)
             {
-                mapStats.ContractRules = request.ContractRules;
-                Player.SavePlayerMetadata(client);
+                var index = request.Offset + i;
+                if (index < rules.Count) rules[index] = request.ContractRules[i];
+                else rules.Add(request.ContractRules[i]);
             }
+            if (rules.Count > request.TotalCount)
+                rules.RemoveRange(request.TotalCount, rules.Count - request.TotalCount);
+
+            if (request.Offset + request.Count == request.TotalCount)
+                Player.SavePlayerMetadata(client);
         }
         
         public void OnClientSetMissionCompleted(RaidsSetMissionCompletedRequest request, ClientObject client)
@@ -516,15 +651,17 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             if (mapStats == null)
                 bank.MapStats.Add(request.MapFilename, mapStats = new RaidsMapStats());
 
+            if (client.CurrentGame != null && mapStats.MissionType == RaidsMissionType.Raid
+                && request.MissionStartTime > 0 && request.CompletedInMs > 0 && request.ClassXp <= int.MaxValue)
+            {
+                bank.Account.AddClassXp(request.ClassXp);
+            }
+
             var bestTimeMs = mapStats.BestTimeMsPerDifficulty[request.Difficulty];
             if (request.CompletedInMs < bestTimeMs || bestTimeMs == 0)
-            {
-                // update best time
                 mapStats.BestTimeMsPerDifficulty[request.Difficulty] = request.CompletedInMs;
 
-                // save
-                Player.SavePlayerMetadata(client);
-            }
+            Player.SavePlayerMetadata(client);
         }
 
         public void OnClientRequestAccountReset(RaidsResetAccountRequest request, ClientObject client)
@@ -731,6 +868,14 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         ALPHA_IMPACT_BUFF,
         EXPLODING_ENEMIES,
         COUNT
+    };
+
+    public enum RaidsClassType
+    {
+        Contestant = 0,
+        Melee = 1,
+        Demolitionist = 2,
+        Support = 3,
     };
 
     public enum RaidsItemType
@@ -974,9 +1119,26 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public ulong Experience = 0;
         public double[] WeaponXp = new double[PROFICIENCY_COUNT];
         public ulong[] WeaponPrestigeCount = new ulong[PROFICIENCY_COUNT];
+        public RaidsClassType EquippedClass = RaidsClassType.Contestant;
+        public Dictionary<RaidsClassType, RaidsClassStats> ClassStats = new Dictionary<RaidsClassType, RaidsClassStats>();
         public ulong PlayerPrestigeCount = 0;
         public uint Bolts = 0;
         public Dictionary<Gadgets, bool> HasWeapon = new Dictionary<Gadgets, bool>();
+
+
+        public RaidsClass GetEquippedClass()
+        {
+            return RaidsCustomMode.RAIDS_CLASSES.FirstOrDefault(x => x.ClassType == EquippedClass);
+        }
+        
+        public RaidsClassStats GetEquippedClassStats()
+        {
+            if (ClassStats.TryGetValue(EquippedClass, out var classStats))
+                return classStats;
+
+            return ClassStats[EquippedClass] = new RaidsClassStats();
+        }
+
 
         static double GetLevelFromXpQuadratic(double xp, double a, double b)
         {
@@ -1071,6 +1233,15 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             for (int i = 0; i < WeaponXp.Length; ++i)
                 if (WeaponXp[i] > maxWeaponXp)
                     WeaponXp[i] = maxWeaponXp;
+
+            var raidsClass = GetEquippedClass();
+            var classStats = GetEquippedClassStats();
+            if (raidsClass is not null && classStats is not null)
+            {
+                var maxClassXp = raidsClass.GetClassXpFromLevel(RaidsCustomMode.MAX_CLASS_LEVEL + 1);
+                if (classStats.Experience > maxClassXp)
+                    classStats.Experience = maxClassXp;
+            }
         }
 
         public void AddBolts(uint bolts)
@@ -1101,11 +1272,31 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             ClampLevels();
         }
 
+        public void AddClassXp(ulong xp)
+        {
+            AddClassXp(xp, EquippedClass);
+        }
+
+        public void AddClassXp(ulong xp, RaidsClassType classType)
+        {
+            var raidsClass = RaidsCustomMode.RAIDS_CLASSES.FirstOrDefault(x => x.ClassType == classType);
+            if (raidsClass is null) return;
+
+            if (!ClassStats.TryGetValue(classType, out var classStats))
+                ClassStats[classType] = classStats = new RaidsClassStats();
+            int previousLevel = raidsClass.GetClassLevelFromXp(classStats.Experience);
+            classStats.Experience += Math.Min(xp, ulong.MaxValue - classStats.Experience);
+            classStats.Experience = Math.Min(classStats.Experience, raidsClass.GetClassXpFromLevel(RaidsCustomMode.MAX_CLASS_LEVEL + 1));
+            ClampLevels();
+            classStats.AvailableSkillPoints += Math.Max(0, raidsClass.GetClassLevelFromXp(classStats.Experience) - previousLevel);
+        }
+
         public void Update(RaidsAccount account)
         {
             this.Experience = account.Experience;
             this.Bolts = account.Bolts;
             this.WeaponXp = account.WeaponXp;
+            this.EquippedClass = account.EquippedClass;
             ClampLevels();
         }
 
@@ -1118,6 +1309,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 writer.Write(WeaponXp[i]);
             writer.Write(Experience);
             writer.Write(Bolts);
+            writer.Write((int)EquippedClass);
+
         }
 
         public void Deserialize(BinaryReader reader)
@@ -1129,6 +1322,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 WeaponXp[i] = reader.ReadDouble();
             Experience = reader.ReadUInt64();
             Bolts = reader.ReadUInt32();
+            EquippedClass = (RaidsClassType)reader.ReadUInt32();
+
         }
     }
 
@@ -1243,7 +1438,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         // kills to complete
         public uint RequiredKills;
-        public int RequiredKillsMobOClass;
+        public string MobName;
 
         // if raid - time to complete
         public uint RequiredRaidTimeMs;
@@ -1252,6 +1447,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public uint RewardBolts;
         public uint RewardPlayerXp;
         public uint RewardWeaponXp;
+        public uint RewardClassXp; // optional; zero means no Class XP reward
         public Gadgets RequiredKillsGadgetId = Gadgets.None;
 
         // expiration
@@ -1263,6 +1459,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         // for server
         public DateTime DateCreatedUtc = DateTime.UtcNow;
+        public RaidsClassType? CompletedClassType;
         public DateTime? DateExpiresUtc;
         public DateTime DateRefreshUtc = DateTime.UtcNow.AddHours(6);
 
@@ -1276,23 +1473,21 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             DateExpiresUtc = DateTime.UtcNow + TimeSpan.FromMinutes(ExpirationMinutes);
             Kills = 0;
             CompletedTimeMs = 0;
+            CompletedClassType = null;
         }
 
         public void Serialize(BinaryWriter writer)
         {
-            var mobName = RaidsCustomMode.RAIDS_MOB_METADATAS.FirstOrDefault(x => x.OClass == RequiredKillsMobOClass)?.NamePlural ?? $"{RequiredKillsMobOClass:X4}";
-            var contractLevel = 0;
-
             writer.Write(Uid ?? 0);
             writer.Write(IsActivated() ? 1 : 0);
             writer.Write(RequiredDifficultyStars);
             writer.Write(RequiredKills);
-            writer.Write(RequiredKillsMobOClass);
             writer.Write((int)RequiredKillsGadgetId);
             writer.Write(RequiredRaidTimeMs);
             writer.Write(RewardBolts);
             writer.Write(RewardPlayerXp);
             writer.Write(RewardWeaponXp);
+            writer.Write(RewardClassXp);
             writer.Write((int)(DateRefreshUtc - DateTime.UtcNow).TotalMinutes);
             if (DateExpiresUtc.HasValue)
                 writer.Write((int)(DateExpiresUtc.Value - DateTime.UtcNow).TotalMinutes);
@@ -1302,7 +1497,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             writer.Write(CompletedTimeMs);
             writer.Write(MapFilename, 64);
             writer.Write(MapName, 32);
-            writer.Write(mobName, 32);
+            writer.Write(MobName, 32);
         }
     }
 
@@ -2098,6 +2293,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         private static readonly Random _rng = new Random();
         public static readonly int MAX_CONTRACTS = 3;
         public static readonly int MIN_LEVEL = 9;
+        public static readonly uint[] RAID_CLASS_XP_REWARDS = new uint[] { 250, 750, 1500, 2500, 4000 };
 
         public int ContractsCompleted = 0;
         public List<RaidsContract> Contracts = new List<RaidsContract>();
@@ -2121,7 +2317,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 }
 
                 // expired, regenerate
-                if (contract.Uid == null || contract.Uid == 0 || contract.ShouldRefresh())
+                if (contract.Uid == null || contract.Uid == 0 || contract.ShouldRefresh() || force)
                 {
                     Contracts[i] = GenerateContract(bank);
                     changed = true;
@@ -2149,6 +2345,16 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         {
             var contract = Contracts.FirstOrDefault(x => x.Uid == uid);
             if (contract == null) return null;
+
+            // Class XP is awarded by the server to the class that completed the raid.
+            if (contract.RewardClassXp > 0)
+            {
+                if (!contract.IsActivated() || !contract.HasRaidTimeRequirement() || !contract.CompletedClassType.HasValue
+                    || contract.CompletedTimeMs == 0 || contract.CompletedTimeMs >= contract.RequiredRaidTimeMs)
+                    return null;
+
+                bank.Account.AddClassXp(contract.RewardClassXp, contract.CompletedClassType.Value);
+            }
 
             ++ContractsCompleted;
 
@@ -2222,6 +2428,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 var min = Math.Clamp(Math.Ceiling(contract.RequiredRaidTimeMs / (1000f * 60f)), 1, 10);
                 contract.RewardPlayerXp = (uint)(_rng.Next(100, 300) * 10 * starsXpFactor);
                 contract.RewardWeaponXp = (uint)(_rng.Next(100, 300) * 10 * starsXpFactor);
+                contract.RewardClassXp = RAID_CLASS_XP_REWARDS[contract.RequiredDifficultyStars];
                 contract.RequiredKillsGadgetId = bank.Account.HasWeapon.Where(x => x.Value).Select(x => x.Key).OrderBy(x => Guid.NewGuid()).FirstOrDefault();
                 contract.ExpirationMinutes = (uint)Math.Ceiling((timeToBeat * 2) / (1000f * 60)); // give double time to complete
             }
@@ -2231,20 +2438,15 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             {
                 var contractRule = selectedMap.Value.ContractRules.OrderBy(x => Guid.NewGuid()).FirstOrDefault();
                 contract.RequiredDifficultyStars = 0; // _rng.Next(0, 5);
-                contract.RequiredKillsMobOClass = contractRule.OClass;
+                contract.MobName = contractRule.Name;
                 contract.RequiredKills = (uint)_rng.Next(contractRule.MinCount, contractRule.MaxCount);
 
                 // round kills to 10
                 if (contract.RequiredKills % 10 != 0)
                     contract.RequiredKills += 10 - (contract.RequiredKills % 10);
 
-                var mobMetadata = RaidsCustomMode.RAIDS_MOB_METADATAS.FirstOrDefault(x => x.OClass == contract.RequiredKillsMobOClass);
-                if (mobMetadata != null)
-                {
-                    contract.RequiredKills = (uint)(contract.RequiredKills * 1);
-                    contract.RewardPlayerXp = (uint)(contract.RequiredKills * contractRule.XpMult * 10 * _rng.Next(2, 5) * 0.5f);
-                    contract.RewardWeaponXp = (uint)(contract.RequiredKills * contractRule.XpMult * 10 * _rng.Next(2, 5) * 0.5f);
-                }
+                contract.RewardPlayerXp = (uint)(contract.RequiredKills * contractRule.XpMult * 10 * _rng.Next(2, 5) * 0.5f);
+                contract.RewardWeaponXp = (uint)(contract.RequiredKills * contractRule.XpMult * 10 * _rng.Next(2, 5) * 0.5f);
 
                 // weapon
                 contract.RequiredKillsGadgetId = bank.Account.HasWeapon.Where(x => x.Value).Select(x => x.Key).OrderBy(x => Guid.NewGuid()).FirstOrDefault();
@@ -2258,7 +2460,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
     public class RaidsContractRule
     {
-        public int OClass;
+        public ushort MobDefMask;
+        public string Name;
         public ushort MinCount;
         public ushort MaxCount;
         public ushort ExpirationMinutes;
@@ -2268,7 +2471,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public override bool Equals(object obj)
         {
             if (obj is RaidsContractRule other)
-                return this.OClass == other.OClass && this.MinCount == other.MinCount && this.MaxCount == other.MaxCount && this.ExpirationMinutes == other.ExpirationMinutes && this.XpMult == other.XpMult && this.BoltMult == other.BoltMult;
+                return this.MobDefMask == other.MobDefMask && this.Name == other.Name && this.MinCount == other.MinCount && this.MaxCount == other.MaxCount && this.ExpirationMinutes == other.ExpirationMinutes && this.XpMult == other.XpMult && this.BoltMult == other.BoltMult;
 
             return false;
         }
@@ -2280,12 +2483,13 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         public void Deserialize(BinaryReader reader)
         {
-            OClass = reader.ReadUInt16();
+            MobDefMask = reader.ReadUInt16();
             MinCount = reader.ReadUInt16();
             MaxCount = reader.ReadUInt16();
             ExpirationMinutes = reader.ReadUInt16();
             XpMult = reader.ReadSingle();
             BoltMult = reader.ReadSingle();
+            Name = reader.ReadString(32);
         }
     }
 
@@ -2371,4 +2575,113 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             OClass = oclass;
         }
     }
+
+    public class RaidsClass
+    {
+        public const int MAX_UNLOCK_RULES = 8;
+
+        public RaidsClassType ClassType;
+        public string Name;
+        public decimal ExperienceCurveMultiplier = 1; // increase to require more XP to level up
+        public Dictionary<GadgetSlots, RaidsItemRarity> WeaponRarityLimits = [];
+        public List<RaidsClassUnlockRule> UnlockRules = [];
+
+        // todo
+        // add skills
+
+        public RaidsClass(RaidsClassType classType, string name, decimal xpCurveMult)
+        {
+            ClassType = classType;
+            Name = name;
+            ExperienceCurveMultiplier = xpCurveMult;
+        }
+        
+
+        public int GetClassLevelFromXp(ulong xp)
+        {
+            if (xp < 0) return 0;
+
+            int level = 0;
+            while (GetClassXpFromLevel(level + 1) <= xp && level < RaidsCustomMode.MAX_CLASS_LEVEL)
+                ++level;
+
+            return level;
+        }
+
+        public ulong GetClassXpFromLevel(int level)
+        {
+            if (level <= 0) return 0;
+            if (level > RaidsCustomMode.MAX_CLASS_LEVEL) level = RaidsCustomMode.MAX_CLASS_LEVEL;
+
+            return (ulong)(10 * (double)Math.Pow(level, 4) + 250 * level * (double)ExperienceCurveMultiplier);
+        }
+
+
+        public void Serialize(BinaryWriter writer, RaidsClassStats stats)
+        {
+            writer.Write(stats?.Experience ?? 0);
+            writer.Write(stats?.AvailableSkillPoints ?? 0);
+            writer.Write((int)ClassType);
+            writer.Write((float)ExperienceCurveMultiplier);
+            writer.Write(UnlockRules.Count);
+            writer.Write(Name, 32);
+
+            // write all 8 weapon limits
+            for (var i = GadgetSlots.Vipers; i <= GadgetSlots.Holoshields; ++i)
+            {
+                // writer.Write((byte)i);
+                if (WeaponRarityLimits.TryGetValue(i, out var rarity))
+                    writer.Write((sbyte)rarity);
+                else
+                    writer.Write((sbyte)-1);
+            }
+
+            // write unlock rules
+            for (int i = 0; i < MAX_UNLOCK_RULES; ++i)
+                (UnlockRules.ElementAtOrDefault(i) ?? RaidsClassUnlockRule.Empty).Serialize(writer);
+        }
+    }
+
+    public class RaidsClassUnlockRule
+    {
+        public static readonly RaidsClassUnlockRule Empty = new(RaidsClassType.Contestant, -1);
+
+        public RaidsClassType ClassType;
+        public int RequiredLevel;
+
+        public RaidsClassUnlockRule(RaidsClassType classType, int requiredLevel)
+        {
+            ClassType = classType;
+            RequiredLevel = requiredLevel;
+        }
+
+        public void Serialize(BinaryWriter writer)
+        {
+            writer.Write((byte)ClassType);
+            writer.Write((byte)RequiredLevel);
+        }
+    }
+
+    public class RaidsClassStats
+    {
+        public ulong Experience;
+        public int AvailableSkillPoints;
+        
+        // todo
+        // add purchased skills
+
+
+        public void Serialize(BinaryWriter writer)
+        {
+            writer.Write(Experience);
+            writer.Write(AvailableSkillPoints);
+        }
+
+        public void Deserialize(BinaryReader reader)
+        {
+            Experience = reader.ReadUInt64();
+            AvailableSkillPoints = reader.ReadInt32();
+        }
+    }
+
 }

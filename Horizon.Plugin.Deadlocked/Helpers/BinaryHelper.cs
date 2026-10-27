@@ -24,12 +24,10 @@ public static class BinaryHelper
         }
         else
         {
-            if (str == null)
-                writer.Write(new byte[length.Value]);
-            else if (str.Length >= length)
-                writer.Write(Encoding.UTF8.GetBytes(str.Substring(0, length.Value - 1) + "\0"));
-            else
-                writer.Write(Encoding.UTF8.GetBytes(str.PadRight(length.Value, '\0')));
+            var bytes = Encoding.UTF8.GetBytes(str ?? string.Empty);
+            var count = Math.Max(0, Math.Min(bytes.Length, length.Value - 1));
+            writer.Write(bytes, 0, count);
+            writer.Write(new byte[length.Value - count]);
         }
     }
 

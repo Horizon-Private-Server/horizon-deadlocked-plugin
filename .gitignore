@@ -353,3 +353,9 @@ MigrationBackup/
 Server.Dme/out/
 Server.Medius/out/
 Server.UniverseInformation/out/
+
+# Mac OS
+.DS_Store
+
+# VS Code
+.vscode/
