@@ -920,6 +920,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             // make sure vipers & mag are always unlocked
             Account.UnlockWeapon(Gadgets.Vipers);
             Account.UnlockWeapon(Gadgets.MagmaCannon);
+            Account.UnlockWeapon(Gadgets.Arbiter);
+            Account.UnlockWeapon(Gadgets.Fusion);
+            Account.UnlockWeapon(Gadgets.MineLauncher);
+            Account.UnlockWeapon(Gadgets.B6);
+            Account.UnlockWeapon(Gadgets.Holoshields);
+            Account.UnlockWeapon(Gadgets.Flail);
             Account.ClampLevels();
 
             if (Initialized && Version < RAIDS_BANK_VERSION)
@@ -948,6 +954,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             Account = new RaidsAccount();
             Account.UnlockWeapon(Gadgets.Vipers);
             Account.UnlockWeapon(Gadgets.MagmaCannon);
+            Account.UnlockWeapon(Gadgets.Arbiter);
+            Account.UnlockWeapon(Gadgets.Fusion);
+            Account.UnlockWeapon(Gadgets.MineLauncher);
+            Account.UnlockWeapon(Gadgets.B6);
+            Account.UnlockWeapon(Gadgets.Holoshields);
+            Account.UnlockWeapon(Gadgets.Flail);
             Account.Bolts = 300000; // start with 300k bolts
 
             Version = RAIDS_BANK_VERSION;
@@ -1850,6 +1862,9 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             else
                 drop.WeaponData.GadgetId = availableGadgets.OrderBy(x => Guid.NewGuid()).FirstOrDefault();
 
+            // ensure account has dropped weapon unlocked
+            account.UnlockWeapon(drop.WeaponData.GadgetId);
+
             // 
             int accountProf = account?.GetProficiency(drop.WeaponData.GadgetId) ?? 98;
             int minProficiency = account == null ? 0 : Math.Max(0, accountProf - 5);
@@ -2247,6 +2262,22 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         }
 
         public IEnumerable<RaidsInventoryItem> GetPaginated(int page, int pageSize, out int totalCount)
+        {
+            // always have  pages
+            // first page is featured rotating items
+            int itemsPages = (int)Math.Ceiling(Items.Count / (float)pageSize);
+            totalCount = itemsPages * pageSize;
+
+            int idx = page * pageSize;
+            if (idx < Items.Count)
+            {
+                return Items.Skip(idx).Take(pageSize);
+            }
+
+            return [];
+        }
+
+        public IEnumerable<RaidsInventoryItem> GetPaginatedWithFixedItems(int page, int pageSize, out int totalCount)
         {
             // always have  pages
             // first page is featured rotating items
