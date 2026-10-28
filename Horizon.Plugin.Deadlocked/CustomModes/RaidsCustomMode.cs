@@ -1067,6 +1067,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             if (item == null) return;
             if (!item.IsValid()) return;
             if (!item.Uid.HasValue) return;
+            if (sell && (Inventory.EquippedBadgeUid == item.Uid.Value || Inventory.EquippedWeaponUids.Contains(item.Uid.Value))) return;
 
             Unequip(item);
             Inventory.AllItems.Remove(item);
