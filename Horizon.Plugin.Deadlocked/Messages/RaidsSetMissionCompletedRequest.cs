@@ -17,7 +17,6 @@ namespace Horizon.Plugin.Deadlocked.Messages
         public uint CompletedInMs { get; set; }
         public int Difficulty { get; set; }
         public string MapFilename { get; set; }
-        public uint ClassXp { get; set; }
         public int MissionStartTime { get; set; }
 
         public override void Deserialize(MessageReader reader)
@@ -27,7 +26,6 @@ namespace Horizon.Plugin.Deadlocked.Messages
             CompletedInMs = reader.ReadUInt32();
             Difficulty = reader.ReadInt32();
             MapFilename = reader.ReadString(64);
-            ClassXp = reader.ReadUInt32();
             MissionStartTime = reader.ReadInt32();
         }
 
@@ -38,7 +36,6 @@ namespace Horizon.Plugin.Deadlocked.Messages
             writer.Write(CompletedInMs);
             writer.Write(Difficulty);
             writer.Write(MapFilename, 64);
-            writer.Write(ClassXp);
             writer.Write(MissionStartTime);
         }
     }

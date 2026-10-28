@@ -15,6 +15,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 {
     public class RaidsCustomMode : BaseCustomMode
     {
+        public const int MAX_CLASSES = 16;
         public static readonly int MAX_CLASS_LEVEL = 10;
         public static readonly int MAX_ACCOUNT_LEVEL = 98;
         public static readonly int MAX_WEAPON_LEVEL = 98;
@@ -246,7 +247,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             Player.SavePlayerMetadata(client);
         }
 
-        public void OnClientRequestEquippedClass(RaidsGetEquippedClassRequest request, ClientObject client)
+        public void OnClientRequestEquippedClassProgress(RaidsGetEquippedClassProgressRequest request, ClientObject client)
         {
             var metadata = Player.GetPlayerMetadata(client);
             if (metadata == null) return;
@@ -272,7 +273,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             Player.SavePlayerMetadata(client);
         }
 
-        public void OnClientRequestClasses(RaidsGetClassesRequest request, ClientObject client)
+        public void OnClientRequestAllClassProgress(RaidsGetAllClassProgressRequest request, ClientObject client)
         {
             var metadata = Player.GetPlayerMetadata(client);
             if (metadata == null) return;
@@ -317,11 +318,10 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             // Grid access, class levels and rank caps are checked by the shared map code.
             var stats = account.GetEquippedClassStats();
             int rank = stats.SkillRanks.GetValueOrDefault(request.SkillId);
-            if (stats.AvailableSkillPoints <= 0 || rank < 0 || rank >= byte.MaxValue
+            if (account.GetClassSkillPoints(request.ClassType) <= 0 || rank < 0 || rank >= byte.MaxValue
                 || (!stats.SkillRanks.ContainsKey(request.SkillId) && stats.SkillRanks.Count >= RaidsClassStats.MAX_SKILLS)) return;
 
             stats.SkillRanks[request.SkillId] = rank + 1;
-            --stats.AvailableSkillPoints;
             Player.SavePlayerMetadata(client);
         }
 
@@ -333,9 +333,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             if (request.ClassType != account.EquippedClass || request.SkillId != 0 || account.GetEquippedClass() == null) return;
 
             var stats = account.GetEquippedClassStats();
-            long refund = stats.SkillRanks.Values.Sum(x => (long)x);
-            if (refund < 0 || refund > int.MaxValue - (long)stats.AvailableSkillPoints) return;
-            stats.AvailableSkillPoints += (int)refund;
             stats.SkillRanks.Clear();
             Player.SavePlayerMetadata(client);
         }
@@ -430,6 +427,14 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                                 contract.CompletedTimeMs = stats.CompletedTimeMs;
                                 update = true;
                             }
+                            if (stats != null && contract.RewardClassXp > 0 && !contract.CompletedClassType.HasValue
+                                && contract.IsActivated() && !contract.IsExpired() && contract.HasRaidTimeRequirement()
+                                && stats.CompletedTimeMs > 0 && stats.CompletedTimeMs < contract.RequiredRaidTimeMs
+                                && RAIDS_CLASSES.Any(x => x.ClassType == stats.CompletedClassType))
+                            {
+                                contract.CompletedClassType = stats.CompletedClassType;
+                                update = true;
+                            }
                         }
 
                         // serialize
@@ -501,8 +506,9 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             // Remember the class on the first successful raid contract update.
             if (contract.RewardClassXp > 0 && !contract.CompletedClassType.HasValue
                 && contract.IsActivated() && !contract.IsExpired() && contract.HasRaidTimeRequirement()
-                && request.CompletedTimeMs > 0 && request.CompletedTimeMs < contract.RequiredRaidTimeMs)
-                contract.CompletedClassType = metadata.RaidsBank.Account.EquippedClass;
+                && request.CompletedTimeMs > 0 && request.CompletedTimeMs < contract.RequiredRaidTimeMs
+                && RAIDS_CLASSES.Any(x => x.ClassType == request.CompletedClassType))
+                contract.CompletedClassType = request.CompletedClassType;
 
             // check for refresh of contracts
             metadata.RaidsBank.ContractStore.Refresh(metadata.RaidsBank, false);
@@ -653,12 +659,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             var mapStats = bank.MapStats.GetValueOrDefault(request.MapFilename);
             if (mapStats == null)
                 bank.MapStats.Add(request.MapFilename, mapStats = new RaidsMapStats());
-
-            if (client.CurrentGame != null && mapStats.MissionType == RaidsMissionType.Raid
-                && request.MissionStartTime > 0 && request.CompletedInMs > 0 && request.ClassXp <= int.MaxValue)
-            {
-                bank.Account.AddClassXp(request.ClassXp);
-            }
 
             var bestTimeMs = mapStats.BestTimeMsPerDifficulty[request.Difficulty];
             if (request.CompletedInMs < bestTimeMs || bestTimeMs == 0)
@@ -1199,6 +1199,13 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             return RaidsCustomMode.RAIDS_CLASSES.FirstOrDefault(x => x.ClassType == EquippedClass);
         }
         
+        public int GetClassSkillPoints(RaidsClassType classType)
+        {
+            var raidsClass = RaidsCustomMode.RAIDS_CLASSES.FirstOrDefault(x => x.ClassType == classType);
+            if (raidsClass == null || !ClassStats.TryGetValue(classType, out var stats)) return 0;
+            return Math.Max(0, raidsClass.GetClassLevelFromXp(stats.Experience) - stats.SkillRanks.Values.Sum());
+        }
+
         public RaidsClassStats GetEquippedClassStats()
         {
             if (ClassStats.TryGetValue(EquippedClass, out var classStats))
@@ -1340,25 +1347,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             ClampLevels();
         }
 
-        public void AddClassXp(ulong xp)
-        {
-            AddClassXp(xp, EquippedClass);
-        }
-
-        public void AddClassXp(ulong xp, RaidsClassType classType)
-        {
-            var raidsClass = RaidsCustomMode.RAIDS_CLASSES.FirstOrDefault(x => x.ClassType == classType);
-            if (raidsClass is null) return;
-
-            if (!ClassStats.TryGetValue(classType, out var classStats))
-                ClassStats[classType] = classStats = new RaidsClassStats();
-            int previousLevel = raidsClass.GetClassLevelFromXp(classStats.Experience);
-            classStats.Experience += Math.Min(xp, ulong.MaxValue - classStats.Experience);
-            classStats.Experience = Math.Min(classStats.Experience, raidsClass.GetClassXpFromLevel(RaidsCustomMode.MAX_CLASS_LEVEL));
-            ClampLevels();
-            classStats.AvailableSkillPoints += Math.Max(0, raidsClass.GetClassLevelFromXp(classStats.Experience) - previousLevel);
-        }
-
         public void Update(RaidsAccount account)
         {
             this.Experience = account.Experience;
@@ -1366,6 +1354,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             this.WeaponXp = account.WeaponXp;
             if (RaidsCustomMode.RAIDS_CLASSES.Any(x => x.ClassType == account.EquippedClass))
                 this.EquippedClass = account.EquippedClass;
+            foreach (var raidsClass in RaidsCustomMode.RAIDS_CLASSES)
+            {
+                if (!ClassStats.TryGetValue(raidsClass.ClassType, out var stats))
+                    ClassStats[raidsClass.ClassType] = stats = new RaidsClassStats();
+                stats.Experience = Math.Min(account.ClassStats.GetValueOrDefault(raidsClass.ClassType)?.Experience ?? 0, raidsClass.GetClassXpFromLevel(RaidsCustomMode.MAX_CLASS_LEVEL));
+            }
             ClampLevels();
         }
 
@@ -1379,6 +1373,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             writer.Write(Experience);
             writer.Write(Bolts);
             writer.Write((int)EquippedClass);
+            for (int i = 0; i < RaidsCustomMode.MAX_CLASSES; ++i)
+                writer.Write(ClassStats.GetValueOrDefault((RaidsClassType)i)?.Experience ?? 0);
 
         }
 
@@ -1392,6 +1388,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             Experience = reader.ReadUInt64();
             Bolts = reader.ReadUInt32();
             EquippedClass = (RaidsClassType)reader.ReadUInt32();
+            for (int i = 0; i < RaidsCustomMode.MAX_CLASSES; ++i)
+                ClassStats[(RaidsClassType)i] = new RaidsClassStats { Experience = reader.ReadUInt64() };
 
         }
     }
@@ -1564,6 +1562,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 writer.Write(ExpirationMinutes);
             writer.Write(Kills);
             writer.Write(CompletedTimeMs);
+            writer.Write((int)(CompletedClassType ?? (RaidsClassType)(-1)));
             writer.Write(MapFilename, 64);
             writer.Write(MapName, 32);
             writer.Write(MobName, 32);
@@ -2432,16 +2431,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             var contract = Contracts.FirstOrDefault(x => x.Uid == uid);
             if (contract == null) return null;
 
-            // Class XP is awarded by the server to the class that completed the raid.
-            if (contract.RewardClassXp > 0)
-            {
-                if (!contract.IsActivated() || !contract.HasRaidTimeRequirement() || !contract.CompletedClassType.HasValue
-                    || contract.CompletedTimeMs == 0 || contract.CompletedTimeMs >= contract.RequiredRaidTimeMs)
-                    return null;
-
-                bank.Account.AddClassXp(contract.RewardClassXp, contract.CompletedClassType.Value);
-            }
-
             ++ContractsCompleted;
 
             // give reward
@@ -2696,14 +2685,11 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public const int MAX_SKILLS = 16;
 
         public ulong Experience;
-        public int AvailableSkillPoints;
         // Numeric keys keep persisted allocations tied to stable skill IDs.
         public Dictionary<int, int> SkillRanks = [];
 
         public static void Serialize(BinaryWriter writer, RaidsClassType classType, RaidsClassStats stats)
         {
-            writer.Write(stats?.Experience ?? 0);
-            writer.Write(stats?.AvailableSkillPoints ?? 0);
             writer.Write((int)classType);
 
             var ranks = stats?.SkillRanks.OrderBy(x => x.Key).ToArray() ?? [];

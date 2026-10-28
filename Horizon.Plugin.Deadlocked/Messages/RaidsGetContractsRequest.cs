@@ -23,6 +23,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
             public uint ContractUid { get; set; }
             public uint Kills { get; set; }
             public uint CompletedTimeMs { get; set; }
+            public RaidsClassType CompletedClassType { get; set; } = (RaidsClassType)(-1);
         }
 
         public override void Deserialize(MessageReader reader)
@@ -37,6 +38,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
                 contractStats.ContractUid = reader.ReadUInt32();
                 contractStats.Kills = reader.ReadUInt32();
                 contractStats.CompletedTimeMs = reader.ReadUInt32();
+                contractStats.CompletedClassType = (RaidsClassType)reader.ReadInt32();
                 if (contractStats.ContractUid > 0)
                     ContractsStats.Add(contractStats);
             }

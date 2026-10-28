@@ -8,7 +8,7 @@ using System.Text;
 
 namespace Horizon.Plugin.Deadlocked.Messages
 {
-    public class RaidsGetClassesRequest : BasePluginMessage
+    public class RaidsGetAllClassProgressRequest : BasePluginMessage
     {
         public override byte CustomMsgId => 74;
         public override bool SkipEncryption { get => true; set { } }

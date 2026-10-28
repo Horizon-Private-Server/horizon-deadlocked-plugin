@@ -879,9 +879,9 @@ namespace Horizon.Plugin.Deadlocked
                                     await mode.UpdateCustomMapExData(msg.Player, request);
                                     break;
                                 }
-                            case 73: // raids get equipped class
+                            case 73: // raids get equipped class progress
                                 {
-                                    var request = new RaidsGetEquippedClassRequest();
+                                    var request = new RaidsGetEquippedClassProgressRequest();
                                     request.Deserialize(reader);
 
                                     if (msg.Player.CurrentGame == null) break;
@@ -891,12 +891,12 @@ namespace Horizon.Plugin.Deadlocked
                                     if (metadata == null) break;
                                     if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_RAIDS) break;
 
-                                    mode.OnClientRequestEquippedClass(request, msg.Player);
+                                    mode.OnClientRequestEquippedClassProgress(request, msg.Player);
                                     break;
                                 }
-                            case 74: // raids get classes
+                            case 74: // raids get all class progress
                                 {
-                                    var request = new RaidsGetClassesRequest();
+                                    var request = new RaidsGetAllClassProgressRequest();
                                     request.Deserialize(reader);
 
                                     if (msg.Player.CurrentGame == null) break;
@@ -906,7 +906,7 @@ namespace Horizon.Plugin.Deadlocked
                                     if (metadata == null) break;
                                     if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_RAIDS) break;
 
-                                    mode.OnClientRequestClasses(request, msg.Player);
+                                    mode.OnClientRequestAllClassProgress(request, msg.Player);
                                     break;
                                 }
                             case 75: // raids spend class skill point
