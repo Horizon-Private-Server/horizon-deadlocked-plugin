@@ -910,6 +910,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         Deadeye = 32,
         CombatMedic = 33,
         ClusterBombs = 34,
+        UnstoppableSmash = 35,
     };
 
     public enum RaidsClassType
