@@ -71,6 +71,33 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             return GetRatingFromXp(0);
         }
 
+        public override Task<string> GetGamePlayerInfo(Server.Medius.Models.Game game, GameMetadata metadata)
+        {
+            // Match the in-game class suffixes: level zero has no Roman numeral.
+            string[] classLevelSuffixes = { "", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X" };
+            var lines = new List<string>();
+
+            foreach (var client in game.Clients.Select(x => x.Client).OrderBy(x => x.AccountName, StringComparer.Ordinal))
+            {
+                var account = Player.GetPlayerMetadata(client)?.RaidsBank?.Account ?? new RaidsAccount();
+                var level = RaidsAccount.GetAccountLevelFromXp(account.Experience) + 1;
+                var raidsClass = account.GetEquippedClass() ?? RAIDS_CLASSES[0];
+                var className = raidsClass.ClassType switch
+                {
+                    RaidsClassType.Melee => "Berserker",
+                    RaidsClassType.FieldMedic => "Field Medic",
+                    _ => raidsClass.ClassType.ToString()
+                };
+                var classXp = account.ClassStats?.GetValueOrDefault(raidsClass.ClassType)?.Experience ?? 0;
+                var classLevel = raidsClass.GetClassLevelFromXp(classXp);
+                var classSuffix = classLevel > 0 ? $" {classLevelSuffixes[classLevel]}" : String.Empty;
+
+                lines.Add($"{client.AccountName} - Level {level} - {className}{classSuffix}");
+            }
+
+            return Task.FromResult(String.Join("\n", lines));
+        }
+
         public override Task OnClientPostWideStats(OnPlayerWideStatsArgs args)
         {
             args.Reject = true; // reject all

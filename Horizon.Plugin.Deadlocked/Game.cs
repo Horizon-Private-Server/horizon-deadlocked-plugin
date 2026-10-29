@@ -265,6 +265,7 @@ namespace Horizon.Plugin.Deadlocked
             // update game state
             metadata.GameState = new GameState(packedGameState, game);
             metadata.GameInfo = await GetGameInfo(game, metadata);
+            metadata.PlayerInfo = await GetGamePlayerInfo(game, metadata);
 
             // send to database
             return await SetGameMetadata(game, metadata);
@@ -324,6 +325,7 @@ namespace Horizon.Plugin.Deadlocked
             // update other metadata
             metadata.CustomMap = String.IsNullOrEmpty(metadata.CustomMapConfig.Name) ? null : metadata.CustomMapConfig.Name;
             metadata.GameInfo = await GetGameInfo(game, metadata);
+            metadata.PlayerInfo = await GetGamePlayerInfo(game, metadata);
 
             var mode = Modes.FindCustomModeById(metadata.GetRealCustomModeId());
             if (mode != null)
@@ -599,6 +601,60 @@ namespace Horizon.Plugin.Deadlocked
             return gameInfo?.Trim()?.Trim('\n');
         }
 
+        private static async Task<string> GetGamePlayerInfo(Server.Medius.Models.Game game, GameMetadata metadata)
+        {
+            string playerInfo = null;
+
+            // let custom game mode override the player info string
+            var mode = Modes.FindCustomModeById(metadata.GetRealCustomModeId());
+            if (mode != null)
+            {
+                playerInfo = await mode.GetGamePlayerInfo(game, metadata);
+            }
+
+            // default player info
+            if (String.IsNullOrEmpty(playerInfo))
+            {
+                var teams = metadata.GameState?.Teams;
+                var lines = new List<string>();
+                var playerPadding = new string(Constants.NonBreakingSpace, 2);
+                var hasStats = game.WorldStatus == MediusWorldStatus.WorldActive
+                    || game.WorldStatus == MediusWorldStatus.WorldClosed;
+
+                if (teams != null && teams.Count > 0)
+                {
+                    foreach (var team in teams.OrderByDescending(x => x.Score))
+                    {
+                        var score = hasStats ? $" - {team.Score}" : String.Empty;
+                        var players = (team.Players ?? Enumerable.Empty<string>())
+                            .OrderBy(x => x, StringComparer.Ordinal);
+
+                        if (metadata.GameState.TeamsEnabled)
+                        {
+                            lines.Add($"{team.Name}{score}");
+                            foreach (var player in players)
+                                lines.Add($"{playerPadding}{player}{playerPadding}");
+                        }
+                        else
+                        {
+                            foreach (var player in players)
+                                lines.Add($"{player}{score}");
+                        }
+                    }
+                }
+                else
+                {
+                    lines.AddRange(game.Clients.Select(x => x.Client.AccountName)
+                        .OrderBy(x => x, StringComparer.Ordinal)
+                        .Select(x => $"{playerPadding}{x}{playerPadding}"));
+                }
+
+                playerInfo = String.Join("\n", lines);
+            }
+
+            return playerInfo?.Trim('\r', '\n');
+        }
+
         private static async Task<bool> SetGameMetadata(Server.Medius.Models.Game game, GameMetadata metadata)
         {
             // add/update cache
@@ -625,6 +681,7 @@ namespace Horizon.Plugin.Deadlocked
         public string CustomGameMode { get; set; }
         public string CustomMap { get; set; }
         public string GameInfo { get; set; }
+        public string PlayerInfo { get; set; }
         public int Location { get; set; }
         public GameConfig GameConfig { get; set; } = new GameConfig();
         public GameCustomMapConfig CustomMapConfig { get; set; } = new GameCustomMapConfig();

@@ -84,6 +84,9 @@ namespace Horizon.Plugin.Deadlocked
 
     public static class Constants
     {
+        // Helga uses non-breaking spaces to preserve player-list spacing in Discord.
+        public const char NonBreakingSpace = '\u00A0';
+
         public static readonly string[] Teams = new string[]
         {
             "Blue",
