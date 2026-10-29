@@ -25,9 +25,8 @@ namespace Horizon.Plugin.Deadlocked.Messages
             DestTimeFlagAddress = reader.ReadUInt32();
         }
 
-        public override void Serialize(MessageWriter writer)
+        protected override void SerializePayload(MessageWriter writer)
         {
-            base.Serialize(writer);
             writer.Write(DestAddress);
             writer.Write(DestHasFlagAddress);
             writer.Write(DestTimeFlagAddress);

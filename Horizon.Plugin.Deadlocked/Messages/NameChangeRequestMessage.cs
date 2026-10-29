@@ -22,10 +22,8 @@ namespace Horizon.Plugin.Deadlocked.Messages
             Name = reader.ReadString(16);
         }
 
-        public override void Serialize(MessageWriter writer)
+        protected override void SerializePayload(MessageWriter writer)
         {
-            base.Serialize(writer);
-
             writer.WriteStr(Name ?? "", 16);
         }
     }

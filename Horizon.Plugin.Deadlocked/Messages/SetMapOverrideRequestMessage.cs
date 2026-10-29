@@ -23,10 +23,8 @@ namespace Horizon.Plugin.Deadlocked.Messages
             CustomMapConfig.Deserialize(reader);
         }
 
-        public override void Serialize(MessageWriter writer)
+        protected override void SerializePayload(MessageWriter writer)
         {
-            base.Serialize(writer);
-
             writer.Write(CustomMapConfig.Serialize());
         }
     }

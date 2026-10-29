@@ -29,10 +29,8 @@ namespace Horizon.Plugin.Deadlocked.Messages
             MissionStartTime = reader.ReadInt32();
         }
 
-        public override void Serialize(MessageWriter writer)
+        protected override void SerializePayload(MessageWriter writer)
         {
-            base.Serialize(writer);
-
             writer.Write(CompletedInMs);
             writer.Write(Difficulty);
             writer.Write(MapFilename, 64);

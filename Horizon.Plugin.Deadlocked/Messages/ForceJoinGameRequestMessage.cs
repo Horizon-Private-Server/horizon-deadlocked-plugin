@@ -39,10 +39,8 @@ namespace Horizon.Plugin.Deadlocked.Messages
             reader.ReadBytes(2);
         }
 
-        public override void Serialize(MessageWriter writer)
+        protected override void SerializePayload(MessageWriter writer)
         {
-            base.Serialize(writer);
-
             writer.Write(DmeWorldId);
             writer.Write(ChannelMediusWorldId);
             writer.Write(GameMediusWorldId);

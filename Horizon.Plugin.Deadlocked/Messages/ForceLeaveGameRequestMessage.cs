@@ -28,10 +28,8 @@ namespace Horizon.Plugin.Deadlocked.Messages
             Reason = reader.Read<ForceLeaveReason>();
         }
 
-        public override void Serialize(MessageWriter writer)
+        protected override void SerializePayload(MessageWriter writer)
         {
-            base.Serialize(writer);
-
             writer.Write(Reason);
         }
     }

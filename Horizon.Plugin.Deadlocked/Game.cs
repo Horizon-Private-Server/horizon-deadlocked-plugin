@@ -1137,6 +1137,7 @@ namespace Horizon.Plugin.Deadlocked
                     writer.Write(ForcedModeId);
                     writer.Write(Name, 32);
                     writer.Write(Filename, 48);
+                    writer.Write((ushort)0); // padding
                 }
 
                 return ms.ToArray();
@@ -1153,6 +1154,7 @@ namespace Horizon.Plugin.Deadlocked
             ForcedModeId = reader.ReadSByte();
             Name = reader.ReadString(32);
             Filename = reader.ReadString(48);
+            reader.ReadBytes(2); // CustomMapDef_t trailing alignment padding
         }
 
         public bool SameAs(GameCustomMapConfig other)

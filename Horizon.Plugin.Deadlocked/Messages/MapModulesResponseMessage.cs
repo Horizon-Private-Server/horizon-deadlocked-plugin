@@ -25,10 +25,8 @@ namespace Horizon.Plugin.Deadlocked.Messages
             Module2Size = reader.ReadInt32();
         }
 
-        public override void Serialize(MessageWriter writer)
+        protected override void SerializePayload(MessageWriter writer)
         {
-            base.Serialize(writer);
-
             writer.Write(CustomMapsVersion);
             writer.Write(Module1Size);
             writer.Write(Module2Size);

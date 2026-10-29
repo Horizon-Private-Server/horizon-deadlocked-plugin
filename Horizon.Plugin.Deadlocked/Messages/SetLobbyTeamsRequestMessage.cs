@@ -29,10 +29,8 @@ namespace Horizon.Plugin.Deadlocked.Messages
             }
         }
 
-        public override void Serialize(MessageWriter writer)
+        protected override void SerializePayload(MessageWriter writer)
         {
-            base.Serialize(writer);
-
             writer.Write(Seed);
             writer.Write(Math.Min(10, TeamIdPool.Count));
             for (int i = 0; i < 10; ++i)

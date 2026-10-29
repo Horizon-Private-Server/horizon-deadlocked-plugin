@@ -39,10 +39,8 @@ namespace Horizon.Plugin.Deadlocked.Messages
             reader.ReadBytes(3); // padding
         }
 
-        public override void Serialize(MessageWriter writer)
+        protected override void SerializePayload(MessageWriter writer)
         {
-            base.Serialize(writer);
-
             throw new NotImplementedException();
         }
     }

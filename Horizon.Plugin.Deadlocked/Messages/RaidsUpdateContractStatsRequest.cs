@@ -28,9 +28,8 @@ namespace Horizon.Plugin.Deadlocked.Messages
             CompletedClassType = (RaidsClassType)reader.ReadInt32();
         }
 
-        public override void Serialize(MessageWriter writer)
+        protected override void SerializePayload(MessageWriter writer)
         {
-            base.Serialize(writer);
             writer.Write(ContractUid);
             writer.Write(Kills);
             writer.Write(CompletedTimeMs);

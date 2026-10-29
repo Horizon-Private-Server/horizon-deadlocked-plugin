@@ -23,10 +23,8 @@ namespace Horizon.Plugin.Deadlocked.Messages
             MachineId = reader.ReadBytes(6);
         }
 
-        public override void Serialize(MessageWriter writer)
+        protected override void SerializePayload(MessageWriter writer)
         {
-            base.Serialize(writer);
-
             writer.Write((int)ClientType);
             writer.Write(MachineId ?? new byte[6]);
         }

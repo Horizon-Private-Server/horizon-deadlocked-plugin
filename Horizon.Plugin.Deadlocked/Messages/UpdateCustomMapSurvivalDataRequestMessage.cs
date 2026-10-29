@@ -29,7 +29,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
                 Gambits.Add(reader.ReadString(32));
         }
 
-        public override void Serialize(MessageWriter writer)
+        protected override void SerializePayload(MessageWriter writer)
         {
             throw new NotImplementedException();
         }

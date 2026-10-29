@@ -35,10 +35,8 @@ namespace Horizon.Plugin.Deadlocked.Messages
             Data = reader.ReadBytes(len);
         }
 
-        public override void Serialize(MessageWriter writer)
+        protected override void SerializePayload(MessageWriter writer)
         {
-            base.Serialize(writer);
-
             // cap length at MAX_DATA_SIZE
             var len = 0;
             if (Data != null)

@@ -33,10 +33,8 @@ namespace Horizon.Plugin.Deadlocked.Messages
                 Ranks[i] = reader.ReadSingle();
         }
 
-        public override void Serialize(MessageWriter writer)
+        protected override void SerializePayload(MessageWriter writer)
         {
-            base.Serialize(writer);
-
             writer.Write(Enabled ? 1 : 0);
 
             for (int i = 0; i < 10; ++i)

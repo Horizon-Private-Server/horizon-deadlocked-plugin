@@ -26,7 +26,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
             GambitName = reader.ReadString(32);
         }
 
-        public override void Serialize(MessageWriter writer)
+        protected override void SerializePayload(MessageWriter writer)
         {
             throw new NotImplementedException();
         }

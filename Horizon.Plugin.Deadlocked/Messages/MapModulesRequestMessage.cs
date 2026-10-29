@@ -23,10 +23,8 @@ namespace Horizon.Plugin.Deadlocked.Messages
             Module2Start = reader.ReadUInt32();
         }
 
-        public override void Serialize(MessageWriter writer)
+        protected override void SerializePayload(MessageWriter writer)
         {
-            base.Serialize(writer);
-
             writer.Write(Module1Start);
             writer.Write(Module2Start);
         }

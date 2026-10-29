@@ -55,10 +55,8 @@ namespace Horizon.Plugin.Deadlocked.Messages
             QuickSelectGadgets = reader.ReadArray<byte>(3).Select(x => (Gadgets)x).ToArray();
         }
 
-        public override void Serialize(MessageWriter writer)
+        protected override void SerializePayload(MessageWriter writer)
         {
-            base.Serialize(writer);
-
             writer.Write(Position.X);
             writer.Write(Position.Y);
             writer.Write(Position.Z);

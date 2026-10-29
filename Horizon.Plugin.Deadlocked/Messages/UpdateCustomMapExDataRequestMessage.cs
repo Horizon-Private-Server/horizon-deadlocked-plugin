@@ -32,7 +32,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
             Data = reader.ReadRest();
         }
 
-        public override void Serialize(MessageWriter writer)
+        protected override void SerializePayload(MessageWriter writer)
         {
             throw new NotImplementedException();
         }

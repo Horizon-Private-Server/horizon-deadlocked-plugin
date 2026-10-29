@@ -21,10 +21,8 @@ namespace Horizon.Plugin.Deadlocked.Messages
             CustomMapsVersion = reader.ReadInt32();
         }
 
-        public override void Serialize(MessageWriter writer)
+        protected override void SerializePayload(MessageWriter writer)
         {
-            base.Serialize(writer);
-
             writer.Write(CustomMapsVersion);
         }
     }

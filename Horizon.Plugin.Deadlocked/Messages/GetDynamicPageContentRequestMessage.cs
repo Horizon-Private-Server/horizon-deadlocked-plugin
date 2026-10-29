@@ -39,7 +39,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
             MapFilename = reader.ReadString(64);
         }
 
-        public override void Serialize(MessageWriter writer)
+        protected override void SerializePayload(MessageWriter writer)
         {
             throw new NotImplementedException();
         }

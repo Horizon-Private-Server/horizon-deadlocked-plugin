@@ -26,10 +26,8 @@ namespace Horizon.Plugin.Deadlocked.Messages
             Day = reader.ReadByte();
         }
 
-        public override void Serialize(MessageWriter writer)
+        protected override void SerializePayload(MessageWriter writer)
         {
-            base.Serialize(writer);
-
             writer.Write(Year);
             writer.Write(Month);
             writer.Write(Day);

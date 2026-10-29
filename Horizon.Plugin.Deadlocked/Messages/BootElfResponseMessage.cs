@@ -26,10 +26,8 @@ namespace Horizon.Plugin.Deadlocked.Messages
             Size = reader.ReadUInt32();
         }
 
-        public override void Serialize(MessageWriter writer)
+        protected override void SerializePayload(MessageWriter writer)
         {
-            base.Serialize(writer);
-
             writer.Write(BootElfId);
             writer.Write(Address);
             writer.Write(Size);

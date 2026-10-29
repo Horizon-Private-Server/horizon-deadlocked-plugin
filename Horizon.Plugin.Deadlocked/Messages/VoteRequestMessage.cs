@@ -30,10 +30,8 @@ namespace Horizon.Plugin.Deadlocked.Messages
             Vote = reader.ReadInt32();
         }
 
-        public override void Serialize(MessageWriter writer)
+        protected override void SerializePayload(MessageWriter writer)
         {
-            base.Serialize(writer);
-
             writer.Write(Context);
             writer.Write(Vote);
         }

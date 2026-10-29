@@ -28,10 +28,8 @@ namespace Horizon.Plugin.Deadlocked.Messages
             MobDifficulty = reader.ReadInt32();
         }
 
-        public override void Serialize(MessageWriter writer)
+        protected override void SerializePayload(MessageWriter writer)
         {
-            base.Serialize(writer);
-
             writer.Write(MapFilename, 64);
             writer.Write(MobOClass);
             writer.Write(MobDifficulty);
