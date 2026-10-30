@@ -381,7 +381,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     update = metadata.RaidsBank.ItemStore.Refresh(metadata.RaidsBank.Account, false);
 
                     // items
-                    var items = metadata.RaidsBank.ItemStore.GetPaginated(request.Page, request.PageSize, out int itemsCount);
+                    var items = metadata.RaidsBank.ItemStore.GetPaginatedWithFixedItems(request.Page, request.PageSize, out int itemsCount);
                     foreach (var item in items)
                     {
                         item.Price = RaidsInventoryItem.ComputeBuyPrice(item);
@@ -2365,18 +2365,29 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             // always have  pages
             // first page is featured rotating items
             // second page is the base weapons
-            int itemsPages = (int)Math.Ceiling(Items.Count / (float)pageSize);
+            var itemsPages = (int)Math.Ceiling(Items.Count / (float)pageSize);
+            var fixedPages = (int)Math.Ceiling(FIXED_ITEMS.Count / (float)pageSize);
             totalCount = (itemsPages * pageSize) + FIXED_ITEMS.Count;
 
             int idx = page * pageSize;
-            if (idx < Items.Count)
+            if (idx < FIXED_ITEMS.Count)
             {
-                return Items.Skip(idx).Take(pageSize);
+                return FIXED_ITEMS.Skip(idx).Take(pageSize);
             }
             else
             {
-                return FIXED_ITEMS.Skip((page - itemsPages) * pageSize).Take(pageSize);
+                return Items.Skip((page - fixedPages) * pageSize).Take(pageSize);
             }
+
+            // old where store had fixed items on last page
+            // if (idx < Items.Count)
+            // {
+            //     return Items.Skip(idx).Take(pageSize);
+            // }
+            // else
+            // {
+            //     return FIXED_ITEMS.Skip((page - itemsPages) * pageSize).Take(pageSize);
+            // }
         }
 
         public void OnBuy(int page, int pageSize, int itemIdx, RaidsInventoryItem item, RaidsAccount account)
