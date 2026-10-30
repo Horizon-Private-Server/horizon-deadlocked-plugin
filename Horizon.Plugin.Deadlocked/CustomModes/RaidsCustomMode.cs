@@ -102,7 +102,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 RaidsMissionType.Hub => $"Gearing up at {mapName}",
                 RaidsMissionType.OpenWorld => $"Leveling up on Planet {mapName}",
                 RaidsMissionType.Raid => $"Running the {mapName} Raid",
-                _ => $"At {mapName}"
+                _ => $""
             };
 
             if (missionType == RaidsMissionType.Raid && stars <= 5)
