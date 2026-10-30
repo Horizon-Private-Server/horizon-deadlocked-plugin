@@ -972,6 +972,15 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         CombatMedic = 33,
         ClusterBombs = 34,
         UnstoppableSmash = 35,
+        ViperMaxRarity = 36,
+        MagmaCannonMaxRarity = 37,
+        ArbiterMaxRarity = 38,
+        FusionMaxRarity = 39,
+        MineLauncherMaxRarity = 40,
+        B6MaxRarity = 41,
+        FlailMaxRarity = 42,
+        HoloshieldMaxRarity = 43,
+        AlphaImpact = 44,
     };
 
     public enum RaidsClassType
@@ -2544,12 +2553,13 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         private Gadgets GenerateContractWeapon(RaidsAccount account)
         {
             var unlockedClasses = RaidsCustomMode.RAIDS_CLASSES.Where(x => x.IsUnlocked(account)).ToArray();
-            var weapons = unlockedClasses.SelectMany(x => x.Weapons).Distinct().ToArray();
+            var weapons = unlockedClasses.SelectMany(x => x.GetUnlockedWeapons(account)).Distinct().ToArray();
             var equippedClass = unlockedClasses.FirstOrDefault(x => x.ClassType == account.EquippedClass);
+            var equippedWeapons = equippedClass?.GetUnlockedWeapons(account);
 
-            // Prefer the current class while keeping other unlocked weapons in rotation.
-            if (equippedClass != null && equippedClass.Weapons.Length > 0 && _rng.NextDouble() < 0.8)
-                weapons = equippedClass.Weapons;
+            // Prefer the current class, including its purchased weapon unlocks.
+            if (equippedWeapons != null && equippedWeapons.Length > 0 && _rng.NextDouble() < 0.8)
+                weapons = equippedWeapons;
 
             return weapons[_rng.Next(weapons.Length)];
         }
@@ -2756,6 +2766,33 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             ExperienceCurveMultiplier = xpCurveMult;
             Weapons = weapons;
             UnlockRules = unlockRules ?? [];
+        }
+
+        public Gadgets[] GetUnlockedWeapons(RaidsAccount account)
+        {
+            var skillRanks = account.ClassStats?.GetValueOrDefault(ClassType)?.SkillRanks;
+            if (skillRanks == null) return Weapons;
+
+            var weapons = Weapons.ToList();
+            // Map code validates allocations; use this class's confirmed purchased ranks.
+            foreach (var skill in skillRanks.Where(x => x.Value > 0))
+            {
+                Gadgets? weapon = (RaidsClassSkillId)skill.Key switch
+                {
+                    RaidsClassSkillId.ViperMaxRarity => Gadgets.Vipers,
+                    RaidsClassSkillId.MagmaCannonMaxRarity => Gadgets.MagmaCannon,
+                    RaidsClassSkillId.ArbiterMaxRarity => Gadgets.Arbiter,
+                    RaidsClassSkillId.FusionMaxRarity => Gadgets.Fusion,
+                    RaidsClassSkillId.MineLauncherMaxRarity => Gadgets.MineLauncher,
+                    RaidsClassSkillId.B6MaxRarity => Gadgets.B6,
+                    RaidsClassSkillId.FlailMaxRarity => Gadgets.Flail,
+                    RaidsClassSkillId.HoloshieldMaxRarity => Gadgets.Holoshields,
+                    _ => null,
+                };
+                if (weapon.HasValue && !weapons.Contains(weapon.Value))
+                    weapons.Add(weapon.Value);
+            }
+            return weapons.ToArray();
         }
 
         public bool IsUnlocked(RaidsAccount account)
