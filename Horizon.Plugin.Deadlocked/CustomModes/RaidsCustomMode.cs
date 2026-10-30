@@ -79,6 +79,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             return GetRatingFromXp(0);
         }
 
+        public override Task<string> GetGameInfo(Server.Medius.Models.Game game, GameMetadata metadata)
+        {
+            string info = " ";
+            return Task.FromResult(info);
+        }
+
         public override Task<string> GetGamePlayerInfo(Server.Medius.Models.Game game, GameMetadata metadata)
         {
             // Match the in-game class suffixes: level zero has no Roman numeral.
@@ -713,12 +719,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
             // save
             Player.SavePlayerMetadata(client);
-        }
-
-        public override Task<string> GetGameInfo(Server.Medius.Models.Game game, GameMetadata metadata)
-        {
-            string info = "";
-            return Task.FromResult(info);
         }
 
         public override Task<Payload> GetPayload(Server.Medius.Models.Game game, GameMetadata metadata, ClientObject client)
