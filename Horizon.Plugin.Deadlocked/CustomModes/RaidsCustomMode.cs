@@ -1052,7 +1052,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             Account.UnlockWeapon(Gadgets.B6);
             Account.UnlockWeapon(Gadgets.Holoshields);
             Account.UnlockWeapon(Gadgets.Flail);
-            Account.Bolts = 300000; // start with 300k bolts
+            // Account.Bolts = 300000; // start with 300k bolts
 
             Version = RAIDS_BANK_VERSION;
 
