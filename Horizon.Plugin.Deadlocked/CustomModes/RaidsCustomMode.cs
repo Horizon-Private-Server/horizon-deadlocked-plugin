@@ -1680,7 +1680,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             { Gadgets.MineLauncher, new AlphaMods[] { AlphaMods.Ammo, AlphaMods.Speed, AlphaMods.Area, AlphaMods.Impact, AlphaMods.Jackpot, AlphaMods.Nanoleech } },
             { Gadgets.B6, new AlphaMods[] { AlphaMods.Ammo, AlphaMods.Speed, AlphaMods.Area, AlphaMods.Impact, AlphaMods.Jackpot, AlphaMods.Nanoleech } },
             { Gadgets.Flail, new AlphaMods[] { AlphaMods.Ammo, AlphaMods.Speed, AlphaMods.Area, AlphaMods.Impact, AlphaMods.Jackpot, AlphaMods.Nanoleech } },
-            { Gadgets.Holoshields, new AlphaMods[] { AlphaMods.Ammo, AlphaMods.Speed, AlphaMods.Impact, AlphaMods.Jackpot, AlphaMods.Nanoleech } },
+            { Gadgets.Holoshields, new AlphaMods[] { AlphaMods.Ammo, AlphaMods.Impact, AlphaMods.Jackpot, AlphaMods.Nanoleech } },
         };
         private static readonly Dictionary<AlphaMods, int> _gadgetAlphaModMax = new Dictionary<AlphaMods, int>()
         {
