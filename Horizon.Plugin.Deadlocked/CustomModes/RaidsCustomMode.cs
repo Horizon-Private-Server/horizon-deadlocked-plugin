@@ -2607,8 +2607,9 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 if (contract.RequiredKills % 10 != 0)
                     contract.RequiredKills += 10 - (contract.RequiredKills % 10);
 
-                contract.RewardPlayerXp = (uint)(contract.RequiredKills * contractRule.XpMult * 10 * _rng.Next(2, 5) * 0.5f);
-                contract.RewardWeaponXp = (uint)(contract.RequiredKills * contractRule.XpMult * 10 * _rng.Next(2, 5) * 0.5f);
+                contract.RewardPlayerXp = (uint)Math.Max(0, contract.RequiredKills * contractRule.XpMult * 10 * _rng.Next(2, 5) * 0.5f);
+                contract.RewardWeaponXp = (uint)Math.Max(0, contract.RequiredKills * contractRule.XpMult * 10 * _rng.Next(2, 5) * 0.5f);
+                contract.RewardClassXp = (uint)Math.Max(0, contract.RequiredKills * contractRule.ClassXpMult);
 
                 // weapon
                 contract.RequiredKillsGadgetId = GenerateContractWeapon(bank.Account);
@@ -2629,11 +2630,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public ushort ExpirationMinutes;
         public float XpMult;
         public float BoltMult;
+        public float ClassXpMult;
 
         public override bool Equals(object obj)
         {
             if (obj is RaidsContractRule other)
-                return this.MobDefMask == other.MobDefMask && this.Name == other.Name && this.MinCount == other.MinCount && this.MaxCount == other.MaxCount && this.ExpirationMinutes == other.ExpirationMinutes && this.XpMult == other.XpMult && this.BoltMult == other.BoltMult;
+                return this.MobDefMask == other.MobDefMask && this.Name == other.Name && this.MinCount == other.MinCount && this.MaxCount == other.MaxCount && this.ExpirationMinutes == other.ExpirationMinutes && this.XpMult == other.XpMult && this.BoltMult == other.BoltMult && this.ClassXpMult == other.ClassXpMult;
 
             return false;
         }
@@ -2651,6 +2653,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             ExpirationMinutes = reader.ReadUInt16();
             XpMult = reader.ReadSingle();
             BoltMult = reader.ReadSingle();
+            ClassXpMult = reader.ReadSingle();
             Name = reader.ReadString(32);
         }
     }
