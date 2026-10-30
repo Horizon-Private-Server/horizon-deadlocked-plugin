@@ -981,6 +981,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         FlailMaxRarity = 42,
         HoloshieldMaxRarity = 43,
         AlphaImpact = 44,
+        BloodFrenzy = 45,
+        Ironclad = 46,
     };
 
     public enum RaidsClassType
