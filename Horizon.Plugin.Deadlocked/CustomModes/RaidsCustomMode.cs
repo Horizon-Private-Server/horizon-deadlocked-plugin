@@ -79,9 +79,35 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             return GetRatingFromXp(0);
         }
 
+        public override Task<string> GetGameTitle(Server.Medius.Models.Game game, GameMetadata metadata)
+        {
+            return Task.FromResult(Name);
+        }
+
         public override Task<string> GetGameInfo(Server.Medius.Models.Game game, GameMetadata metadata)
         {
-            string info = " ";
+            var mapName = metadata.CustomMapConfig.Name;
+
+            // a space suppresses the default match rules when there is no map
+            if (String.IsNullOrWhiteSpace(mapName))
+                return Task.FromResult(" ");
+
+            // Raids uses RoundNumber for mission status: high byte = mission type + 1
+            // low byte = zero-based difficulty. Zero means the client has not reported it.
+            var status = metadata.GameState.RoundNumber;
+            var missionType = (RaidsMissionType)((status >> 8) - 1);
+            var stars = (status & 0xFF) + 1;
+            var info = missionType switch
+            {
+                RaidsMissionType.Hub => $"Gearing up at {mapName}",
+                RaidsMissionType.OpenWorld => $"Leveling up on Planet {mapName}",
+                RaidsMissionType.Raid => $"Running the {mapName} Raid",
+                _ => $"At {mapName}"
+            };
+
+            if (missionType == RaidsMissionType.Raid && stars <= 5)
+                info += $" · {new string('★', stars)}{new string('☆', 5 - stars)}";
+
             return Task.FromResult(info);
         }
 

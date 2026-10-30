@@ -264,6 +264,7 @@ namespace Horizon.Plugin.Deadlocked
 
             // update game state
             metadata.GameState = new GameState(packedGameState, game);
+            metadata.GameTitle = await GetGameTitle(game, metadata);
             metadata.GameInfo = await GetGameInfo(game, metadata);
             metadata.PlayerInfo = await GetGamePlayerInfo(game, metadata);
 
@@ -325,6 +326,7 @@ namespace Horizon.Plugin.Deadlocked
 
             // update other metadata
             metadata.CustomMap = String.IsNullOrEmpty(metadata.CustomMapConfig.Name) ? null : metadata.CustomMapConfig.Name;
+            metadata.GameTitle = await GetGameTitle(game, metadata);
             metadata.GameInfo = await GetGameInfo(game, metadata);
             metadata.PlayerInfo = await GetGamePlayerInfo(game, metadata);
 
@@ -538,6 +540,13 @@ namespace Horizon.Plugin.Deadlocked
             _metadatas.Remove(game.Id);
         }
 
+        private static async Task<string> GetGameTitle(Server.Medius.Models.Game game, GameMetadata metadata)
+        {
+            var mode = Modes.FindCustomModeById(metadata.GetRealCustomModeId());
+            var title = mode == null ? null : await mode.GetGameTitle(game, metadata);
+            return String.IsNullOrWhiteSpace(title) ? null : title.Trim();
+        }
+
         private static async Task<string> GetGameInfo(Server.Medius.Models.Game game, GameMetadata metadata)
         {
             string gameInfo = null;
@@ -693,6 +702,7 @@ namespace Horizon.Plugin.Deadlocked
     {
         public string CustomGameMode { get; set; }
         public string CustomMap { get; set; }
+        public string GameTitle { get; set; }
         public string GameInfo { get; set; }
         public string PlayerInfo { get; set; }
         public int Location { get; set; }
