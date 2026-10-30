@@ -274,6 +274,7 @@ namespace Horizon.Plugin.Deadlocked
         public static async Task<bool> SetGameConfig(Server.Medius.Models.Game game, GameConfig config, GameCustomMapConfig mapConfig, Dictionary<string, string> changes)
         {
             var metadata = await GetGameMetadata(game);
+            var originalCustomModeId = metadata.GetRealCustomModeId();
 
             // if no change, return false
             var gameConfigChanged = !metadata.GameConfig.SameAs(config);
@@ -327,9 +328,21 @@ namespace Horizon.Plugin.Deadlocked
             metadata.GameInfo = await GetGameInfo(game, metadata);
             metadata.PlayerInfo = await GetGamePlayerInfo(game, metadata);
 
-            var mode = Modes.FindCustomModeById(metadata.GetRealCustomModeId());
+            var customModeId = metadata.GetRealCustomModeId();
+            var mode = Modes.FindCustomModeById(customModeId);
             if (mode != null)
                 metadata.CustomGameMode = await mode.GetCustomModeName(game, metadata);
+
+            // handle custom mode selection/deselection
+            if (customModeId != originalCustomModeId)
+            {
+                var lastMode = Modes.FindCustomModeById(originalCustomModeId);
+                if (lastMode != null)
+                    await lastMode.OnModeDeselected(game, metadata);
+
+                if (mode != null)
+                    await mode.OnModeSelected(game, metadata);
+            }
 
             // send to database
             return await SetGameMetadata(game, metadata);
