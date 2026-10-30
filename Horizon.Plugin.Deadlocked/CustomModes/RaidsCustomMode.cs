@@ -35,22 +35,22 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             new RaidsMobMetadata("Tremor", 0x24D3),
         };
 
-        // Keep tiers and XP multipliers in sync with codegen/rc4/raids/classes.c.
+        // Keep progression, weapons and unlock rules in sync with codegen/rc4/raids/classes.c.
         public static readonly List<RaidsClassProgression> RAIDS_CLASSES =
         [
-            new(RaidsClassType.Gunner, 1.0m, 1),
-            new(RaidsClassType.Bomber, 1.0m, 1),
-            new(RaidsClassType.Brawler, 1.0m, 1),
-            new(RaidsClassType.Marksman, 2.0m, 2),
-            new(RaidsClassType.Grenadier, 2.0m, 2),
-            new(RaidsClassType.Melee, 2.0m, 2),
-            new(RaidsClassType.Scout, 2.0m, 2),
-            new(RaidsClassType.Support, 2.0m, 2),
-            new(RaidsClassType.Sharpshooter, 3.0m, 3),
-            new(RaidsClassType.Demolitionist, 3.0m, 3),
-            new(RaidsClassType.Juggernaut, 3.0m, 3),
-            new(RaidsClassType.Infiltrator, 3.0m, 3),
-            new(RaidsClassType.FieldMedic, 3.0m, 3),
+            new(RaidsClassType.Gunner, 1.0m, 1, [Gadgets.Vipers]),
+            new(RaidsClassType.Bomber, 1.0m, 1, [Gadgets.B6]),
+            new(RaidsClassType.Brawler, 1.0m, 1, [Gadgets.Flail]),
+            new(RaidsClassType.Marksman, 2.0m, 2, [Gadgets.Vipers, Gadgets.Fusion], [(RaidsClassType.Gunner, 10)]),
+            new(RaidsClassType.Grenadier, 2.0m, 2, [Gadgets.Arbiter, Gadgets.B6], [(RaidsClassType.Bomber, 10)]),
+            new(RaidsClassType.Melee, 2.0m, 2, [Gadgets.MagmaCannon, Gadgets.Flail], [(RaidsClassType.Brawler, 10)]),
+            new(RaidsClassType.Scout, 2.0m, 2, [Gadgets.Vipers, Gadgets.Flail], [(RaidsClassType.Gunner, 5), (RaidsClassType.Brawler, 5)]),
+            new(RaidsClassType.Support, 2.0m, 2, [Gadgets.MineLauncher, Gadgets.Holoshields], [(RaidsClassType.Bomber, 5), (RaidsClassType.Gunner, 5)]),
+            new(RaidsClassType.Sharpshooter, 3.0m, 3, [Gadgets.Vipers, Gadgets.Arbiter, Gadgets.Fusion], [(RaidsClassType.Marksman, 10)]),
+            new(RaidsClassType.Demolitionist, 3.0m, 3, [Gadgets.MagmaCannon, Gadgets.Arbiter, Gadgets.B6], [(RaidsClassType.Grenadier, 10)]),
+            new(RaidsClassType.Juggernaut, 3.0m, 3, [Gadgets.MagmaCannon, Gadgets.Flail], [(RaidsClassType.Melee, 10)]),
+            new(RaidsClassType.Infiltrator, 3.0m, 3, [Gadgets.Vipers, Gadgets.Arbiter, Gadgets.Flail], [(RaidsClassType.Scout, 10)]),
+            new(RaidsClassType.FieldMedic, 3.0m, 3, [Gadgets.Fusion, Gadgets.MineLauncher, Gadgets.Holoshields], [(RaidsClassType.Support, 10)]),
         ];
 
         public override CustomModeId Id => CustomModeId.CMODE_ID_RAIDS;
@@ -2515,6 +2515,19 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             return uid;
         }
 
+        private Gadgets GenerateContractWeapon(RaidsAccount account)
+        {
+            var unlockedClasses = RaidsCustomMode.RAIDS_CLASSES.Where(x => x.IsUnlocked(account)).ToArray();
+            var weapons = unlockedClasses.SelectMany(x => x.Weapons).Distinct().ToArray();
+            var equippedClass = unlockedClasses.FirstOrDefault(x => x.ClassType == account.EquippedClass);
+
+            // Prefer the current class while keeping other unlocked weapons in rotation.
+            if (equippedClass != null && equippedClass.Weapons.Length > 0 && _rng.NextDouble() < 0.8)
+                weapons = equippedClass.Weapons;
+
+            return weapons[_rng.Next(weapons.Length)];
+        }
+
         private RaidsContract GenerateContract(RaidsBank bank)
         {
             var contract = new RaidsContract();
@@ -2552,7 +2565,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 contract.RewardPlayerXp = (uint)(_rng.Next(100, 300) * 10 * starsXpFactor);
                 contract.RewardWeaponXp = (uint)(_rng.Next(100, 300) * 10 * starsXpFactor);
                 contract.RewardClassXp = RAID_CLASS_XP_REWARDS[contract.RequiredDifficultyStars];
-                contract.RequiredKillsGadgetId = bank.Account.HasWeapon.Where(x => x.Value).Select(x => x.Key).OrderBy(x => Guid.NewGuid()).FirstOrDefault();
+                contract.RequiredKillsGadgetId = GenerateContractWeapon(bank.Account);
                 contract.ExpirationMinutes = (uint)Math.Ceiling((timeToBeat * 2) / (1000f * 60)); // give double time to complete
             }
 
@@ -2572,7 +2585,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 contract.RewardWeaponXp = (uint)(contract.RequiredKills * contractRule.XpMult * 10 * _rng.Next(2, 5) * 0.5f);
 
                 // weapon
-                contract.RequiredKillsGadgetId = bank.Account.HasWeapon.Where(x => x.Value).Select(x => x.Key).OrderBy(x => Guid.NewGuid()).FirstOrDefault();
+                contract.RequiredKillsGadgetId = GenerateContractWeapon(bank.Account);
                 contract.RewardBolts += (uint)(contractRule.BoltMult * contract.RequiredKills * 100);
                 contract.ExpirationMinutes = contractRule.ExpirationMinutes;
             }
@@ -2704,12 +2717,26 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public RaidsClassType ClassType;
         public int Tier;
         public decimal ExperienceCurveMultiplier;
+        public Gadgets[] Weapons;
+        public (RaidsClassType ClassType, int RequiredLevel)[] UnlockRules;
 
-        public RaidsClassProgression(RaidsClassType classType, decimal xpCurveMult, int tier)
+        public RaidsClassProgression(RaidsClassType classType, decimal xpCurveMult, int tier, Gadgets[] weapons, (RaidsClassType ClassType, int RequiredLevel)[] unlockRules = null)
         {
             ClassType = classType;
             Tier = tier;
             ExperienceCurveMultiplier = xpCurveMult;
+            Weapons = weapons;
+            UnlockRules = unlockRules ?? [];
+        }
+
+        public bool IsUnlocked(RaidsAccount account)
+        {
+            return UnlockRules.All(rule =>
+            {
+                var requiredClass = RaidsCustomMode.RAIDS_CLASSES.FirstOrDefault(x => x.ClassType == rule.ClassType);
+                var xp = account.ClassStats?.GetValueOrDefault(rule.ClassType)?.Experience ?? 0;
+                return requiredClass != null && requiredClass.GetClassLevelFromXp(xp) >= rule.RequiredLevel;
+            });
         }
 
         public int GetClassLevelFromXp(ulong xp)
