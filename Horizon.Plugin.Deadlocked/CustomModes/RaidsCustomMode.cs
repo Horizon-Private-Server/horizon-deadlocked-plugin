@@ -527,14 +527,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                                 contract.CompletedTimeMs = stats.CompletedTimeMs;
                                 update = true;
                             }
-                            if (stats != null && contract.RewardClassXp > 0 && !contract.CompletedClassType.HasValue
-                                && contract.IsActivated() && !contract.IsExpired() && contract.HasRaidTimeRequirement()
-                                && stats.CompletedTimeMs > 0 && stats.CompletedTimeMs < contract.RequiredRaidTimeMs
-                                && RAIDS_CLASSES.Any(x => x.ClassType == stats.CompletedClassType))
-                            {
-                                contract.CompletedClassType = stats.CompletedClassType;
+                            if (stats != null && contract.TrySetCompletedClass(stats.CompletedClassType))
                                 update = true;
-                            }
                         }
 
                         // serialize
@@ -603,12 +597,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             contract.Kills = request.Kills;
             contract.CompletedTimeMs = request.CompletedTimeMs;
 
-            // Remember the class on the first successful raid contract update.
-            if (contract.RewardClassXp > 0 && !contract.CompletedClassType.HasValue
-                && contract.IsActivated() && !contract.IsExpired() && contract.HasRaidTimeRequirement()
-                && request.CompletedTimeMs > 0 && request.CompletedTimeMs < contract.RequiredRaidTimeMs
-                && RAIDS_CLASSES.Any(x => x.ClassType == request.CompletedClassType))
-                contract.CompletedClassType = request.CompletedClassType;
+            // Remember the class on the first successful kill or raid contract update.
+            contract.TrySetCompletedClass(request.CompletedClassType);
 
             // check for refresh of contracts
             metadata.RaidsBank.ContractStore.Refresh(metadata.RaidsBank, false);
@@ -1666,6 +1656,21 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public bool IsActivated() => DateExpiresUtc.HasValue;
         public bool IsExpired() => DateTime.UtcNow > DateExpiresUtc;
         public bool ShouldRefresh() => IsActivated() ? false : DateTime.UtcNow > DateRefreshUtc;
+
+        public bool TrySetCompletedClass(RaidsClassType classType)
+        {
+            if (RewardClassXp == 0 || CompletedClassType.HasValue || !IsActivated() || IsExpired()
+                || !RaidsCustomMode.RAIDS_CLASSES.Any(x => x.ClassType == classType))
+                return false;
+
+            var completed = (HasKillRequirement() && Kills >= RequiredKills)
+                || (HasRaidTimeRequirement() && CompletedTimeMs > 0 && CompletedTimeMs < RequiredRaidTimeMs);
+            if (!completed) return false;
+
+            CompletedClassType = classType;
+            return true;
+        }
+
         public void Activate()
         {
             DateExpiresUtc = DateTime.UtcNow + TimeSpan.FromMinutes(ExpirationMinutes);
