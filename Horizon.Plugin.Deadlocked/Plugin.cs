@@ -939,6 +939,36 @@ namespace Horizon.Plugin.Deadlocked
                                     mode.OnClientResetClassSkills(request, msg.Player);
                                     break;
                                 }
+                            case 77: // raids get user settings
+                                {
+                                    var request = new RaidsGetSettingsRequest();
+                                    request.Deserialize(reader);
+
+                                    if (msg.Player.CurrentGame == null) break;
+
+                                    var mode = Modes.FindCustomModeById(CustomModeId.CMODE_ID_RAIDS) as RaidsCustomMode;
+                                    var metadata = await Game.GetGameMetadata(msg.Player.CurrentGame);
+                                    if (metadata == null) break;
+                                    if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_RAIDS) break;
+
+                                    mode.OnClientRequestSettings(request, msg.Player);
+                                    break;
+                                }
+                            case 78: // raids save user settings
+                                {
+                                    var request = new RaidsSaveSettingsRequest();
+                                    request.Deserialize(reader);
+
+                                    if (msg.Player.CurrentGame == null) break;
+
+                                    var mode = Modes.FindCustomModeById(CustomModeId.CMODE_ID_RAIDS) as RaidsCustomMode;
+                                    var metadata = await Game.GetGameMetadata(msg.Player.CurrentGame);
+                                    if (metadata == null) break;
+                                    if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_RAIDS) break;
+
+                                    mode.OnClientSaveSettings(request, msg.Player);
+                                    break;
+                                }
                             default:
                                 {
                                     Host.Log(InternalLogLevel.WARN, $"Unhandled custom msg id {customMsgId}: {msg}");

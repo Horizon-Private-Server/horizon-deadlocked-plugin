@@ -302,6 +302,39 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             Player.SavePlayerMetadata(client);
         }
 
+        public void OnClientRequestSettings(RaidsGetSettingsRequest request, ClientObject client)
+        {
+            var metadata = Player.GetPlayerMetadata(client);
+            if (metadata == null) return;
+
+            metadata.RaidsBank.Initialize();
+            var account = metadata.RaidsBank.Account;
+            if (account.Settings == null || !account.Settings.IsValid())
+                account.Settings = new RaidsUserSettings();
+            using (var ms = new MemoryStream(16))
+            {
+                using (var writer = new BinaryWriter(ms))
+                {
+                    account.Settings.Serialize(writer);
+                    client.Queue(RT.Models.RT_MSG_SERVER_MEMORY_POKE.FromPayload(request.DestAddress, ms.ToArray()));
+                    client.Queue(RT.Models.RT_MSG_SERVER_MEMORY_POKE.FromPayload(request.DestHasFlagAddress, BitConverter.GetBytes(1)));
+                }
+            }
+            Player.SavePlayerMetadata(client);
+        }
+
+        public void OnClientSaveSettings(RaidsSaveSettingsRequest request, ClientObject client)
+        {
+            if (request.Settings == null || !request.Settings.IsValid() || request.Revision <= 0) return;
+            var metadata = Player.GetPlayerMetadata(client);
+            if (metadata == null) return;
+
+            metadata.RaidsBank.Initialize();
+            metadata.RaidsBank.Account.Settings = request.Settings;
+            Player.SavePlayerMetadata(client);
+            client.Queue(RT.Models.RT_MSG_SERVER_MEMORY_POKE.FromPayload(request.AckAddress, BitConverter.GetBytes(request.Revision)));
+        }
+
         public void OnClientRequestBankAccountUpdate(RaidsUpdateBankAccountRequest request, ClientObject client)
         {
             var metadata = Player.GetPlayerMetadata(client);
@@ -1253,6 +1286,29 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         }
     }
 
+    public class RaidsUserSettings
+    {
+        public const int CURRENT_VERSION = 1;
+        public int Version = CURRENT_VERSION;
+        public int MapLod = 2;
+        public int MobLod = 2;
+        public int AmmoDropPopups = 1;
+
+        public bool IsValid()
+        {
+            return Version == CURRENT_VERSION && MapLod >= 0 && MapLod <= 3
+                && MobLod >= 0 && MobLod <= 3 && AmmoDropPopups >= 0 && AmmoDropPopups <= 1;
+        }
+
+        public void Serialize(BinaryWriter writer)
+        {
+            writer.Write(Version);
+            writer.Write(MapLod);
+            writer.Write(MobLod);
+            writer.Write(AmmoDropPopups);
+        }
+    }
+
     public class RaidsAccount
     {
         public const int SKILLS_COUNT = 4;
@@ -1265,6 +1321,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public Dictionary<RaidsClassType, RaidsClassStats> ClassStats = new Dictionary<RaidsClassType, RaidsClassStats>();
         public ulong PlayerPrestigeCount = 0;
         public uint Bolts = 0;
+        public RaidsUserSettings Settings = new RaidsUserSettings();
         public Dictionary<Gadgets, bool> HasWeapon = new Dictionary<Gadgets, bool>();
 
 
