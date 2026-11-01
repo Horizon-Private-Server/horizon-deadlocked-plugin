@@ -180,21 +180,17 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             // ensure bank is initialized
             var update = metadata.RaidsBank.Initialize();
 
-            // sort inventory
-            // breaks equipped indices
-            //Array.Sort(metadata.RaidsBank.Inventory.Weapons, RaidsInventoryWeapon.Compare);
-
             // send to client
             using (var ms = new MemoryStream(1024 * 4))
             {
                 using (var writer = new BinaryWriter(ms))
                 {
                     ushort filterHasNewMask = 0;
-                    var startIdx = request.Page * RaidsInventory.ITEMS_COUNT;
-                    var items = metadata.RaidsBank.Inventory.GetByFilter(request.Filter);
+                    var startIdx = Math.Max(0L, (long)request.Page * RaidsInventory.ITEMS_COUNT);
+                    var items = metadata.RaidsBank.Inventory.GetSortedByFilter(request).ToList();
                     for (int i = 0; i < RaidsInventory.ITEMS_COUNT; ++i)
                     {
-                        var item = items.ElementAtOrDefault(i + startIdx);
+                        var item = startIdx + i < items.Count ? items[(int)(startIdx + i)] : null;
                         if (item != null) item.Price = RaidsInventoryItem.ComputeSellPrice(item);
                         (item ?? RaidsInventoryItem.Empty).Serialize(writer);
                     }
@@ -202,7 +198,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     writer.Write(metadata.RaidsBank.Inventory.AllItems.Count);
                     for (int i = 0; i < 9; ++i)
                     {
-                        var filterItems = metadata.RaidsBank.Inventory.GetByFilter(i);
+                        var filterItems = metadata.RaidsBank.Inventory.GetByFilter(i, request.FavoritesOnly, request.RarityFilter).ToList();
                         writer.Write((ushort)filterItems.Count());
                         if (filterItems.Any(x => x.Notify == 1))
                             filterHasNewMask |= (ushort)(1 << i);
@@ -212,6 +208,9 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     writer.Write(1); // tells the client the server just sent a payload
                     writer.Write(request.Filter);
                     writer.Write(request.Page);
+                    writer.Write((int)request.Sort);
+                    writer.Write(request.RarityFilter);
+                    writer.Write(request.FavoritesOnly ? 1 : 0);
 
                     //metadata.RaidsBank.Inventory.Serialize(writer);
                     client.Queue(RT.Models.RT_MSG_SERVER_MEMORY_POKE.FromPayload(request.DestAddress, ms.GetBuffer().AsSpan(0, (int)ms.Length).ToArray()));
@@ -1535,9 +1534,38 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             return AllItems.FirstOrDefault(x => x != null && x.IsValid() && x.Uid == uid);
         }
 
-        public IEnumerable<RaidsInventoryItem> GetByFilter(int filter)
+        public IEnumerable<RaidsInventoryItem> GetByFilter(int filter, bool favoritesOnly = false, int rarityFilter = -1)
         {
-            return AllItems.Where(x => x.MatchFilter(filter));
+            return AllItems.Where(x => x != null && x.MatchFilter(filter)
+                && (!favoritesOnly || x.Notify == 2)
+                && (rarityFilter < 0 || RaidsInventoryItem.GetRarityFromQuality(x.Quality) == (RaidsItemRarity)rarityFilter));
+        }
+
+        public IEnumerable<RaidsInventoryItem> GetSortedByFilter(RaidsGetBankInventoryRequest request)
+        {
+            // Sort a view; equipped UIDs and the stored inventory order stay unchanged.
+            var items = GetByFilter(request.Filter, request.FavoritesOnly, request.RarityFilter);
+            IOrderedEnumerable<RaidsInventoryItem> sorted;
+            switch (request.Sort)
+            {
+                case RaidsGetBankInventoryRequest.InventorySort.Proficiency:
+                    sorted = items.OrderByDescending(x => x.WeaponData?.Proficiency ?? 0)
+                        .ThenByDescending(x => RaidsInventoryItem.GetRarityFromQuality(x.Quality))
+                        .ThenByDescending(x => x.Notify == 2);
+                    break;
+                case RaidsGetBankInventoryRequest.InventorySort.Favorites:
+                    sorted = items.OrderByDescending(x => x.Notify == 2)
+                        .ThenByDescending(x => RaidsInventoryItem.GetRarityFromQuality(x.Quality))
+                        .ThenByDescending(x => x.WeaponData?.Proficiency ?? 0);
+                    break;
+                default:
+                    sorted = items.OrderByDescending(x => RaidsInventoryItem.GetRarityFromQuality(x.Quality))
+                        .ThenByDescending(x => x.WeaponData?.Proficiency ?? 0)
+                        .ThenByDescending(x => x.Notify == 2);
+                    break;
+            }
+
+            return sorted.ThenBy(x => x.Uid ?? 0);
         }
 
         public bool HasUid(uint uid)
