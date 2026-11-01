@@ -15,6 +15,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 {
     public class RaidsCustomMode : BaseCustomMode
     {
+        // LEGACY_WEAPON_PROFICIENCY: switch with both C game.h definitions for rollback.
+#if LEGACY_WEAPON_PROFICIENCY
+        public const bool USE_SHARED_WEAPON_PROFICIENCY = false;
+#else
+        public const bool USE_SHARED_WEAPON_PROFICIENCY = true;
+#endif
         public const int MAX_CLASSES = 16;
         public static readonly int MAX_CLASS_LEVEL = 10;
         public static readonly int MAX_ACCOUNT_LEVEL = 98;
@@ -277,6 +283,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         public void OnClientRequestBankAccount(RaidsGetBankAccountRequest request, ClientObject client)
         {
+            if (!request.IsCompatible) return;
             var metadata = Player.GetPlayerMetadata(client);
             if (metadata == null) return;
 
@@ -334,10 +341,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         public void OnClientRequestBankAccountUpdate(RaidsUpdateBankAccountRequest request, ClientObject client)
         {
+            if (request.Account == null) return;
             var metadata = Player.GetPlayerMetadata(client);
             if (metadata == null) return;
 
-            // update
+            // migrate before accepting a client account snapshot
+            metadata.RaidsBank.Initialize();
             metadata.RaidsBank.Account.Update(request.Account);
 
             // save
@@ -1047,7 +1056,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
     public class RaidsBank
     {
-        public const int RAIDS_BANK_VERSION = 4;
+        public const int RAIDS_BANK_VERSION = 5;
 
         public int Version = 0;
         public RaidsInventory Inventory = new RaidsInventory();
@@ -1070,14 +1079,14 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             Account.UnlockWeapon(Gadgets.B6);
             Account.UnlockWeapon(Gadgets.Holoshields);
             Account.UnlockWeapon(Gadgets.Flail);
-            Account.ClampLevels();
-
             if (Initialized && Version < RAIDS_BANK_VERSION)
             {
                 Migrate();
+                Account.ClampLevels(clampLegacyWeaponXp: false);
                 return true;
             }
 
+            Account.ClampLevels(clampLegacyWeaponXp: false);
             if (Initialized) return false;
 
             // give default weapons
@@ -1268,6 +1277,11 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                             Inventory.EquippedBadgeUid = 0;
                             break;
                         }
+                    case 5: // LEGACY_WEAPON_PROFICIENCY: seed once, before legacy XP clamping
+                        {
+                            Account.WeaponExperience = Account.WeaponXp?.Sum() ?? 0;
+                            break;
+                        }
                 }
             }
         }
@@ -1300,9 +1314,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
     {
         public const int SKILLS_COUNT = 4;
         public const int PROFICIENCY_COUNT = 8;
+        public const int SERIALIZED_SIZE = 216;
 
         public ulong Experience = 0;
+        // LEGACY_WEAPON_PROFICIENCY: retain individual counters for rollback and migration.
         public double[] WeaponXp = new double[PROFICIENCY_COUNT];
+        public double WeaponExperience = 0;
         public ulong[] WeaponPrestigeCount = new ulong[PROFICIENCY_COUNT];
         public RaidsClassType EquippedClass = RaidsClassType.Gunner;
         public Dictionary<RaidsClassType, RaidsClassStats> ClassStats = new Dictionary<RaidsClassType, RaidsClassStats>();
@@ -1359,10 +1376,11 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             if (level <= 0) return 0;
             if (level > RaidsCustomMode.MAX_ACCOUNT_LEVEL) level = RaidsCustomMode.MAX_ACCOUNT_LEVEL;
 
-            return (ulong)(10 * (double)Math.Pow(level, 3) + 250 * level);
+            ulong value = (ulong)level;
+            return 3 * (10 * value * value * value + 250 * value);
         }
 
-        private static int GetProficiencyFromXp(double xp)
+        public static int GetProficiencyFromXp(double xp)
         {
             if (xp < 0) return 0;
 
@@ -1376,7 +1394,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             //return (int)level;
         }
 
-        private static double GetXpFromProficiency(int proficiency)
+        public static double GetXpFromProficiency(int proficiency)
         {
             if (proficiency <= 0) return 0;
             if (proficiency > RaidsCustomMode.MAX_WEAPON_LEVEL) proficiency = RaidsCustomMode.MAX_WEAPON_LEVEL;
@@ -1384,8 +1402,22 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             //return GetXpFromLevelQuadratic(proficiency, 250, 500);
         }
 
+        public double GetWeaponExperience() => WeaponExperience;
+        public int GetWeaponProficiency() => GetProficiencyFromXp(WeaponExperience);
+
+        private void NormalizeLegacyWeaponXp()
+        {
+            // LEGACY_WEAPON_PROFICIENCY: preserve the eight legacy wire slots.
+            if (WeaponXp == null) WeaponXp = new double[PROFICIENCY_COUNT];
+            else if (WeaponXp.Length != PROFICIENCY_COUNT) Array.Resize(ref WeaponXp, PROFICIENCY_COUNT);
+        }
+
         public double GetWeaponXp(Gadgets gadget)
         {
+            if (RaidsCustomMode.USE_SHARED_WEAPON_PROFICIENCY) return GetWeaponExperience();
+
+            // LEGACY_WEAPON_PROFICIENCY: original per-weapon lookup.
+            NormalizeLegacyWeaponXp();
             switch (gadget)
             {
                 case Gadgets.Vipers: return WeaponXp[0];
@@ -1416,16 +1448,21 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             HasWeapon[gadget] = true;
         }
 
-        public void ClampLevels()
+        public void ClampLevels(bool clampLegacyWeaponXp = true)
         {
             var maxAccountXp = GetAccountXpFromLevel(RaidsCustomMode.MAX_ACCOUNT_LEVEL + 1);
             if (Experience > maxAccountXp)
                 Experience = maxAccountXp;
 
-            double maxWeaponXp = GetXpFromProficiency(RaidsCustomMode.MAX_WEAPON_LEVEL + 1);
-            for (int i = 0; i < WeaponXp.Length; ++i)
-                if (WeaponXp[i] > maxWeaponXp)
-                    WeaponXp[i] = maxWeaponXp;
+            // LEGACY_WEAPON_PROFICIENCY: cap individual awards, never the shared accumulator.
+            NormalizeLegacyWeaponXp();
+            if (clampLegacyWeaponXp)
+            {
+                double maxWeaponXp = GetXpFromProficiency(RaidsCustomMode.MAX_WEAPON_LEVEL);
+                for (int i = 0; i < WeaponXp.Length; ++i)
+                    if (WeaponXp[i] > maxWeaponXp)
+                        WeaponXp[i] = maxWeaponXp;
+            }
 
             var raidsClass = GetEquippedClass();
             var classStats = GetEquippedClassStats();
@@ -1451,6 +1488,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         public void AddWeaponXp(double xp, Gadgets gadget)
         {
+            if (!double.IsFinite(xp) || xp <= 0 || !double.IsFinite(WeaponExperience + xp)) return;
+            if (!RaidsCustomMode.USE_SHARED_WEAPON_PROFICIENCY && !RaidsInventoryItem.GetWeaponIndex(gadget).HasValue) return;
+
+            WeaponExperience += xp;
+            // LEGACY_WEAPON_PROFICIENCY: shadow the original source for rollback.
+            NormalizeLegacyWeaponXp();
             switch (gadget)
             {
                 case Gadgets.Vipers: WeaponXp[0] += xp; break;
@@ -1470,6 +1513,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             this.Experience = account.Experience;
             this.Bolts = account.Bolts;
             this.WeaponXp = account.WeaponXp;
+            this.WeaponExperience = account.WeaponExperience;
             if (RaidsCustomMode.RAIDS_CLASSES.Any(x => x.ClassType == account.EquippedClass))
                 this.EquippedClass = account.EquippedClass;
             foreach (var raidsClass in RaidsCustomMode.RAIDS_CLASSES)
@@ -1493,7 +1537,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             writer.Write((int)EquippedClass);
             for (int i = 0; i < RaidsCustomMode.MAX_CLASSES; ++i)
                 writer.Write(ClassStats.GetValueOrDefault((RaidsClassType)i)?.Experience ?? 0);
-
+            writer.Write(WeaponExperience);
         }
 
         public void Deserialize(BinaryReader reader)
@@ -1508,7 +1552,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             EquippedClass = (RaidsClassType)reader.ReadUInt32();
             for (int i = 0; i < RaidsCustomMode.MAX_CLASSES; ++i)
                 ClassStats[(RaidsClassType)i] = new RaidsClassStats { Experience = reader.ReadUInt64() };
-
+            WeaponExperience = reader.ReadDouble();
         }
     }
 
@@ -1660,6 +1704,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public uint RewardPlayerXp;
         public uint RewardWeaponXp;
         public uint RewardClassXp; // optional; zero means no Class XP reward
+        // LEGACY_WEAPON_PROFICIENCY: ignored in shared mode; retained for objectives/rewards on rollback.
         public Gadgets RequiredKillsGadgetId = Gadgets.None;
 
         // expiration
@@ -2638,6 +2683,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             return uid;
         }
 
+        // LEGACY_WEAPON_PROFICIENCY: retain the original target for shadow rewards and rollback.
         private Gadgets GenerateContractWeapon(RaidsAccount account)
         {
             var unlockedClasses = RaidsCustomMode.RAIDS_CLASSES.Where(x => x.IsUnlocked(account)).ToArray();

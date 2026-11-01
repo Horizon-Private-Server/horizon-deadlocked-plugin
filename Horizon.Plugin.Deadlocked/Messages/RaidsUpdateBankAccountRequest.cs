@@ -18,10 +18,16 @@ namespace Horizon.Plugin.Deadlocked.Messages
 
         public override void Deserialize(MessageReader reader)
         {
-            Account = new RaidsAccount();
-
+            Account = null;
             base.Deserialize(reader);
-            Account.Deserialize(reader);
+            if (reader.BaseStream.Length - reader.BaseStream.Position != RaidsAccount.SERIALIZED_SIZE) return;
+
+            var account = new RaidsAccount();
+            account.Deserialize(reader);
+            if (!double.IsFinite(account.WeaponExperience) || account.WeaponExperience < 0) return;
+            foreach (var xp in account.WeaponXp)
+                if (!double.IsFinite(xp) || xp < 0) return;
+            Account = account;
         }
 
         protected override void SerializePayload(MessageWriter writer)
