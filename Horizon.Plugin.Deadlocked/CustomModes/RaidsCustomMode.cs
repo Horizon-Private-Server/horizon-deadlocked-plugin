@@ -198,7 +198,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     writer.Write(metadata.RaidsBank.Inventory.AllItems.Count);
                     for (int i = 0; i < 9; ++i)
                     {
-                        var filterItems = metadata.RaidsBank.Inventory.GetByFilter(i, request.FavoritesOnly, request.RarityFilter).ToList();
+                        var filterItems = metadata.RaidsBank.Inventory.GetByFilter(i).ToList();
                         writer.Write((ushort)filterItems.Count());
                         if (filterItems.Any(x => x.Notify == 1))
                             filterHasNewMask |= (ushort)(1 << i);
@@ -209,8 +209,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     writer.Write(request.Filter);
                     writer.Write(request.Page);
                     writer.Write((int)request.Sort);
-                    writer.Write(request.RarityFilter);
-                    writer.Write(request.FavoritesOnly ? 1 : 0);
 
                     //metadata.RaidsBank.Inventory.Serialize(writer);
                     client.Queue(RT.Models.RT_MSG_SERVER_MEMORY_POKE.FromPayload(request.DestAddress, ms.GetBuffer().AsSpan(0, (int)ms.Length).ToArray()));
@@ -1534,17 +1532,15 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             return AllItems.FirstOrDefault(x => x != null && x.IsValid() && x.Uid == uid);
         }
 
-        public IEnumerable<RaidsInventoryItem> GetByFilter(int filter, bool favoritesOnly = false, int rarityFilter = -1)
+        public IEnumerable<RaidsInventoryItem> GetByFilter(int filter)
         {
-            return AllItems.Where(x => x != null && x.MatchFilter(filter)
-                && (!favoritesOnly || x.Notify == 2)
-                && (rarityFilter < 0 || RaidsInventoryItem.GetRarityFromQuality(x.Quality) == (RaidsItemRarity)rarityFilter));
+            return AllItems.Where(x => x != null && x.MatchFilter(filter));
         }
 
         public IEnumerable<RaidsInventoryItem> GetSortedByFilter(RaidsGetBankInventoryRequest request)
         {
             // Sort a view; equipped UIDs and the stored inventory order stay unchanged.
-            var items = GetByFilter(request.Filter, request.FavoritesOnly, request.RarityFilter);
+            var items = GetByFilter(request.Filter);
             IOrderedEnumerable<RaidsInventoryItem> sorted;
             switch (request.Sort)
             {
