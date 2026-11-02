@@ -1312,10 +1312,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         // saved metadata only; migration 5 still needs these for returning accounts
         public double[] WeaponXp = new double[LEGACY_WEAPON_COUNT];
         public double WeaponExperience = 0;
-        public ulong[] WeaponPrestigeCount = new ulong[LEGACY_WEAPON_COUNT];
         public RaidsClassType EquippedClass = RaidsClassType.Gunner;
         public Dictionary<RaidsClassType, RaidsClassStats> ClassStats = new Dictionary<RaidsClassType, RaidsClassStats>();
-        public ulong PlayerPrestigeCount = 0;
         public uint Bolts = 0;
         public RaidsUserSettings Settings = new RaidsUserSettings();
         public Dictionary<Gadgets, bool> HasWeapon = new Dictionary<Gadgets, bool>();
@@ -2085,13 +2083,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                         maxProficiency = 99;
                         break;
                     }
-                case RaidsGenerateLootDropRequest.GenerateLootDropRequestType.Prestige:
-                    {
-                        quality = (0.5 + (0.5 * _rng.NextDouble()));
-                        minProficiency = (int)(quality * 98);
-                        maxProficiency = 99;
-                        break;
-                    }
             }
 
             drop.Quality = (byte)Math.Clamp(quality * 256, 0, 255);
@@ -2190,11 +2181,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                         quality = _rng.NextDouble() * (200.0 / 256.0);
                         break;
                     }
-                case RaidsGenerateLootDropRequest.GenerateLootDropRequestType.Prestige:
-                    {
-                        quality = (0.5 + (0.5 * _rng.NextDouble()));
-                        break;
-                    }
             }
 
             drop.Quality = (byte)Math.Clamp(quality * 256, 0, 255);
@@ -2223,10 +2209,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         public static RaidsInventoryItem Generate(RaidsGenerateLootDropRequest request, RaidsAccount account)
         {
-            // 15% chance to generate badge
-            //if ((!request.IsPrestige() && _rng.NextDouble() < 0.15) || request.IsAccountPrestige())
-            //    return GenerateBadge(request, account);
-
             return GenerateWeapon(request, account);
         }
 

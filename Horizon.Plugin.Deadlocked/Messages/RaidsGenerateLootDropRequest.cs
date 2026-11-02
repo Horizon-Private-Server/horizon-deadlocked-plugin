@@ -19,7 +19,6 @@ namespace Horizon.Plugin.Deadlocked.Messages
         {
             MobDeath = 0,
             MissionCompleteEvent,
-            Prestige,
             Store
         }
 
@@ -35,8 +34,6 @@ namespace Horizon.Plugin.Deadlocked.Messages
         public Gadgets MobKilledByGadget { get; set; }
         public Gadgets[] QuickSelectGadgets { get; set; } = new Gadgets[3];
 
-        public bool IsAccountPrestige() => Type == GenerateLootDropRequestType.Prestige && (int)MobKilledByGadget == 0;
-        public bool IsPrestige() => Type == GenerateLootDropRequestType.Prestige;
         public bool IsStore() => Type == GenerateLootDropRequestType.Store;
 
         public override void Deserialize(MessageReader reader)
