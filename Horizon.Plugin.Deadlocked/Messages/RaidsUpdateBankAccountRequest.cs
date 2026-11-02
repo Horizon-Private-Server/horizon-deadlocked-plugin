@@ -25,8 +25,6 @@ namespace Horizon.Plugin.Deadlocked.Messages
             var account = new RaidsAccount();
             account.Deserialize(reader);
             if (!double.IsFinite(account.WeaponExperience) || account.WeaponExperience < 0) return;
-            foreach (var xp in account.WeaponXp)
-                if (!double.IsFinite(xp) || xp < 0) return;
             Account = account;
         }
 
