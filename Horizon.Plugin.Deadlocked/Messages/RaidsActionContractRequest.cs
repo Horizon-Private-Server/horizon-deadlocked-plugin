@@ -1,11 +1,5 @@
-﻿using Horizon.Plugin.Deadlocked.CustomModes;
-using RT.Common;
-using RT.Models;
-using Server.Common;
-using Server.Common.Stream;
+﻿using Server.Common.Stream;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Horizon.Plugin.Deadlocked.Messages
 {
@@ -15,26 +9,32 @@ namespace Horizon.Plugin.Deadlocked.Messages
         public override bool SkipEncryption { get => true; set { } }
 
         public uint ContractUid { get; set; }
+        public uint OwnerAccountId { get; set; }
+        public uint RequestId { get; set; }
         public ContractActions Action { get; set; }
 
         public enum ContractActions
         {
             Reroll = 0,
-            Complete = 1,
-            Activate = 2
+            Complete,
+            Activate,
+            DismissExpired,
+            ClaimPartyRewards
         }
 
         public override void Deserialize(MessageReader reader)
         {
             base.Deserialize(reader);
+
             ContractUid = reader.ReadUInt32();
-            Action = (ContractActions)reader.ReadInt32();
+            OwnerAccountId = reader.ReadUInt32();
+            RequestId = reader.ReadUInt32();
+            Action = (ContractActions)reader.ReadUInt32();
         }
 
         protected override void SerializePayload(MessageWriter writer)
         {
-            writer.Write(ContractUid);
-            writer.Write((int)Action);
+            throw new NotImplementedException();
         }
     }
 }

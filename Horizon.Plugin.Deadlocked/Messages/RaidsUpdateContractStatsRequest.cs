@@ -1,11 +1,7 @@
-﻿using Horizon.Plugin.Deadlocked.CustomModes;
-using RT.Common;
-using RT.Models;
-using Server.Common;
-using Server.Common.Stream;
+﻿using Server.Common.Stream;
 using System;
 using System.Collections.Generic;
-using System.Text;
+using System.IO;
 
 namespace Horizon.Plugin.Deadlocked.Messages
 {
@@ -14,26 +10,47 @@ namespace Horizon.Plugin.Deadlocked.Messages
         public override byte CustomMsgId => 66;
         public override bool SkipEncryption { get => true; set { } }
 
-        public uint ContractUid { get; set; }
-        public uint Kills { get; set; }
-        public uint CompletedTimeMs { get; set; }
-        public RaidsClassType CompletedClassType { get; set; } = (RaidsClassType)(-1);
+        public uint BoardId { get; set; }
+        public uint OwnerAccountId { get; set; }
+        public uint Sequence { get; set; }
+        public uint Count { get; set; }
+        public List<ContractStat> Contracts { get; set; } = new List<ContractStat>();
+
+        public class ContractStat
+        {
+            public uint ContractUid { get; set; }
+            public uint Progress { get; set; } // kills or completion time, based on the contract type
+            public byte Flags { get; set; }
+            public sbyte Difficulty { get; set; }
+        }
 
         public override void Deserialize(MessageReader reader)
         {
             base.Deserialize(reader);
-            ContractUid = reader.ReadUInt32();
-            Kills = reader.ReadUInt32();
-            CompletedTimeMs = reader.ReadUInt32();
-            CompletedClassType = (RaidsClassType)reader.ReadInt32();
+
+            BoardId = reader.ReadUInt32();
+            OwnerAccountId = reader.ReadUInt32();
+            Sequence = reader.ReadUInt32();
+            Count = reader.ReadUInt32();
+            if (Count > 3)
+                throw new InvalidDataException("Invalid contract progress count.");
+
+            for (int i = 0; i < 3; ++i)
+            {
+                var stat = new ContractStat();
+                stat.ContractUid = reader.ReadUInt32();
+                stat.Progress = reader.ReadUInt32();
+                stat.Flags = reader.ReadByte();
+                stat.Difficulty = reader.ReadSByte();
+                reader.ReadUInt16(); // natural alignment
+                if (i < Count)
+                    Contracts.Add(stat);
+            }
         }
 
         protected override void SerializePayload(MessageWriter writer)
         {
-            writer.Write(ContractUid);
-            writer.Write(Kills);
-            writer.Write(CompletedTimeMs);
-            writer.Write((int)CompletedClassType);
+            throw new NotImplementedException();
         }
     }
 }

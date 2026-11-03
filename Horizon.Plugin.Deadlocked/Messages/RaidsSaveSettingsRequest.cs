@@ -16,13 +16,9 @@ namespace Horizon.Plugin.Deadlocked.Messages
         public override void Deserialize(MessageReader reader)
         {
             base.Deserialize(reader);
-            Settings = new RaidsUserSettings
-            {
-                Version = reader.ReadInt32(),
-                MapLod = reader.ReadInt32(),
-                MobLod = reader.ReadInt32(),
-                AmmoDropPopups = reader.ReadInt32()
-            };
+            if (reader.BaseStream.Length - reader.BaseStream.Position != RaidsUserSettings.SERIALIZED_SIZE + 8) return;
+            Settings = new RaidsUserSettings();
+            Settings.Deserialize(reader);
             AckAddress = reader.ReadUInt32();
             Revision = reader.ReadInt32();
         }

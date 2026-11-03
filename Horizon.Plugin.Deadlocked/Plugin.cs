@@ -781,7 +781,7 @@ namespace Horizon.Plugin.Deadlocked
                                     if (metadata == null) break;
                                     if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_RAIDS) break;
 
-                                    mode.OnClientRequestContracts(request, msg.Player);
+                                    mode.OnClientRequestContracts(request, msg.Player, metadata);
                                     break;
                                 }
                             case 65: // raids complete/reroll contract
@@ -796,7 +796,7 @@ namespace Horizon.Plugin.Deadlocked
                                     if (metadata == null) break;
                                     if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_RAIDS) break;
 
-                                    mode.OnClientActionContract(request, msg.Player);
+                                    mode.OnClientActionContract(request, msg.Player, metadata);
                                     break;
                                 }
                             case 66: // raids update contract stats
@@ -811,7 +811,7 @@ namespace Horizon.Plugin.Deadlocked
                                     if (metadata == null) break;
                                     if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_RAIDS) break;
 
-                                    mode.OnClientUpdateContractStats(request, msg.Player);
+                                    mode.OnClientUpdateContractStats(request, msg.Player, metadata);
                                     break;
                                 }
                             case 67: // raids update map metadata
@@ -841,7 +841,7 @@ namespace Horizon.Plugin.Deadlocked
                                     if (metadata == null) break;
                                     if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_RAIDS) break;
 
-                                    mode.OnClientUpdateMapContractRules(request, msg.Player);
+                                    mode.OnClientUpdateMapContractRules(request, msg.Player, metadata);
                                     break;
                                 }
                             case 69: // request dynamic page content
