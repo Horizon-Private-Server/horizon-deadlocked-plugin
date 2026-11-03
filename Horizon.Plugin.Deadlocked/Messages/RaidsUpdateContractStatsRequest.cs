@@ -22,6 +22,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
             public uint Progress { get; set; } // kills or completion time, based on the contract type
             public byte Flags { get; set; }
             public sbyte Difficulty { get; set; }
+            public byte PartySize { get; set; }
         }
 
         public override void Deserialize(MessageReader reader)
@@ -42,7 +43,8 @@ namespace Horizon.Plugin.Deadlocked.Messages
                 stat.Progress = reader.ReadUInt32();
                 stat.Flags = reader.ReadByte();
                 stat.Difficulty = reader.ReadSByte();
-                reader.ReadUInt16(); // natural alignment
+                stat.PartySize = reader.ReadByte();
+                reader.ReadByte(); // natural alignment
                 if (i < Count)
                     Contracts.Add(stat);
             }

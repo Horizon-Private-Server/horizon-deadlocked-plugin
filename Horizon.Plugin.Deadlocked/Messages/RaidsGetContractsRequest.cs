@@ -20,6 +20,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
         public byte Difficulty { get; set; }
         public RaidsContractRequestFlags Flags { get; set; }
         public string MapFilename { get; set; }
+        public uint PartySize { get; set; } = 1;
 
         public override void Deserialize(MessageReader reader)
         {
@@ -30,6 +31,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
             Difficulty = reader.ReadByte();
             Flags = (RaidsContractRequestFlags)reader.ReadByte();
             MapFilename = reader.ReadString(64);
+            PartySize = reader.ReadUInt32();
         }
 
         protected override void SerializePayload(MessageWriter writer)

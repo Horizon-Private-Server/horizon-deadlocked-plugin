@@ -9,7 +9,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
     public class RaidsUpdateMapContractRulesRequest : BasePluginMessage
     {
         public const int MAX_CONTRACTS = 16;
-        public const int MAX_RULES_PER_PAGE = 7;
+        public const int MAX_RULES_PER_PAGE = 5;
 
         public override byte CustomMsgId => 68;
         public override bool SkipEncryption { get => true; set { } }

@@ -578,6 +578,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         {
             if (client.CurrentGame?.Host == null
                 || request.Difficulty >= 5
+                || request.PartySize < 1 || request.PartySize > 5
                 || !Enum.IsDefined(request.Flags))
                 return;
 
@@ -643,10 +644,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                         contract.Kills = Math.Min(contract.RequiredKills, Math.Max(contract.Kills, stat.Progress));
                     }
                     else if (contract.Type == RaidsContractType.Clear
-                        && stat.Progress > 0 && stat.Difficulty >= 0 && stat.Difficulty < 5)
+                        && stat.Progress > 0 && stat.Difficulty >= 0 && stat.Difficulty < 5
+                        && stat.PartySize >= 1 && stat.PartySize <= 5)
                     {
                         contract.CompletedTimeMs = stat.Progress;
                         contract.CompletedDifficulty = stat.Difficulty;
+                        contract.CompletedPartySize = stat.PartySize;
                     }
 
                     if (!contract.Completed) continue;
@@ -1062,7 +1065,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     contract.Write(writer, request.Difficulty, now,
                         bank.ContractStore.FindReceipt(contract.OwnerAccountId, contract.Uid),
                         bank.ContractStore.WasClaimed(contract.OwnerAccountId, contract.Uid),
-                        pending ? $"{contract.MapName}: {contract.Name}" : null);
+                        pending ? $"{contract.MapName}: {contract.Name}" : null, (int)request.PartySize);
 
                 // pad unused contract slots
                 writer.Write(new byte[(3 - contracts.Count) * 92]);
@@ -1104,7 +1107,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
                     writer.Write((byte)flags);
                     writer.Write((sbyte)contract.CompletedDifficulty);
-                    writer.Write((ushort)0); // natural alignment
+                    writer.Write((byte)contract.CompletedPartySize);
+                    writer.Write((byte)0); // natural alignment
                 }
 
                 // pad unused progress slots
@@ -2705,23 +2709,56 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
     public class RaidsContractDifficulty
     {
+        // Resolved fields remain for saved contracts and receipts from the previous format.
         public uint TargetTimeMs { get; set; }
+        public ushort[] TargetTimeSeconds { get; set; }
+        public RaidsContractReward TotalReward { get; set; }
         public RaidsContractReward Reward { get; set; } = new();
         public RaidsContractReward SpeedBonus { get; set; } = new();
         public float BonusRewardFactor { get; set; } = 0.75f;
 
-        // Keep resolved payouts in stored contracts so existing boards and receipts retain their rewards.
         public static RaidsContractDifficulty Read(BinaryReader reader)
         {
-            var targetTimeMs = reader.ReadUInt32();
+            var times = new ushort[5];
+            for (var i = 0; i < times.Length; ++i) times[i] = reader.ReadUInt16();
+            reader.ReadUInt16(); // align rewards to four bytes
             var total = RaidsContractReward.Read(reader);
             var factor = reader.ReadSingle();
             if (!float.IsFinite(factor) || factor < 0 || factor > 1)
                 throw new InvalidDataException("Bonus reward factor must be finite and between 0 and 1.");
+            return new RaidsContractDifficulty
+            {
+                TargetTimeSeconds = times,
+                TotalReward = total,
+                BonusRewardFactor = factor
+            }.ForPartySize(1);
+        }
 
+        public RaidsContractDifficulty ForPartySize(int partySize)
+        {
+            if (partySize < 1 || partySize > 5)
+                throw new ArgumentOutOfRangeException(nameof(partySize));
+
+            // older saved contracts already have their target time and rewards resolved
+            if (TargetTimeSeconds == null) return this;
+
+            if (TargetTimeSeconds.Length != 5 || TotalReward == null)
+                throw new InvalidDataException("Completion targets require five party sizes and total rewards.");
+
+            // select the party's time target and reserve a share of the reward for the speed bonus
+            // without a time target, completing the contract pays the full reward
+            var targetTimeMs = (uint)TargetTimeSeconds[partySize - 1] * 1000;
+            var total = TotalReward;
+            var factor = BonusRewardFactor;
             var completionFactor = targetTimeMs > 0 ? 1 - (double)factor : 1;
-            uint Completion(uint amount, int step = 1) => (uint)Math.Min(amount,
-                Math.Round(amount * completionFactor / step, MidpointRounding.AwayFromZero) * step);
+
+            uint Completion(uint amount, int step = 1)
+            {
+                return (uint)Math.Min(amount,
+                    Math.Round(amount * completionFactor / step, MidpointRounding.AwayFromZero) * step);
+            }
+
+            // round the completion reward, with class xp rounded to multiples of five when split
             var completion = new RaidsContractReward
             {
                 Bolts = Completion(total.Bolts),
@@ -2729,9 +2766,13 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 WeaponXp = Completion(total.WeaponXp),
                 ClassXp = completionFactor == 1 ? total.ClassXp : Completion(total.ClassXp, 5)
             };
+
+            // use the remainder for the speed bonus so both payouts add up to the total reward
             return new()
             {
                 TargetTimeMs = targetTimeMs,
+                TargetTimeSeconds = TargetTimeSeconds,
+                TotalReward = TotalReward,
                 BonusRewardFactor = factor,
                 Reward = completion,
                 SpeedBonus = new()
@@ -2752,6 +2793,9 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public ushort MinCount { get; set; }
         public ushort MaxCount { get; set; }
         public uint MinHeroLevel { get; set; } = 1;
+        public uint CountIncrement { get; set; } = 1;
+        public float RewardRamp { get; set; } = 1;
+        public float PartyHeroLevelRamp { get; set; } = 1;
         public float XpMult { get; set; }
         public float BoltMult { get; set; }
         public float ClassXpMult { get; set; }
@@ -2772,6 +2816,11 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 if (MobDefMask == 0 || MinCount == 0 || MaxCount < MinCount || MinHeroLevel < 1 || MinHeroLevel > 99)
                     return false;
 
+                if (CountIncrement < 1 || CountIncrement > ushort.MaxValue
+                    || !float.IsFinite(RewardRamp) || RewardRamp < 0
+                    || !float.IsFinite(PartyHeroLevelRamp) || PartyHeroLevelRamp < -4 || PartyHeroLevelRamp > 4)
+                    return false;
+
                 if (!float.IsFinite(XpMult) || XpMult < 0)
                     return false;
                 if (!float.IsFinite(BoltMult) || BoltMult < 0)
@@ -2789,6 +2838,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 foreach (var difficulty in Difficulties)
                 {
                     if (difficulty == null || difficulty.Reward == null || difficulty.SpeedBonus == null
+                        || (difficulty.TargetTimeSeconds != null && (difficulty.TargetTimeSeconds.Length != 5 || difficulty.TotalReward == null))
                         || !float.IsFinite(difficulty.BonusRewardFactor) || difficulty.BonusRewardFactor < 0 || difficulty.BonusRewardFactor > 1)
                         return false;
                 }
@@ -2797,6 +2847,18 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             }
 
             return false;
+        }
+
+        public double GetRewardCount(uint count)
+        {
+            // clamp to the count range and preserve endpoints for fixed counts and a zero reward ramp
+            if (count <= MinCount || MaxCount <= MinCount) return MinCount;
+            if (count >= MaxCount) return MaxCount;
+            if (RewardRamp == 1) return count;
+
+            // apply the reward ramp within the count range to get the count used for reward multipliers
+            var normalized = (double)(count - MinCount) / (MaxCount - MinCount);
+            return MinCount + (MaxCount - MinCount) * Math.Pow(normalized, RewardRamp);
         }
 
         public void Deserialize(BinaryReader reader)
@@ -2813,6 +2875,9 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 MinCount = reader.ReadUInt16();
                 MaxCount = reader.ReadUInt16();
                 MinHeroLevel = reader.ReadUInt32();
+                CountIncrement = reader.ReadUInt32();
+                RewardRamp = reader.ReadSingle();
+                PartyHeroLevelRamp = reader.ReadSingle();
             }
             else if (Type == RaidsContractType.Clear)
             {
@@ -2841,6 +2906,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public string MapName { get; set; }
         public DateTime ExpiresUtc { get; set; }
         public int CompletedDifficulty { get; set; } = -1;
+        public int CompletedPartySize { get; set; } = 1;
         public RaidsContractReward Reward { get; set; } = new();
         public RaidsContractDifficulty[] Difficulties { get; set; }
 
@@ -2849,9 +2915,9 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         public bool HasSpeedBonus => Type == RaidsContractType.Clear
             && CompletedDifficulty >= 0
-            && Difficulties[CompletedDifficulty].TargetTimeMs > 0
+            && Difficulties[CompletedDifficulty].ForPartySize(CompletedPartySize).TargetTimeMs > 0
             && Difficulties[CompletedDifficulty].BonusRewardFactor > 0
-            && CompletedTimeMs <= Difficulties[CompletedDifficulty].TargetTimeMs;
+            && CompletedTimeMs <= Difficulties[CompletedDifficulty].ForPartySize(CompletedPartySize).TargetTimeMs;
 
         public RaidsContractReward Payout
         {
@@ -2862,7 +2928,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
                 if (Type == RaidsContractType.Clear && CompletedDifficulty >= 0)
                 {
-                    var difficulty = Difficulties[CompletedDifficulty];
+                    var difficulty = Difficulties[CompletedDifficulty].ForPartySize(CompletedPartySize);
                     return HasSpeedBonus || difficulty.TargetTimeMs == 0 || difficulty.BonusRewardFactor == 0
                         ? difficulty.Reward.Add(difficulty.SpeedBonus) : difficulty.Reward;
                 }
@@ -2889,9 +2955,11 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             return flags;
         }
 
-        public void Write(BinaryWriter writer, int previewDifficulty, DateTime now, RaidsContractReceipt receipt = null, bool claimed = false, string label = null)
+        public void Write(BinaryWriter writer, int previewDifficulty, DateTime now, RaidsContractReceipt receipt = null, bool claimed = false, string label = null, int previewPartySize = 1)
         {
             var difficulty = CompletedDifficulty >= 0 ? CompletedDifficulty : previewDifficulty;
+            var completion = Type == RaidsContractType.Clear
+                ? Difficulties[difficulty].ForPartySize(Completed ? CompletedPartySize : previewPartySize) : null;
             var flags = Flags(now);
             if (receipt != null)
                 flags |= receipt.Claimed ? RaidsContractFlags.Claimed : RaidsContractFlags.Claimable;
@@ -2906,7 +2974,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             if (Type == RaidsContractType.Kill)
                 reward = Reward;
             else if (Type == RaidsContractType.Clear)
-                reward = Completed ? Payout : Difficulties[difficulty].Reward;
+                reward = Completed ? Payout : completion.Reward;
 
             reward.Write(writer);
 
@@ -2920,9 +2988,9 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             else if (Type == RaidsContractType.Clear)
             {
                 writer.Write(CompletedTimeMs);
-                writer.Write(Difficulties[difficulty].TargetTimeMs);
-                (!Completed ? Difficulties[difficulty].SpeedBonus : new RaidsContractReward()).Write(writer);
-                writer.Write(Difficulties[difficulty].TargetTimeMs > 0 ? Difficulties[difficulty].BonusRewardFactor : 0);
+                writer.Write(completion.TargetTimeMs);
+                (!Completed ? completion.SpeedBonus : new RaidsContractReward()).Write(writer);
+                writer.Write(completion.TargetTimeMs > 0 ? completion.BonusRewardFactor : 0);
             }
             else
             {
@@ -2972,12 +3040,17 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         public static uint TargetKills(RaidsContractRule rule, IEnumerable<int> heroLevels, Random random = null)
         {
-            var strength = Math.Max(1, heroLevels.Sum(level => 1 + 3 * Math.Clamp((level - 10) / 89.0, 0, 1)));
-            // round to 11 evenly spaced targets, biasing larger and stronger parties toward higher targets
-            var progress = Math.Pow((random ?? Random.Shared).NextDouble(), 1 / strength);
-            var step = Math.Round(progress * 10, MidpointRounding.AwayFromZero);
-            var count = rule.MinCount + (rule.MaxCount - rule.MinCount) * (step / 10.0);
-            return (uint)Math.Clamp(Math.Round(count, MidpointRounding.AwayFromZero), rule.MinCount, rule.MaxCount);
+            var averageLevel = heroLevels.Select(level => Math.Clamp(level, 1, 99)).DefaultIfEmpty(1).Average();
+
+            // bias the roll by the party's average hero level
+            // positive ramps favor higher counts for higher-level parties; negative ramps reverse this
+            var exponent = Math.Pow(2, -rule.PartyHeroLevelRamp * (2 * (averageLevel - 1) / 98.0 - 1));
+            var progress = Math.Pow((random ?? Random.Shared).NextDouble(), exponent);
+
+            // select a count from MinCount in CountIncrement steps without exceeding MaxCount
+            var steps = (uint)(rule.MaxCount - rule.MinCount) / rule.CountIncrement;
+            var step = Math.Min(steps, (uint)Math.Floor(progress * (steps + 1)));
+            return rule.MinCount + step * rule.CountIncrement;
         }
 
         public uint AllocateUid()
@@ -3037,7 +3110,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     continue;
 
                 var target = TargetKills(rule, heroLevels);
-                var heroXp = RaidsContractReward.Saturate(target * (double)rule.XpMult);
+                var rewardCount = rule.GetRewardCount(target);
+                var heroXp = RaidsContractReward.Saturate(rewardCount * rule.XpMult);
                 board.Contracts.Add(new()
                 {
                     Uid = AllocateUid(),
@@ -3051,10 +3125,10 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     ExpiresUtc = now.AddHours(6),
                     Reward = new()
                     {
-                        Bolts = RaidsContractReward.Saturate(target * (double)rule.BoltMult),
+                        Bolts = RaidsContractReward.Saturate(rewardCount * rule.BoltMult),
                         PlayerXp = heroXp,
                         WeaponXp = (uint)((ulong)heroXp * 3 / 10),
-                        ClassXp = RaidsContractReward.Saturate(target * (double)rule.ClassXpMult)
+                        ClassXp = RaidsContractReward.Saturate(rewardCount * rule.ClassXpMult)
                     }
                 });
                 usedNames.Add(rule.Name);
