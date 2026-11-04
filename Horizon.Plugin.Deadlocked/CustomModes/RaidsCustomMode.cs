@@ -1531,39 +1531,38 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
     public class RaidsUserSettings
     {
-        public const int CURRENT_VERSION = 1;
-        public const int SERIALIZED_SIZE = 4;
+        public const int SERIALIZED_SIZE = 3;
 
-        public int Version { get; set; } = CURRENT_VERSION;
         public int MapLod { get; set; } = 2;
         public int MobLod { get; set; } = 2;
         public int AmmoDropPopups { get; set; } = 1;
         public int ContractProgressBars { get; set; } = 1;
+        public int KillXpPopups { get; set; } = 1;
 
         public bool IsValid()
         {
-            return Version == CURRENT_VERSION && MapLod >= 0 && MapLod <= 3
+            return MapLod >= 0 && MapLod <= 3
                 && MobLod >= 0 && MobLod <= 3 && AmmoDropPopups >= 0 && AmmoDropPopups <= 1
-                && ContractProgressBars >= 0 && ContractProgressBars <= 1;
+                && ContractProgressBars >= 0 && ContractProgressBars <= 1
+                && KillXpPopups >= 0 && KillXpPopups <= 1;
         }
 
         public void Deserialize(BinaryReader reader)
         {
-            Version = reader.ReadByte();
             MapLod = reader.ReadByte();
             MobLod = reader.ReadByte();
             var flags = reader.ReadByte();
-            if ((flags & ~0x03) != 0) throw new InvalidDataException("Invalid raids settings flags.");
+            if ((flags & ~0x07) != 0) throw new InvalidDataException("Invalid raids settings flags.");
             AmmoDropPopups = flags & 0x01;
             ContractProgressBars = (flags >> 1) & 0x01;
+            KillXpPopups = (flags >> 2) & 0x01;
         }
 
         public void Serialize(BinaryWriter writer)
         {
-            writer.Write((byte)Version);
             writer.Write((byte)MapLod);
             writer.Write((byte)MobLod);
-            writer.Write((byte)(AmmoDropPopups | (ContractProgressBars << 1)));
+            writer.Write((byte)(AmmoDropPopups | (ContractProgressBars << 1) | (KillXpPopups << 2)));
         }
     }
 
