@@ -19,7 +19,9 @@ namespace Horizon.Plugin.Deadlocked.Messages
             Complete,
             Activate,
             DismissExpired,
-            ClaimPartyRewards
+            ClaimPartyRewards,
+            ProcessAll = 5,
+            GetStatus = 6
         }
 
         public override void Deserialize(MessageReader reader)

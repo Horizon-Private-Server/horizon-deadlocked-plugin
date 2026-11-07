@@ -8,7 +8,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -679,7 +678,9 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             if (client.CurrentGame?.Host == null
                 || (request.Action != RaidsActionContractRequest.ContractActions.Complete
                     && request.Action != RaidsActionContractRequest.ContractActions.DismissExpired
-                    && request.Action != RaidsActionContractRequest.ContractActions.ClaimPartyRewards))
+                    && request.Action != RaidsActionContractRequest.ContractActions.ClaimPartyRewards
+                    && request.Action != RaidsActionContractRequest.ContractActions.ProcessAll
+                    && request.Action != RaidsActionContractRequest.ContractActions.GetStatus))
                 return;
 
             lock (_contractLock)
@@ -689,7 +690,64 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 var hostBank = GetBank(host);
                 if (bank == null || hostBank == null) return;
 
-                if (request.Action == RaidsActionContractRequest.ContractActions.DismissExpired)
+                if (request.Action == RaidsActionContractRequest.ContractActions.GetStatus)
+                {
+                    // status covers all saved rewards and the host's boards without changing selection
+                    var inHub = metadata?.CustomMapConfig?.Filename == HUB_MAP_FILENAME;
+                    var now = DateTime.UtcNow;
+                    ContractReply(client, request, writer =>
+                    {
+                        writer.Write(request.RequestId);
+                        writer.Write(inHub ? (uint)bank.ContractStore.Receipts.Values.Count(r => !r.Claimed) : 0u);
+                        writer.Write(3u); // status response, followed by the expired offer count
+                        writer.Write(inHub ? (uint)hostBank.ContractStore.Boards.Values
+                            .Where(b => hostBank.MapStats.ContainsKey(b.MapFilename))
+                            .Sum(b => b.Contracts.Count(c => !c.Completed && c.ExpiresUtc <= now)) : 0u);
+                    });
+                }
+                else if (request.Action == RaidsActionContractRequest.ContractActions.ProcessAll)
+                {
+                    // clank collects saved rewards across every map and previous host
+                    uint result = 0;
+                    var inHub = metadata?.CustomMapConfig?.Filename == HUB_MAP_FILENAME;
+                    if (inHub)
+                    {
+                        result = 1;
+                        foreach (var receipt in bank.ContractStore.Receipts.Values.Where(r => !r.Claimed).ToList())
+                        {
+                            ClaimContractForParty(client, host, bank, hostBank, receipt);
+                            result |= 4; // claimed rewards, including rewards capped by class/hero level
+                        }
+
+                        // refresh only unfinished expired offers on the shared host boards
+                        var now = DateTime.UtcNow;
+                        var levels = ContractLevels(host);
+                        var hostLevel = RaidsAccount.GetAccountLevelFromXp(hostBank.Account.Experience) + 1;
+                        foreach (var board in hostBank.ContractStore.Boards.Values)
+                        {
+                            if (!hostBank.MapStats.TryGetValue(board.MapFilename, out var map)) continue;
+                            foreach (var contract in board.Contracts.Where(c => !c.Completed && c.ExpiresUtc <= now).ToList())
+                            {
+                                hostBank.ContractStore.Replace(board, contract.Uid, (uint)host.AccountId, map.ContractRules,
+                                    levels, now, hostLevel);
+                                if (!board.Contracts.Any(c => c.Uid == contract.Uid)) result |= 8;
+                            }
+                        }
+
+                        Player.SavePlayerMetadata(client);
+                        if (host != client) Player.SavePlayerMetadata(host);
+                    }
+
+                    // send result and updated account to client
+                    ContractReply(client, request, writer =>
+                    {
+                        writer.Write(request.RequestId);
+                        writer.Write(request.ContractUid);
+                        writer.Write(result);
+                        bank.Account.Serialize(writer);
+                    });
+                }
+                else if (request.Action == RaidsActionContractRequest.ContractActions.DismissExpired)
                 {
                     // the client decides when an offer can be dismissed
                     var dismissed = false;
@@ -740,30 +798,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     var receipt = bank.ContractStore.FindReceipt(request.OwnerAccountId, request.ContractUid);
                     if (receipt != null && !receipt.Claimed)
                     {
-                        // mark eligible party receipts before replacing the shared offer
-                        foreach (var member in GetParty(client))
-                        {
-                            if (member == client) continue;
-                            var memberBank = GetBank(member);
-                            var memberReceipt = memberBank?.ContractStore.FindReceipt(request.OwnerAccountId, request.ContractUid);
-                            if (memberReceipt == null || memberReceipt.Claimed) continue;
-
-                            memberReceipt.PartyClaimPending = true;
-                            NotifyPartyContractClaim(member, request);
-                        }
-
-                        ClaimContractReceipt(bank, receipt);
-
-                        // replace the claimed offer if it belongs to the current host's board
-                        if (request.OwnerAccountId == host.AccountId
-                            && hostBank.ContractStore.Boards.TryGetValue(receipt.Contract.MapFilename, out var board)
-                            && hostBank.MapStats.TryGetValue(board.MapFilename, out var map))
-                        {
-                            hostBank.ContractStore.Replace(board, request.ContractUid, (uint)host.AccountId, map.ContractRules,
-                                ContractLevels(host), DateTime.UtcNow, RaidsAccount.GetAccountLevelFromXp(hostBank.Account.Experience) + 1);
-                            if (host != client)
-                                Player.SavePlayerMetadata(host);
-                        }
+                        ClaimContractForParty(client, host, bank, hostBank, receipt);
 
                         // save
                         Player.SavePlayerMetadata(client);
@@ -964,6 +999,35 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             }
 
             return Task.CompletedTask;
+        }
+
+        private static void ClaimContractForParty(ClientObject client, ClientObject host, RaidsBank bank,
+            RaidsBank hostBank, RaidsContractReceipt receipt)
+        {
+            // mark eligible party receipts before replacing the shared offer
+            foreach (var member in GetParty(client))
+            {
+                if (member == client) continue;
+                var memberBank = GetBank(member);
+                var memberReceipt = memberBank?.ContractStore.FindReceipt(receipt.Contract.OwnerAccountId, receipt.Contract.Uid);
+                if (memberReceipt == null || memberReceipt.Claimed) continue;
+
+                memberReceipt.PartyClaimPending = true;
+                NotifyPartyContractClaim(member, new RaidsActionContractRequest());
+            }
+
+            ClaimContractReceipt(bank, receipt);
+
+            // replace the claimed offer if it belongs to the current host's board
+            if (receipt.Contract.OwnerAccountId == host.AccountId
+                && hostBank.ContractStore.Boards.TryGetValue(receipt.Contract.MapFilename, out var board)
+                && hostBank.MapStats.TryGetValue(board.MapFilename, out var map))
+            {
+                hostBank.ContractStore.Replace(board, receipt.Contract.Uid, (uint)host.AccountId, map.ContractRules,
+                    ContractLevels(host), DateTime.UtcNow, RaidsAccount.GetAccountLevelFromXp(hostBank.Account.Experience) + 1);
+                if (host != client)
+                    Player.SavePlayerMetadata(host);
+            }
         }
 
         private static void ClaimContractReceipt(RaidsBank bank, RaidsContractReceipt receipt)
