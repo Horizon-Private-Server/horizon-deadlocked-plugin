@@ -1041,6 +1041,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             // class xp belongs to the class equipped at completion
             if (payout.ClassXp > 0 && RAIDS_CLASSES.Any(c => (int)c.ClassType == receipt.ClassType))
             {
+                bank.Account.Dreadpoints += Math.Min((ulong)payout.ClassXp, ulong.MaxValue - bank.Account.Dreadpoints);
                 var type = (RaidsClassType)receipt.ClassType;
                 if (!bank.Account.ClassStats.TryGetValue(type, out var stats))
                     bank.Account.ClassStats[type] = stats = new RaidsClassStats();
@@ -1067,7 +1068,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 writer.Write(0u);
                 writer.Write(store.PartyClaimUid);
                 writer.Write(2u);
-                writer.Write(new byte[152]);
+                writer.Write(new byte[RaidsAccount.SERIALIZED_SIZE]);
             });
         }
 
@@ -1364,7 +1365,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
     public class RaidsBank
     {
-        public const int RAIDS_BANK_VERSION = 5;
+        public const int RAIDS_BANK_VERSION = 6;
 
         public int Version { get; set; } = 0;
         public RaidsInventory Inventory { get; set; } = new RaidsInventory();
@@ -1588,6 +1589,13 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                             Account.WeaponExperience = Account.WeaponXp?.Sum() ?? 0;
                             break;
                         }
+                    case 6: // seed global dreadpoints from saved class xp
+                        {
+                            Account.Dreadpoints = 0;
+                            foreach (var stats in Account.ClassStats.Values)
+                                Account.Dreadpoints += Math.Min(stats.Experience, ulong.MaxValue - Account.Dreadpoints);
+                            break;
+                        }
                 }
             }
         }
@@ -1634,9 +1642,10 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
     {
         public const int SKILLS_COUNT = 4;
         public const int LEGACY_WEAPON_COUNT = 8;
-        public const int SERIALIZED_SIZE = 152;
+        public const int SERIALIZED_SIZE = 160;
 
         public ulong Experience { get; set; } = 0;
+        public ulong Dreadpoints { get; set; } = 0;
 
         // saved metadata only; migration 5 still needs these for returning accounts
         public double[] WeaponXp { get; set; } = new double[LEGACY_WEAPON_COUNT];
@@ -1769,6 +1778,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public void Update(RaidsAccount account)
         {
             this.Experience = account.Experience;
+            this.Dreadpoints = account.Dreadpoints;
             this.Bolts = account.Bolts;
             this.WeaponExperience = account.WeaponExperience;
             if (RaidsCustomMode.RAIDS_CLASSES.Any(x => x.ClassType == account.EquippedClass))
@@ -1790,6 +1800,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             for (int i = 0; i < RaidsCustomMode.MAX_CLASSES; ++i)
                 writer.Write(ClassStats.GetValueOrDefault((RaidsClassType)i)?.Experience ?? 0);
             writer.Write(WeaponExperience);
+            writer.Write(Dreadpoints);
         }
 
         public void Deserialize(BinaryReader reader)
@@ -1800,6 +1811,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             for (int i = 0; i < RaidsCustomMode.MAX_CLASSES; ++i)
                 ClassStats[(RaidsClassType)i] = new RaidsClassStats { Experience = reader.ReadUInt64() };
             WeaponExperience = reader.ReadDouble();
+            Dreadpoints = reader.ReadUInt64();
         }
     }
 
