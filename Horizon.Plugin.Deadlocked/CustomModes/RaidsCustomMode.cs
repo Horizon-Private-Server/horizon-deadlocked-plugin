@@ -434,10 +434,10 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     bank.ItemStore.Refresh(bank.Account, false);
 
                     // items
-                    var items = bank.ItemStore.GetPaginatedWithFixedItems(request.Page, request.PageSize, out int itemsCount);
+                    var items = bank.ItemStore.GetPaginatedFixedItems(request.Page, request.PageSize, out int itemsCount);
                     foreach (var item in items)
                     {
-                        item.Price = RaidsInventoryItem.ComputeBuyPrice(item);
+                        item.Price = 50_000; // RaidsInventoryItem.ComputeBuyPrice(item);
                         item.Serialize(writer);
                     }
 
@@ -2693,6 +2693,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             }
 
             return [];
+        }
+
+        public IEnumerable<RaidsInventoryItem> GetPaginatedFixedItems(int page, int pageSize, out int totalCount)
+        {
+            totalCount = FIXED_ITEMS.Count;
+            return FIXED_ITEMS.Skip(page * pageSize).Take(pageSize);
         }
 
         public IEnumerable<RaidsInventoryItem> GetPaginatedWithFixedItems(int page, int pageSize, out int totalCount)
