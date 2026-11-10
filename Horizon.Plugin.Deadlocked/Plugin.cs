@@ -814,21 +814,6 @@ namespace Horizon.Plugin.Deadlocked
                                     mode.OnClientUpdateContractStats(request, msg.Player, metadata);
                                     break;
                                 }
-                            case 67: // raids update map metadata
-                                {
-                                    var request = new RaidsUpdateMapMetadataRequest();
-                                    request.Deserialize(reader);
-
-                                    if (msg.Player.CurrentGame == null) break;
-
-                                    var mode = Modes.FindCustomModeById(CustomModeId.CMODE_ID_RAIDS) as RaidsCustomMode;
-                                    var metadata = await Game.GetGameMetadata(msg.Player.CurrentGame);
-                                    if (metadata == null) break;
-                                    if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_RAIDS) break;
-
-                                    mode.OnClientUpdateMapMetadata(request, msg.Player);
-                                    break;
-                                }
                             case 68: // raids update map contract rules
                                 {
                                     var request = new RaidsUpdateMapContractRulesRequest();

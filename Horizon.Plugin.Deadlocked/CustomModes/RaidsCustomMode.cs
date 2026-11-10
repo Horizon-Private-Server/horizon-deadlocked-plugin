@@ -539,22 +539,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             Player.SavePlayerMetadata(client);
         }
 
-        public void OnClientUpdateMapMetadata(RaidsUpdateMapMetadataRequest request, ClientObject client)
-        {
-            var bank = GetBank(client);
-            if (bank == null) return;
-
-            var mapStats = bank.MapStats.GetValueOrDefault(request.MapFilename);
-            if (mapStats == null)
-                bank.MapStats.Add(request.MapFilename, mapStats = new RaidsMapStats());
-
-            // add & save
-            if (request.MobOClass > 0 && mapStats.EnabledMobs.Add((request.MobOClass, request.MobDifficulty)))
-            {
-                Player.SavePlayerMetadata(client);
-            }
-        }
-
         public void OnClientSetMissionCompleted(RaidsSetMissionCompletedRequest request, ClientObject client)
         {
             if (request.Difficulty < 0 || request.Difficulty >= 5) return;
@@ -3281,9 +3265,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public int ContractsCompleted { get; set; } = 0;
 
         public List<RaidsContractRule> ContractRules { get; set; } = new List<RaidsContractRule>();
-
-        // set of oclasses from kills on the map
-        public HashSet<(int oclass, int difficultyStars)> EnabledMobs { get; set; } = new HashSet<(int oclass, int difficultyStars)>();
 
         public float GetPercentComplete(bool ignoreTimes = false)
         {
