@@ -19,7 +19,7 @@ namespace Horizon.Plugin.Deadlocked.Messages
         public class ContractStat
         {
             public uint ContractUid { get; set; }
-            public uint Progress { get; set; } // kills or completion time, based on the contract type
+            public uint Progress { get; set; } // count or completion time, based on the contract type
             public byte Flags { get; set; }
             public sbyte Difficulty { get; set; }
             public byte PartySize { get; set; }

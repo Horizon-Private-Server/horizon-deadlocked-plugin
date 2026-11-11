@@ -48,8 +48,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         private static RaidsBank GetBank(ClientObject client, bool initialize = true)
         {
             var bank = Player.GetPlayerMetadata(client)?.RaidsBank;
-            if (initialize)
-                bank?.Initialize();
+            if (initialize && bank?.Initialize() == true)
+                Player.SavePlayerMetadata(client);
 
             return bank;
         }
@@ -624,9 +624,9 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     var contract = board.Contracts.FirstOrDefault(c => c.Uid == stat.ContractUid);
                     if (contract == null || contract.Completed || contract.IsExpired(now)) continue;
 
-                    if (contract.Type == RaidsContractType.Kill)
+                    if (contract.Type == RaidsContractType.Kill || contract.Type == RaidsContractType.Task)
                     {
-                        contract.Kills = Math.Min(contract.RequiredKills, Math.Max(contract.Kills, stat.Progress));
+                        contract.UpdateCount(stat.Progress, (stat.Flags & (byte)RaidsContractFlags.TaskStarted) != 0);
                     }
                     else if (contract.Type == RaidsContractType.Clear
                         && stat.Progress > 0 && stat.Difficulty >= 0 && stat.Difficulty < 5
@@ -1119,7 +1119,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                         pending ? $"{contract.MapName}: {contract.Name}" : null, (int)request.PartySize);
 
                 // pad unused contract slots
-                writer.Write(new byte[(3 - contracts.Count) * 92]);
+                writer.Write(new byte[(3 - contracts.Count) * RaidsContract.SERIALIZED_SIZE]);
             });
         }
 
@@ -1143,8 +1143,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     writer.Write(contract.Uid);
 
                     uint progress = 0;
-                    if (contract.Type == RaidsContractType.Kill)
-                        progress = contract.Kills;
+                    if (contract.Type == RaidsContractType.Kill || contract.Type == RaidsContractType.Task)
+                        progress = contract.Count;
                     else if (contract.Type == RaidsContractType.Clear)
                         progress = contract.CompletedTimeMs;
 
@@ -1324,7 +1324,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
     public enum RaidsContractType
     {
         Kill = 0,
-        Clear = 1
+        Clear = 1,
+        Task = 2
     }
 
     [Flags]
@@ -1335,12 +1336,13 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         Expired = 1 << 1,
         Claimable = 1 << 2,
         Claimed = 1 << 3,
-        SpeedBonusEarned = 1 << 4
+        SpeedBonusEarned = 1 << 4,
+        TaskStarted = 1 << 5
     }
 
     public class RaidsBank
     {
-        public const int RAIDS_BANK_VERSION = 6;
+        public const int RAIDS_BANK_VERSION = 7;
 
         public int Version { get; set; } = 0;
         public RaidsInventory Inventory { get; set; } = new RaidsInventory();
@@ -1546,6 +1548,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                             Account.Dreadpoints = 0;
                             foreach (var stats in Account.ClassStats.Values)
                                 Account.Dreadpoints += Math.Min(stats.Experience, ulong.MaxValue - Account.Dreadpoints);
+                            break;
+                        }
+                    case 7: // regenerate contracts with rule indices and generic count fields
+                        {
+                            // discard old offers and receipts without reusing their ids
+                            ContractStore = new RaidsContractStore { NextUid = ContractStore.NextUid };
                             break;
                         }
                 }
@@ -2775,9 +2783,9 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             if (Encoding.UTF8.GetByteCount(Name) > 31 || Name.Any(char.IsControl))
                 return false;
 
-            if (Type == RaidsContractType.Kill)
+            if (Type == RaidsContractType.Kill || Type == RaidsContractType.Task)
             {
-                if (MobDefMask == 0 || MinCount == 0 || MaxCount < MinCount || MinHeroLevel < 1 || MinHeroLevel > 99)
+                if ((Type == RaidsContractType.Kill && MobDefMask == 0) || (Type == RaidsContractType.Task && MobDefMask != 0) || MinCount == 0 || MaxCount < MinCount || MinHeroLevel < 1 || MinHeroLevel > 99)
                     return false;
 
                 if (CountIncrement < 1 || CountIncrement > ushort.MaxValue
@@ -2825,13 +2833,26 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             return MinCount + (MaxCount - MinCount) * Math.Pow(normalized, RewardRamp);
         }
 
+        public RaidsContractReward GetReward(uint count)
+        {
+            var rewardCount = GetRewardCount(count);
+            var heroXp = RaidsContractReward.Saturate(rewardCount * XpMult);
+            return new()
+            {
+                Bolts = RaidsContractReward.Saturate(rewardCount * BoltMult),
+                PlayerXp = heroXp,
+                WeaponXp = (uint)((ulong)heroXp * 3 / 10),
+                ClassXp = RaidsContractReward.Saturate(rewardCount * ClassXpMult)
+            };
+        }
+
         public void Deserialize(BinaryReader reader)
         {
             Type = (RaidsContractType)reader.ReadUInt16();
             MobDefMask = reader.ReadUInt16();
             Name = Encoding.UTF8.GetString(reader.ReadBytes(32)).TrimEnd('\0');
 
-            if (Type == RaidsContractType.Kill)
+            if (Type == RaidsContractType.Kill || Type == RaidsContractType.Task)
             {
                 XpMult = reader.ReadSingle();
                 BoltMult = reader.ReadSingle();
@@ -2858,10 +2879,14 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
     public class RaidsContract
     {
+        public const int SERIALIZED_SIZE = 96;
+
         public uint Uid { get; set; }
         public uint OwnerAccountId { get; set; }
-        public uint RequiredKills { get; set; }
-        public uint Kills { get; set; }
+        public uint TargetCount { get; set; }
+        public uint Count { get; set; }
+        public bool TaskStarted { get; set; }
+        public int RuleIndex { get; set; } = -1;
         public uint CompletedTimeMs { get; set; }
         public RaidsContractType Type { get; set; }
         public ushort MobDefMask { get; set; }
@@ -2874,7 +2899,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public RaidsContractReward Reward { get; set; } = new();
         public RaidsContractDifficulty[] Difficulties { get; set; }
 
-        public bool Completed => (Type == RaidsContractType.Kill && RequiredKills > 0 && Kills >= RequiredKills)
+        public bool Completed => ((Type == RaidsContractType.Kill || Type == RaidsContractType.Task && TaskStarted) && TargetCount > 0 && Count >= TargetCount)
             || (Type == RaidsContractType.Clear && CompletedTimeMs > 0);
 
         public bool HasSpeedBonus => Type == RaidsContractType.Clear
@@ -2887,7 +2912,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         {
             get
             {
-                if (Type == RaidsContractType.Kill)
+                if (Type == RaidsContractType.Kill || Type == RaidsContractType.Task)
                     return Reward;
 
                 if (Type == RaidsContractType.Clear && CompletedDifficulty >= 0)
@@ -2908,7 +2933,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         public RaidsContractFlags Flags(DateTime now)
         {
-            var flags = RaidsContractFlags.None;
+            var flags = TaskStarted && Type == RaidsContractType.Task ? RaidsContractFlags.TaskStarted : RaidsContractFlags.None;
             if (Completed)
                 flags |= RaidsContractFlags.Complete;
             if (IsExpired(now))
@@ -2917,6 +2942,18 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 flags |= RaidsContractFlags.SpeedBonusEarned;
 
             return flags;
+        }
+
+        public void UpdateCount(uint count, bool taskStarted)
+        {
+            if (Completed) return;
+            if (Type == RaidsContractType.Task)
+            {
+                TaskStarted |= taskStarted;
+                if (TaskStarted) Count = Math.Min(TargetCount, count);
+            }
+            else if (Type == RaidsContractType.Kill)
+                Count = Math.Min(TargetCount, count);
         }
 
         public void Write(BinaryWriter writer, int previewDifficulty, DateTime now, RaidsContractReceipt receipt = null, bool claimed = false, string label = null, int previewPartySize = 1)
@@ -2933,20 +2970,21 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             // identity and rewards
             writer.Write(Uid);
             writer.Write(OwnerAccountId);
+            writer.Write(RuleIndex);
 
             var reward = new RaidsContractReward();
-            if (Type == RaidsContractType.Kill)
+            if (Type == RaidsContractType.Kill || Type == RaidsContractType.Task)
                 reward = Reward;
             else if (Type == RaidsContractType.Clear)
                 reward = Completed ? Payout : completion.Reward;
 
             reward.Write(writer);
 
-            // kill and clear contracts share the same payload space
-            if (Type == RaidsContractType.Kill)
+            // count and clear contracts share the same payload space
+            if (Type == RaidsContractType.Kill || Type == RaidsContractType.Task)
             {
-                writer.Write(RequiredKills);
-                writer.Write(Kills);
+                writer.Write(TargetCount);
+                writer.Write(Count);
                 writer.Write(new byte[20]); // unused union space
             }
             else if (Type == RaidsContractType.Clear)
@@ -3002,7 +3040,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public uint NextUid { get; set; }
         public uint PartyClaimUid { get; set; }
 
-        public static uint TargetKills(RaidsContractRule rule, IEnumerable<int> heroLevels, Random random = null)
+        public static uint GetTargetCount(RaidsContractRule rule, IEnumerable<int> heroLevels, Random random = null)
         {
             var averageLevel = heroLevels.Select(level => Math.Clamp(level, 1, 99)).DefaultIfEmpty(1).Average();
 
@@ -3036,7 +3074,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public void Refresh(RaidsContractBoard board, uint owner, IReadOnlyList<RaidsContractRule> rules,
             IEnumerable<int> heroLevels, DateTime now, int hostHeroLevel, RaidsContract previous = null)
         {
-            var usedNames = board.Contracts.Where(c => c.Type == RaidsContractType.Kill).Select(c => c.Name).ToHashSet(StringComparer.Ordinal);
+            var usedNames = board.Contracts.Where(c => (c.Type == RaidsContractType.Kill || c.Type == RaidsContractType.Task)).Select(c => c.Name).ToHashSet(StringComparer.Ordinal);
             var usedMasks = board.Contracts.Where(c => c.Type == RaidsContractType.Kill).Select(c => c.MobDefMask).ToHashSet();
 
             // add the map's clear contract if there is room
@@ -3050,6 +3088,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     Uid = AllocateUid(),
                     OwnerAccountId = owner,
                     Type = RaidsContractType.Clear,
+                    RuleIndex = rules.ToList().IndexOf(completion),
                     Name = completion.Name,
                     MapFilename = board.MapFilename,
                     MapName = board.MapName,
@@ -3059,44 +3098,37 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             }
 
             // use the highest unlocked tier for each contract name
-            var killRules = rules.Where(r => r.Type == RaidsContractType.Kill && r.IsValid() && hostHeroLevel >= r.MinHeroLevel)
+            var countRules = rules.Where(r => (r.Type == RaidsContractType.Kill || r.Type == RaidsContractType.Task) && r.IsValid() && hostHeroLevel >= r.MinHeroLevel)
                 .GroupBy(r => r.Name, StringComparer.Ordinal)
                 .SelectMany(group => group.Where(r => r.MinHeroLevel == group.Max(candidate => candidate.MinHeroLevel)));
 
             // prefer a different objective when replacing an offer
-            foreach (var rule in killRules
-                .OrderBy(r => previous != null && (r.Name == previous.Name || r.MobDefMask == previous.MobDefMask) ? 1 : 0)
+            foreach (var rule in countRules
+                .OrderBy(r => previous != null && (r.Name == previous.Name || (r.Type == RaidsContractType.Kill && previous.Type == RaidsContractType.Kill && r.MobDefMask == previous.MobDefMask)) ? 1 : 0)
                 .ThenBy(_ => Random.Shared.Next()))
             {
                 if (board.Contracts.Count >= MAX_CONTRACTS)
                     break;
-                if (usedNames.Contains(rule.Name) || usedMasks.Contains(rule.MobDefMask))
+                if (usedNames.Contains(rule.Name) || (rule.Type == RaidsContractType.Kill && usedMasks.Contains(rule.MobDefMask)))
                     continue;
 
-                var target = TargetKills(rule, heroLevels);
-                var rewardCount = rule.GetRewardCount(target);
-                var heroXp = RaidsContractReward.Saturate(rewardCount * rule.XpMult);
+                var target = GetTargetCount(rule, heroLevels);
                 board.Contracts.Add(new()
                 {
                     Uid = AllocateUid(),
                     OwnerAccountId = owner,
-                    Type = RaidsContractType.Kill,
+                    Type = rule.Type,
+                    RuleIndex = rules.ToList().IndexOf(rule),
                     Name = rule.Name,
                     MobDefMask = rule.MobDefMask,
                     MapFilename = board.MapFilename,
                     MapName = board.MapName,
-                    RequiredKills = target,
+                    TargetCount = target,
                     ExpiresUtc = now.AddHours(6),
-                    Reward = new()
-                    {
-                        Bolts = RaidsContractReward.Saturate(rewardCount * rule.BoltMult),
-                        PlayerXp = heroXp,
-                        WeaponXp = (uint)((ulong)heroXp * 3 / 10),
-                        ClassXp = RaidsContractReward.Saturate(rewardCount * rule.ClassXpMult)
-                    }
+                    Reward = rule.GetReward(target)
                 });
                 usedNames.Add(rule.Name);
-                usedMasks.Add(rule.MobDefMask);
+                if (rule.Type == RaidsContractType.Kill) usedMasks.Add(rule.MobDefMask);
             }
         }
 
