@@ -21,7 +21,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public static readonly int MAX_WEAPON_LEVEL = 98;
         public static readonly string HUB_MAP_FILENAME = "raids_hub";
 
-        // Keep progression, weapons and unlock rules in sync with codegen/rc4/raids/classes.c.
+        // Keep progression, weapons and unlock rules in sync with codegen/rc4/raids/classes/classes.c.
         public static readonly List<RaidsClassProgression> RAIDS_CLASSES =
         [
             new(RaidsClassType.Gunner, 1.0m, 1, [Gadgets.Vipers]),
