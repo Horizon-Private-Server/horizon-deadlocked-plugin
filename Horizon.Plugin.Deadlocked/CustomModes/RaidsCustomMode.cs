@@ -239,6 +239,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     }
                 case RaidsUpdateBankInventoryItemRequest.ItemUpdateAction.Upgrade:
                     {
+                        if (!existingItem.IsWeapon() || !request.Item.IsWeapon() || request.Item.WeaponData == null) return;
+
                         existingItem.WeaponData.Upgrades = request.Item.WeaponData.Upgrades;
                         existingItem.WeaponData.MaxUpgrades = request.Item.WeaponData.MaxUpgrades;
                         existingItem.WeaponData.AlphaModCounts = request.Item.WeaponData.AlphaModCounts;
@@ -1222,23 +1224,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         ALL = Glow | Additive
     }
 
-    public enum RaidsBadgeType
-    {
-        NONE = 0,
-        HEALTH_REGEN,
-        AMMO_REGEN,
-        SHARPSHOOTER,
-        BERSERKER,
-        DAMAGE_COOLDOWN,
-        HEALTH_BUFF,
-        ALPHA_AMMO_BUFF,
-        ALPHA_AREA_BUFF,
-        ALPHA_SPEED_BUFF,
-        ALPHA_IMPACT_BUFF,
-        EXPLODING_ENEMIES,
-        COUNT
-    };
-
     public enum RaidsClassSkillId : byte
     {
         None = 0,
@@ -1311,7 +1296,13 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
     {
         None = 0,
         Weapon,
-        Badge
+        Misc,
+    };
+
+    public enum RaidsMiscItemType : uint
+    {
+        None = 0,
+        DoubleXp,
     };
 
     public enum RaidsItemRarity
@@ -1396,7 +1387,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 Inventory.GenerateUid(Inventory.AllItems[i]);
 
             // equip base weapons
-            Inventory.EquippedBadgeUid = 0;
             for (var i = 0; i < 8; ++i)
                 Inventory.EquippedWeaponUids[i] = Inventory.AllItems[i].Uid.Value;
 
@@ -1414,11 +1404,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             // Account.Bolts = 300000; // start with 300k bolts
 
             Version = RAIDS_BANK_VERSION;
-
-            //for (int i = 2; i < RaidsInventory.ITEMS_COUNT; ++i)
-            //{
-            //    Inventory.Items[i] = RaidsInventoryItem.GenerateBadge(new RaidsGenerateLootDropRequest() { Type = RaidsGenerateLootDropRequest.GenerateLootDropRequestType.MissionCompleteEvent }, Account);
-            //}
 
             // give random stats/weapons
             if (false)
@@ -1460,7 +1445,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             if (item == null) return;
             if (!item.IsValid()) return;
             if (!item.Uid.HasValue) return;
-            if (sell && (Inventory.EquippedBadgeUid == item.Uid.Value || Inventory.EquippedWeaponUids.Contains(item.Uid.Value))) return;
+            if (sell && Inventory.EquippedWeaponUids.Contains(item.Uid.Value)) return;
 
             Unequip(item);
             Inventory.AllItems.Remove(item);
@@ -1476,11 +1461,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
             switch (item.Type)
             {
-                case RaidsItemType.Badge:
-                    {
-                        Inventory.EquippedBadgeUid = item.Uid.Value;
-                        break;
-                    }
                 case RaidsItemType.Weapon:
                     {
                         var slotId = RaidsInventoryItem.GetWeaponIndex(item.WeaponData.GadgetId);
@@ -1500,12 +1480,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
             switch (item.Type)
             {
-                case RaidsItemType.Badge:
-                    {
-                        if (Inventory.EquippedBadgeUid == item.Uid)
-                            Inventory.EquippedBadgeUid = 0;
-                        break;
-                    }
                 case RaidsItemType.Weapon:
                     {
                         var slotId = RaidsInventoryItem.GetWeaponIndex(item.WeaponData.GadgetId);
@@ -1560,12 +1534,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                             foreach (var item in Inventory.AllItems)
                                 Inventory.GenerateUid(item);
 
-                            break;
-                        }
-                    case 4: // remove badges
-                        {
-                            Inventory.AllItems.RemoveAll(x => x.Type == RaidsItemType.Badge);
-                            Inventory.EquippedBadgeUid = 0;
                             break;
                         }
                     case 5: // retain for accounts that have not migrated to shared weapon XP
@@ -1818,7 +1786,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         public List<RaidsInventoryItem> AllItems { get; set; } = new List<RaidsInventoryItem>();
         public uint[] EquippedWeaponUids { get; set; } = new uint[EQUIPPED_SIZE];
-        public uint EquippedBadgeUid { get; set; } = 0;
 
         public RaidsInventoryItem Get(uint uid)
         {
@@ -1884,11 +1851,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             for (int i = 0; i < EQUIPPED_SIZE; ++i)
             {
                 var item = Get(EquippedWeaponUids[i]);
-                (item ?? RaidsInventoryItem.Empty).Serialize(writer);
+                (item != null && item.IsWeapon() ? item : RaidsInventoryItem.Empty).Serialize(writer);
             }
-
-            var badge = Get(EquippedBadgeUid);
-            (badge ?? RaidsInventoryItem.Empty).Serialize(writer);
 
             writer.Write(1); // tells the client the server just sent a payload
         }
@@ -1914,7 +1878,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         //    writer.Write(weaponsCount);
         //    writer.Write(1); // tells the client the server just sent a payload
-        //    writer.Write(EquippedBadgeUid);
         //    for (int i = 0; i < EQUIPPED_SIZE; ++i)
         //        writer.Write(EquippedWeaponUids[i]);
         //}
@@ -1930,7 +1893,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         //        Items[i].Deserialize(reader);
         //    reader.ReadInt32(); // total weapons count
         //    reader.ReadInt32(); // refresh flag
-        //    EquippedBadgeUid = reader.ReadUInt32();
         //    for (int i = 0; i < EQUIPPED_SIZE; ++i)
         //        EquippedWeaponUids[i] = reader.ReadUInt32();
         //}
@@ -1992,9 +1954,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         private static readonly int[] _gadgetMinProficiencyForRarity = new[] { 0, 5, 15, 50, 95 };
         private static readonly float[] _gadgetMaxQualityForDifficulty = new[] { 0.4f, 0.5f, 0.65f, 0.75f, 0.999f };
         private static readonly float[] _gadgetMissionCompleteMinQualityForDifficulty = new[] { 0.1f, 0.2f, 0.3f, 0.4f, 0.5f };
-        private static readonly int[] _badgeMinEffectCountForRarity = new[] { 1, 1, 2, 3, 4 };
-        private static readonly int[] _badgeMaxEffectCountForRarity = new[] { 2, 3, 4, 5, 7 };
-        private static readonly float[] _badgeEffectStrengthForRarity = new[] { 2f, 1.5f, 1.25f, 1f, 0.5f };
 
         public static readonly RaidsInventoryItem Empty = new RaidsInventoryItem();
 
@@ -2013,10 +1972,10 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             public int MaxUpgrades { get; set; } = 10;
         }
 
-        public class ItemBadgeData
+        public class ItemMiscData
         {
-            public List<RaidsBadgeType> Effects { get; set; } = new List<RaidsBadgeType>();
-            public List<float> EffectStrength { get; set; } = new List<float>();
+            public RaidsMiscItemType Type { get; set; }
+            public uint Count { get; set; }
         }
 
         public uint? Uid { get; set; }
@@ -2025,28 +1984,28 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         public byte Notify { get; set; }
         public byte Quality { get; set; } // rarity index (0-255)
         public ItemWeaponData WeaponData { get; set; } = null;
-        public ItemBadgeData BadgeData { get; set; } = null;
+        public ItemMiscData MiscData { get; set; } = null;
 
-        public bool IsBadge() => Type == RaidsItemType.Badge;
         public bool IsWeapon() => Type == RaidsItemType.Weapon;
+        public bool IsMisc() => Type == RaidsItemType.Misc;
         public bool IsSameItem(RaidsInventoryItem other)
         {
-            if (this.IsBadge() && other.IsBadge())
-            {
-                return this.BadgeData.Effects.Intersect(other.BadgeData.Effects).Count() == this.BadgeData.Effects.Count;
-            }
-            else if (this.IsWeapon() && other.IsWeapon())
-            {
+            if (other == null)
+                return false;
+
+            if (this.IsMisc() && other.IsMisc())
+                return this.MiscData != null && other.MiscData != null && this.MiscData.Type == other.MiscData.Type;
+
+            if (this.IsWeapon() && other.IsWeapon())
                 return this.WeaponData.GadgetId == other.WeaponData.GadgetId;
-            }
 
             return false;
         }
 
         public bool IsValid()
         {
-            if (IsBadge()) return BadgeData.Effects.Count > 0;
-            if (IsWeapon()) return IsGadgetValid(WeaponData.GadgetId) && WeaponData.Damage > 0;
+            if (IsMisc()) return MiscData != null && MiscData.Type != RaidsMiscItemType.None && MiscData.Count > 0;
+            if (IsWeapon()) return WeaponData != null && IsGadgetValid(WeaponData.GadgetId) && WeaponData.Damage > 0;
 
             return false;
         }
@@ -2393,63 +2352,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             return drop;
         }
 
-        public static RaidsInventoryItem GenerateBadge(RaidsGenerateLootDropRequest request, RaidsAccount account)
-        {
-            var drop = new RaidsInventoryItem();
-            drop.Type = RaidsItemType.Badge;
-            drop.BadgeData = new ItemBadgeData();
-
-            var difficultyMaxQuality = _gadgetMaxQualityForDifficulty[request.DifficultyStars] - 0.00001;
-
-            // determine quality
-            var quality = _rng.NextDouble() * _rng.NextDouble() * difficultyMaxQuality;
-
-            switch (request.Type)
-            {
-                case RaidsGenerateLootDropRequest.GenerateLootDropRequestType.MobDeath:
-                    {
-
-                        break;
-                    }
-                case RaidsGenerateLootDropRequest.GenerateLootDropRequestType.MissionCompleteEvent:
-                    {
-                        var minQuality = _gadgetMissionCompleteMinQualityForDifficulty[request.DifficultyStars];
-                        quality = Math.Pow(((1 - minQuality) * quality + minQuality), 1 - minQuality) + 0.01;
-                        //quality = Math.Min(((1 - minQuality) * quality * (1 + minQuality)) + minQuality, Math.Min(1, difficultyMaxQuality + 0.05));
-                        break;
-                    }
-                case RaidsGenerateLootDropRequest.GenerateLootDropRequestType.Store:
-                    {
-                        // reduce quality to max legendary
-                        quality = _rng.NextDouble() * (200.0 / 256.0);
-                        break;
-                    }
-            }
-
-            drop.Quality = (byte)Math.Clamp(quality * 256, 0, 255);
-
-            int rarity = (int)GetRarityFromQuality(drop.Quality);
-            int numEffects = rarity + 1;
-            var availableBadgeTypes = ((RaidsBadgeType[])Enum.GetValues(typeof(RaidsBadgeType))).ToList();
-            availableBadgeTypes.Remove(RaidsBadgeType.COUNT);
-            availableBadgeTypes.Remove(RaidsBadgeType.NONE);
-            for (int i = 0; i < numEffects; ++i)
-            {
-                if (!availableBadgeTypes.Any()) break;
-
-                int idx = _rng.Next(0, availableBadgeTypes.Count);
-                var badgeType = availableBadgeTypes[idx];
-                var strength = (float)Math.Clamp(Math.Pow(_rng.NextDouble() * Math.Pow(quality, 0.5), _badgeEffectStrengthForRarity[rarity]), 0.01, 1);
-                drop.BadgeData.Effects.Add(badgeType);
-                drop.BadgeData.EffectStrength.Add(strength);
-                availableBadgeTypes.Remove(badgeType);
-            }
-
-            drop.Notify = 1;
-            drop.Price = ComputeSellPrice(drop);
-            return drop;
-        }
-
         public static RaidsInventoryItem Generate(RaidsGenerateLootDropRequest request, RaidsAccount account)
         {
             return GenerateWeapon(request, account);
@@ -2457,16 +2359,13 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         public static uint ComputeBuyPrice(RaidsInventoryItem item)
         {
+            if (item.IsMisc()) return item.Price;
+
             int rarity = (int)GetRarityFromQuality(item.Quality);
             float quality = item.Quality / 255.0f;
             int roundTo = 100000;
 
-            if (item.IsBadge())
-            {
-                double bolts = (item.BadgeData.Effects.Count * 100000) + (item.BadgeData.EffectStrength.Sum() * 1000000) + Math.Pow(1000000, 1 + Math.Pow((rarity / 6.0), 2)) + (10000000 * quality);
-                return (uint)(Math.Round(bolts / roundTo) * roundTo);
-            }
-            else if (item.IsWeapon())
+            if (item.IsWeapon())
             {
                 double bolts = (item.WeaponData.Proficiency * 100000) + Math.Pow(500000, 1 + Math.Pow((rarity / 6.0), 2)) + (10000000 * quality);
                 return (uint)(Math.Round(bolts / roundTo) * roundTo);
@@ -2477,16 +2376,13 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         public static uint ComputeSellPrice(RaidsInventoryItem item)
         {
+            if (item.IsMisc()) return item.Price;
+
             int rarity = (int)GetRarityFromQuality(item.Quality);
             float quality = item.Quality / 255.0f;
             int roundTo = 100;
 
-            if (item.IsBadge())
-            {
-                double bolts = (5000 + Math.Pow(1000, 1 + Math.Pow((rarity / 4.0), 1.25)) + (10000 * quality));
-                return (uint)((Math.Round(bolts / roundTo) + 1) * roundTo);
-            }
-            else if (item.IsWeapon())
+            if (item.IsWeapon())
             {
                 double bolts = (item.WeaponData.Proficiency * 250) + Math.Pow(1000, 1 + Math.Pow((rarity / 4.0), 2)) + (10000 * quality);
                 return (uint)((Math.Round(bolts / roundTo) + 1) * roundTo);
@@ -2502,7 +2398,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
 
         public bool MatchFilter(int filter)
         {
-            if (filter == 0) return this.Type == RaidsItemType.Badge;
+            if (filter == 0) return IsMisc();
 
             if (filter > 0 && filter < 9)
             {
@@ -2549,16 +2445,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                         writer.Write((byte)WeaponData.MaxUpgrades);
                         break;
                     }
-                case RaidsItemType.Badge:
+                case RaidsItemType.Misc:
                     {
-                        if (BadgeData == null) BadgeData = new ItemBadgeData();
-
-                        for (int i = 0; i < 8; ++i)
-                            writer.Write(i < BadgeData.Effects.Count ? (byte)BadgeData.Effects[i] : (byte)0);
-                        for (int i = 0; i < 8; ++i)
-                            writer.Write((byte)Math.Ceiling(i < BadgeData.EffectStrength.Count ? (BadgeData.EffectStrength[i] * 255) : 0));
-
-                        writer.Write(new byte[4]);
+                        var data = MiscData ?? new ItemMiscData();
+                        writer.Write((uint)data.Type);
+                        writer.Write(data.Count);
+                        writer.Write(new byte[12]); // union payload is 20 bytes
                         break;
                     }
                 default:
@@ -2600,13 +2492,14 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                         WeaponData.PaintSpecialMask = (RaidsPaintSpecialFlags)(paintCombined >> 4);
                         break;
                     }
-                case RaidsItemType.Badge:
+                case RaidsItemType.Misc:
                     {
-                        if (BadgeData == null) BadgeData = new ItemBadgeData();
-
-                        BadgeData.Effects = reader.ReadBytes(8).Select(x => (RaidsBadgeType)x).ToList();
-                        BadgeData.EffectStrength = reader.ReadBytes(8).Select(x => x * 255f).ToList();
-                        reader.ReadBytes(4);
+                        MiscData = new ItemMiscData
+                        {
+                            Type = (RaidsMiscItemType)reader.ReadUInt32(),
+                            Count = reader.ReadUInt32(),
+                        };
+                        reader.ReadBytes(12);
                         break;
                     }
                 default:
