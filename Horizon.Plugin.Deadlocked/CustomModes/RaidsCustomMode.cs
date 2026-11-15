@@ -103,7 +103,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 RaidsMissionType.Hub => $"Gearing up at {mapName}",
                 RaidsMissionType.OpenWorld => $"Leveling up on Planet {mapName}",
                 RaidsMissionType.Raid => $"Running the {mapName} Raid",
-                _ => $""
+                RaidsMissionType.Minigame => $"Playing {mapName} with the party",
+                _ => $" "
             };
 
             if (missionType == RaidsMissionType.Raid && stars <= 5)
@@ -583,7 +584,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 // fill empty board slots when a map page is requested
                 if (!request.Flags.HasFlag(RaidsContractRequestFlags.Pending)
                     && !string.IsNullOrEmpty(request.MapFilename)
-                    && bank.MapStats.TryGetValue(request.MapFilename, out var stats))
+                    && bank.MapStats.TryGetValue(request.MapFilename, out var stats)
+                    && stats.ContractRules.Count > 0)
                 {
                     var previousUid = bank.ContractStore.NextUid;
                     var previousCount = bank.ContractStore.Boards.GetValueOrDefault(request.MapFilename)?.Contracts.Count ?? 0;
@@ -815,8 +817,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
         {
             if (client.CurrentGame?.Host == null
                 || string.IsNullOrWhiteSpace(request.MapFilename)
-                || request.MissionType < 1
-                || request.MissionType > 2)
+                || request.MissionType > (ushort)RaidsMissionType.Minigame)
                 return;
 
             lock (_contractLock)
@@ -1099,7 +1100,9 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                 .OrderBy(r => r.Contract.OwnerAccountId)
                 .ThenBy(r => r.Contract.Uid)
                 .ToList();
-            var board = pending ? null : ownerBank.ContractStore.Boards.GetValueOrDefault(request.MapFilename);
+            var supportsContracts = ownerBank.MapStats.TryGetValue(request.MapFilename, out var stats)
+                && stats.ContractRules.Count > 0;
+            var board = pending || !supportsContracts ? null : ownerBank.ContractStore.Boards.GetValueOrDefault(request.MapFilename);
             var contracts = pending
                 ? receipts.Skip(request.PendingOffset).Take(3).Select(r => r.Contract).ToList()
                 : board?.Contracts ?? new List<RaidsContract>();
@@ -1325,7 +1328,8 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
     {
         Hub = 0,
         OpenWorld = 1,
-        Raid = 2
+        Raid = 2,
+        Minigame = 3
     }
 
     public enum RaidsContractType
