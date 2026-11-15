@@ -241,14 +241,21 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     {
                         if (!existingItem.IsWeapon() || !request.Item.IsWeapon() || request.Item.WeaponData == null) return;
 
+                        var previousUpgrades = existingItem.WeaponData.Upgrades;
+                        if (request.Item.WeaponData.Upgrades < previousUpgrades || request.Item.WeaponData.Upgrades > previousUpgrades + 1) return;
+
+                        // only successful upgrades may improve an already attached mod
+                        if (request.Item.WeaponData.Upgrades == previousUpgrades + 1 && existingItem.WeaponData.Mod != WeaponMods.None)
+                        {
+                            var modRarity = RaidsInventoryItem.GetRarityFromQuality(existingItem.WeaponData.ModQuality);
+                            var rarity = RaidsInventoryItem.GetRarityFromQuality(existingItem.Quality);
+                            var nextQuality = RaidsInventoryItem.GetQualityFromRarity(modRarity + 1);
+                            if (modRarity < rarity && request.Item.WeaponData.ModQuality == nextQuality)
+                                existingItem.WeaponData.ModQuality = nextQuality;
+                        }
+
                         existingItem.WeaponData.Upgrades = request.Item.WeaponData.Upgrades;
-                        existingItem.WeaponData.MaxUpgrades = request.Item.WeaponData.MaxUpgrades;
                         existingItem.WeaponData.AlphaModCounts = request.Item.WeaponData.AlphaModCounts;
-                        break;
-                    }
-                case RaidsUpdateBankInventoryItemRequest.ItemUpdateAction.UpgradeRarity:
-                    {
-                        existingItem.UpgradeRarity();
                         break;
                     }
                 case RaidsUpdateBankInventoryItemRequest.ItemUpdateAction.SetNotify:
@@ -1977,7 +1984,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             public byte ModQuality { get; set; }
             public byte[] AlphaModCounts { get; set; } = new byte[8];
             public int Upgrades { get; set; } = 0;
-            public int MaxUpgrades { get; set; } = 10;
         }
 
         public class ItemMiscData
@@ -2016,68 +2022,6 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             if (IsWeapon()) return WeaponData != null && IsGadgetValid(WeaponData.GadgetId) && WeaponData.Damage > 0;
 
             return false;
-        }
-
-        public void UpgradeRarity()
-        {
-            if (!IsWeapon()) return;
-
-            var rarity = GetRarityFromQuality(Quality);
-            if (rarity == RaidsItemRarity.Mythic) return;
-
-            // increase rarity
-            rarity++;
-            Quality = GetQualityFromRarity(rarity);
-
-            // increase damage up to 50%
-            WeaponData.Damage += (int)Math.Ceiling(WeaponData.Damage * _rng.NextDouble() * 0.5);
-
-            // reset upgrades
-            WeaponData.Upgrades = 0;
-            WeaponData.MaxUpgrades = 10;
-
-            // add alpha mods
-            int numAlphaMods = GetRandomNumberOfAlphaMods(rarity, WeaponData.Proficiency);
-            int currNumAlphaMods = WeaponData.AlphaModCounts.Sum(x => x);
-            while (numAlphaMods > currNumAlphaMods)
-            {
-                var amod = GetRandomAlphaMod(WeaponData.GadgetId);
-                var amodIdx = (int)amod - 1;
-                if (amod != AlphaMods.None)
-                {
-                    if (WeaponData.AlphaModCounts[amodIdx] >= _gadgetAlphaModMax[amod]) continue;
-                    WeaponData.AlphaModCounts[amodIdx]++;
-                }
-
-                ++currNumAlphaMods;
-            }
-
-            // 10% chance per rarity to add paint
-            var paintChance = 0.1 * (int)rarity;
-            if (WeaponData.Paint == RaidsWeaponPaints.None && _rng.NextDouble() < paintChance)
-                WeaponData.Paint = (RaidsWeaponPaints)_rng.Next(1, (int)RaidsWeaponPaints.COUNT);
-
-            // 5% chance per rarity to add special paint
-            var paintSpecialChance = 0.05 * (int)rarity;
-            if (WeaponData.PaintSpecialMask == RaidsPaintSpecialFlags.None && _rng.NextDouble() < paintChance)
-                WeaponData.PaintSpecialMask = (RaidsPaintSpecialFlags)_rng.Next(1, (int)RaidsPaintSpecialFlags.ALL + 1);
-
-            // 50% chance to increase mod quality
-            // capped at weapon quality
-            var modQualityChance = 0.5;
-            var modNextQuality = GetQualityFromRarity(GetRarityFromQuality(WeaponData.ModQuality) + 1);
-            if (WeaponData.Mod != WeaponMods.None && _rng.NextDouble() < modQualityChance)
-                WeaponData.ModQuality = Math.Min(modNextQuality, Quality);
-
-            // 25% chance per rarity to add mod
-            // mod quality is capped at weapon quality
-            // meaning only Mythic upgrades can get a level V mod
-            var modChance = 0.25 * (int)rarity;
-            if (WeaponData.Mod == WeaponMods.None && _rng.NextDouble() < modChance)
-            {
-                WeaponData.Mod = GetRandomWeaponMod(WeaponData.GadgetId);
-                WeaponData.ModQuality = (byte)(Math.Pow(_rng.NextDouble(), 2) * (Quality + 1));
-            }
         }
 
         public static uint GenerateUid()
@@ -2449,8 +2393,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                         writer.Write((byte)WeaponData.Mod);
                         writer.Write((byte)WeaponData.ModQuality);
                         writer.Write(WeaponData.AlphaModCounts);
-                        writer.Write((byte)WeaponData.Upgrades);
-                        writer.Write((byte)WeaponData.MaxUpgrades);
+                        writer.Write((ushort)Math.Clamp(WeaponData.Upgrades, 0, ushort.MaxValue));
                         break;
                     }
                 case RaidsItemType.Misc:
@@ -2493,8 +2436,7 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                         WeaponData.Mod = (WeaponMods)reader.ReadByte();
                         WeaponData.ModQuality = reader.ReadByte();
                         WeaponData.AlphaModCounts = reader.ReadBytes(8);
-                        WeaponData.Upgrades = reader.ReadByte();
-                        WeaponData.MaxUpgrades = reader.ReadByte();
+                        WeaponData.Upgrades = reader.ReadUInt16();
 
                         WeaponData.Paint = (RaidsWeaponPaints)(paintCombined & 0xf);
                         WeaponData.PaintSpecialMask = (RaidsPaintSpecialFlags)(paintCombined >> 4);

@@ -22,7 +22,6 @@ namespace Horizon.Plugin.Deadlocked.Messages
             Equip,
             Unequip,
             Upgrade,
-            UpgradeRarity,
             Destroy
         }
 
