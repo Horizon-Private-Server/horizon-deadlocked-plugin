@@ -2203,11 +2203,11 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             account.UnlockWeapon(drop.WeaponData.GadgetId);
 
             // 
-            int accountProf = account?.GetWeaponProficiency() ?? 98;
+            int accountProf = account?.GetWeaponProficiency() ?? RaidsCustomMode.MAX_WEAPON_LEVEL;
             int minProficiency = account == null ? 0 : Math.Max(0, accountProf - 5);
-            int maxProficiency = account == null ? 99 : Math.Min(99, accountProf + 5);
+            int maxProficiency = account == null ? RaidsCustomMode.MAX_WEAPON_LEVEL : Math.Min(RaidsCustomMode.MAX_WEAPON_LEVEL, accountProf + 5);
             int difficultyMinProficiency = _gadgetMinProficiencyForDifficulty[request.DifficultyStars];
-            int difficultyMaxProficiency = _gadgetMaxProficiencyForDifficulty[request.DifficultyStars];
+            int difficultyMaxProficiency = Math.Min(RaidsCustomMode.MAX_WEAPON_LEVEL, _gadgetMaxProficiencyForDifficulty[request.DifficultyStars] - 1);
             var difficultyMaxQuality = _gadgetMaxQualityForDifficulty[request.DifficultyStars] - 0.00001;
             var proficiencyCurve = 2;
 
@@ -2218,9 +2218,9 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
             {
                 case RaidsGenerateLootDropRequest.GenerateLootDropRequestType.MobDeath:
                     {
-                        //minProficiency = difficultyMinProficiency;
-                        maxProficiency = Math.Min(maxProficiency, difficultyMaxProficiency);
-                        minProficiency = Math.Max(0, maxProficiency - 5);
+                        int proficiencyCenter = Math.Clamp(accountProf, difficultyMinProficiency, difficultyMaxProficiency);
+                        minProficiency = Math.Max(difficultyMinProficiency, proficiencyCenter - 5);
+                        maxProficiency = Math.Min(difficultyMaxProficiency, proficiencyCenter + 5);
                         proficiencyCurve = 1;
                         break;
                     }
@@ -2228,11 +2228,10 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     {
                         var minQuality = _gadgetMissionCompleteMinQualityForDifficulty[request.DifficultyStars];
                         quality = Math.Pow(((1 - minQuality) * quality + minQuality), 1 - minQuality) + 0.01;
-                        //quality = Math.Min(((1 - minQuality) * quality * (1 + minQuality)) + minQuality, Math.Min(1, difficultyMaxQuality + 0.05));
 
-                        // move min closer to account prof unless account prof is below
-                        minProficiency = (int)Math.Min((maxProficiency + difficultyMinProficiency) * 0.5, difficultyMinProficiency);
-                        maxProficiency = difficultyMaxProficiency;
+                        int proficiencyCenter = Math.Clamp(accountProf, difficultyMinProficiency, difficultyMaxProficiency);
+                        minProficiency = Math.Max(difficultyMinProficiency, proficiencyCenter - 5);
+                        maxProficiency = Math.Min(difficultyMaxProficiency, proficiencyCenter + 5);
                         proficiencyCurve = 1;
                         break;
                     }
@@ -2240,14 +2239,18 @@ namespace Horizon.Plugin.Deadlocked.CustomModes
                     {
                         // reduce quality to max legendary
                         quality = _rng.NextDouble() * (200.0 / 256.0);
-                        minProficiency = (int)(quality * 98);
-                        maxProficiency = 99;
+                        minProficiency = (int)(quality * RaidsCustomMode.MAX_WEAPON_LEVEL);
+                        maxProficiency = RaidsCustomMode.MAX_WEAPON_LEVEL;
                         break;
                     }
             }
 
             drop.Quality = (byte)Math.Clamp(quality * 256, 0, 255);
-            drop.WeaponData.Proficiency = (byte)(minProficiency + (Math.Pow(_rng.NextDouble() * _rng.NextDouble(), proficiencyCurve / 2f) * (maxProficiency - minProficiency)));
+            // Include both endpoints for every drop type. Stored proficiency 98 displays as V99.
+            maxProficiency = Math.Min(maxProficiency, RaidsCustomMode.MAX_WEAPON_LEVEL);
+            int proficiencyRange = (maxProficiency - minProficiency) + 1;
+            double proficiencyRoll = Math.Pow(_rng.NextDouble() * _rng.NextDouble(), proficiencyCurve / 2f);
+            drop.WeaponData.Proficiency = (byte)Math.Min(maxProficiency, minProficiency + (int)(proficiencyRoll * proficiencyRange));
             drop.Notify = 1;
             var rarity = (int)GetRarityFromQuality(drop.Quality);
 
