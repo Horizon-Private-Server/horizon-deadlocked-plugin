@@ -1,6 +1,8 @@
 ﻿using DotNetty.Common.Internal.Logging;
 using Horizon.Plugin.Deadlocked.CustomModes;
+using Horizon.Plugin.Deadlocked.CustomModes.Raids;
 using Horizon.Plugin.Deadlocked.Messages;
+using Horizon.Plugin.Deadlocked.CustomModes.Raids.Messages;
 using RT.Common;
 using RT.Models;
 using Server.Common;
@@ -952,6 +954,28 @@ namespace Horizon.Plugin.Deadlocked
                                     if (metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_RAIDS) break;
 
                                     mode.OnClientSaveSettings(request, msg.Player);
+                                    break;
+                                }
+                            case 79: // raids title action
+                                {
+                                    var request = new RaidsTitleActionRequest();
+                                    request.Deserialize(reader);
+                                    if (msg.Player.CurrentGame == null) break;
+                                    var metadata = await Game.GetGameMetadata(msg.Player.CurrentGame);
+                                    if (metadata == null || metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_RAIDS) break;
+                                    var mode = Modes.FindCustomModeById(CustomModeId.CMODE_ID_RAIDS) as RaidsCustomMode;
+                                    mode.OnClientTitleAction(request, msg.Player, metadata);
+                                    break;
+                                }
+                            case 80: // raids consumable action
+                                {
+                                    var request = new RaidsConsumableActionRequest();
+                                    request.Deserialize(reader);
+                                    if (msg.Player.CurrentGame == null) break;
+                                    var metadata = await Game.GetGameMetadata(msg.Player.CurrentGame);
+                                    if (metadata == null || metadata.GetRealCustomModeId() != CustomModeId.CMODE_ID_RAIDS) break;
+                                    var mode = Modes.FindCustomModeById(CustomModeId.CMODE_ID_RAIDS) as RaidsCustomMode;
+                                    mode.OnClientConsumableAction(request, msg.Player, metadata);
                                     break;
                                 }
                             default:

@@ -5,6 +5,20 @@ using System.Text;
 
 public static class BinaryHelper
 {
+    // PS2 masks are little-endian, with the low 64 bits first.
+    public static void WriteUInt128(this BinaryWriter writer, UInt128 value)
+    {
+        writer.Write((ulong)value);
+        writer.Write((ulong)(value >> 64));
+    }
+
+    public static UInt128 ReadUInt128(this BinaryReader reader)
+    {
+        var low = reader.ReadUInt64();
+        var high = reader.ReadUInt64();
+        return ((UInt128)high << 64) | low;
+    }
+
     public static int CountBits(uint value)
     {
         int count = 0;

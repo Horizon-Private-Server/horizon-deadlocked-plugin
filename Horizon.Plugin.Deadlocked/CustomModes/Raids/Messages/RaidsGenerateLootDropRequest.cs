@@ -1,0 +1,73 @@
+using Horizon.Plugin.Deadlocked.Messages;
+using RT.Common;
+using RT.Models;
+using Server.Common;
+using Server.Common.Stream;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
+using System.Text;
+
+namespace Horizon.Plugin.Deadlocked.CustomModes.Raids.Messages
+{
+    public class RaidsGenerateLootDropRequest : BasePluginMessage
+    {
+        public override byte CustomMsgId => 55;
+        public override bool SkipEncryption { get => true; set { } }
+
+        public enum GenerateLootDropRequestType
+        {
+            MobDeath = 0,
+            MissionCompleteEvent,
+            Store
+        }
+
+        public Vector3 Position { get; set; }
+        public GenerateLootDropRequestType Type { get; set; }
+        public int DifficultyStars { get; set; }
+
+        // MOB (if mob death triggered loot)
+        public float MobHealth { get; set; }
+        public float MobSpeed { get; set; }
+        public float MobDamage { get; set; }
+        public int MobMobyOClass { get; set; }
+        public Gadgets MobKilledByGadget { get; set; }
+        public Gadgets[] QuickSelectGadgets { get; set; } = new Gadgets[3];
+
+        public bool IsStore() => Type == GenerateLootDropRequestType.Store;
+
+        public override void Deserialize(MessageReader reader)
+        {
+            base.Deserialize(reader);
+
+            Position = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+            reader.ReadSingle(); // padding
+            Type = (GenerateLootDropRequestType)reader.ReadInt32();
+            DifficultyStars = reader.ReadInt32();
+            MobHealth = reader.ReadSingle();
+            MobDamage = reader.ReadSingle();
+            MobSpeed = reader.ReadSingle();
+            MobKilledByGadget = (Gadgets)reader.ReadInt32();
+            MobMobyOClass = reader.ReadInt16();
+            QuickSelectGadgets = reader.ReadArray<byte>(3).Select(x => (Gadgets)x).ToArray();
+        }
+
+        protected override void SerializePayload(MessageWriter writer)
+        {
+            writer.Write(Position.X);
+            writer.Write(Position.Y);
+            writer.Write(Position.Z);
+            writer.Write(0f);
+            writer.Write(Type);
+            writer.Write(DifficultyStars);
+            writer.Write(MobHealth);
+            writer.Write(MobDamage);
+            writer.Write(MobSpeed);
+            writer.Write(MobKilledByGadget);
+            writer.Write((ushort)MobMobyOClass);
+            for (int i = 0; i < 3; ++i)
+                writer.Write((byte)QuickSelectGadgets[i]);
+        }
+    }
+}

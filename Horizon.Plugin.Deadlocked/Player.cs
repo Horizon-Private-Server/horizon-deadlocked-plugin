@@ -1,4 +1,5 @@
 ﻿using Horizon.Plugin.Deadlocked.CustomModes;
+using Horizon.Plugin.Deadlocked.CustomModes.Raids.Models;
 using Horizon.Plugin.Deadlocked.Messages;
 using Newtonsoft.Json;
 using Server.Medius;

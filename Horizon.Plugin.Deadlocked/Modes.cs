@@ -1,4 +1,5 @@
 ﻿using Horizon.Plugin.Deadlocked.CustomModes;
+using Horizon.Plugin.Deadlocked.CustomModes.Raids;
 using System;
 using System.Collections.Generic;
 using System.Linq;
