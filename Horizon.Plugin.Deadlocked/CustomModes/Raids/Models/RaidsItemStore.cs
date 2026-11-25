@@ -64,11 +64,11 @@ namespace Horizon.Plugin.Deadlocked.CustomModes.Raids.Models
             int totalPages = weaponPages + consumablePages;
             if (page < 0 || page >= totalPages) return null;
 
-            bool weapons = page < weaponPages;
+            bool weapons = page >= consumablePages;
             var items = weapons
-                ? FIXED_ITEMS.Skip(page * RaidsStorePage.MAX_ITEMS).Take(RaidsStorePage.MAX_ITEMS)
+                ? FIXED_ITEMS.Skip((page - consumablePages) * RaidsStorePage.MAX_ITEMS).Take(RaidsStorePage.MAX_ITEMS)
                     .Select(item => { var copy = item.Copy(); copy.Price = 50_000; return copy; }).ToArray()
-                : consumableTypes.Skip((page - weaponPages) * RaidsStorePage.MAX_ITEMS).Take(RaidsStorePage.MAX_ITEMS)
+                : consumableTypes.Skip(page * RaidsStorePage.MAX_ITEMS).Take(RaidsStorePage.MAX_ITEMS)
                     .Select(type => new RaidsInventoryItem
                     {
                         Type = RaidsItemType.Misc,
