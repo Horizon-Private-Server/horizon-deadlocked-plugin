@@ -69,6 +69,18 @@ namespace Horizon.Plugin.Deadlocked.CustomModes.Raids.Models
             return board;
         }
 
+        public bool RetireCompletedOffers(RaidsContractBoard board, uint owner)
+        {
+            // Claims made in another lobby leave the original host's offer on its saved board.
+            // Guest receipts remain claimable independently of the shared board.
+            if (board.Contracts.RemoveAll(c => c.OwnerAccountId == owner && c.Completed
+                && FindReceipt(owner, c.Uid)?.Claimed != false) == 0)
+                return false;
+
+            ++board.Sequence;
+            return true;
+        }
+
         public void Refresh(RaidsContractBoard board, uint owner, IReadOnlyList<RaidsContractRule> rules,
             IEnumerable<int> heroLevels, DateTime now, int hostHeroLevel, RaidsContract previous = null)
         {

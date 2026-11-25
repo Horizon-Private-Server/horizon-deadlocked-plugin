@@ -37,11 +37,12 @@ namespace Horizon.Plugin.Deadlocked.CustomModes.Raids
                     var previousUid = bank.ContractStore.NextUid;
                     var previousCount = bank.ContractStore.Boards.GetValueOrDefault(request.MapFilename)?.Contracts.Count ?? 0;
                     var board = bank.ContractStore.GetBoard(request.MapFilename, stats.Name ?? request.MapFilename);
+                    var retired = bank.ContractStore.RetireCompletedOffers(board, (uint)host.AccountId);
                     bank.ContractStore.Refresh(board, (uint)host.AccountId, stats.ContractRules, ContractLevels(host), DateTime.UtcNow,
                         RaidsAccount.GetAccountLevelFromXp(bank.Account.Experience) + 1);
 
                     // save if the board changed
-                    var boardChanged = previousUid != bank.ContractStore.NextUid || previousCount != board.Contracts.Count;
+                    var boardChanged = retired || previousUid != bank.ContractStore.NextUid || previousCount != board.Contracts.Count;
                     if (boardChanged)
                         Player.SavePlayerMetadata(host);
                 }
